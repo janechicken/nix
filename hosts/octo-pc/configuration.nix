@@ -9,7 +9,6 @@
     [ # Include the results of the hardware scan.
       ./hardware-configuration.nix
       ../../modules/fonts.nix
-      ../../modules/nvchad.nix
     ];
 
   system.autoUpgrade.enable = true;
@@ -169,7 +168,6 @@
      dconf
      adwaita-icon-theme
      alsa-lib
-     nvchad
      unzip
    ];
      environment.variables.EDITOR = "nvim";

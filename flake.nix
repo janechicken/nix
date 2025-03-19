@@ -7,10 +7,6 @@
       url = "github:nix-community/home-manager";
       inputs.nixpkgs.follows = "nixpkgs";
     };
-    sf-mono-liga-src = {
-      url = "github:shaunsingh/SFMono-Nerd-Font-Ligaturized";
-      flake = false;
-    };
     firefox-addons = {
       url = "gitlab:rycee/nur-expressions?dir=pkgs/firefox-addons";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -24,16 +20,26 @@
       inputs.nixpkgs.follows = "nixpkgs";
       inputs.nvchad-starter.follows = "nvchad-starter";
     };
+    rust-overlay = {
+      url = "github:oxalica/rust-overlay";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
-  outputs = { self, nixpkgs, home-manager, sf-mono-liga-src, firefox-addons, nvchad4nix, ...} @inputs: let 
+  outputs = { self, nixpkgs, home-manager, firefox-addons, nvchad4nix, fenix, rust-overlay, ...} @inputs: let 
     inherit (self) outputs;
     in {
          # sudo nixos-rebuild switch --flake .#octo-pc
          nixosConfigurations = {
 	   octo-pc = nixpkgs.lib.nixosSystem {
 	     specialArgs = {inherit inputs outputs;};
-	     modules = [ ./hosts/octo-pc/configuration.nix ];
+	     modules = [ 
+       ./hosts/octo-pc/configuration.nix
+          ({ pkgs, ... }: {
+            nixpkgs.overlays = [ rust-overlay.overlays.default ];
+            environment.systemPackages = [ pkgs.rust-bin.stable.latest.default ];
+          })
+          ];
 	   };
 	 };
 

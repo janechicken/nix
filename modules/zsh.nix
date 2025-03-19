@@ -1,6 +1,10 @@
 { config, inputs, pkgs, lib, ... }:
 
 {
+      home.packages = with pkgs; [
+        any-nix-shell
+      ];
+
       programs.zsh = {
         enable = true;
 	enableCompletion = true;

@@ -30,7 +30,7 @@
 
 	programs.kitty = {
 	  enable = true;
-	  themeFile = "gruvbox-dark";
+	  themeFile = "gruvbox-dark-hard";
 	  shellIntegration.enableZshIntegration = true;
 	  settings = { connfirm_os_window_close = 0; enable_audio_bell = false; };
 	};
