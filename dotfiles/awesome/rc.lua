@@ -481,12 +481,18 @@ clientkeys = gears.table.join(
             c:raise()
         end ,
         {description = "(un)maximize horizontally", group = "client"}),
-    awful.key({ modkey, }, "p", function() awful.spawn("rofi -show drun -disable-history -show-icons") end),
-    awful.key({ modkey, }, "r", function() awful.spawn("rofi -show run -disable-history -show-icons") end),
-    awful.key({ modkey, }, "e", function() awful.spawn("rofi -show emoji -modi emoji -emoji-mode copy") end),
-    awful.key({}, "XF86AudioPlay", function() awful.spawn("playerctl play-pause") end),
-    awful.key({}, "XF86AudioNext", function() awful.spawn("playerctl next") end),
-    awful.key({}, "XF86AudioPrev", function() awful.spawn("playerctl previous") end)
+    awful.key({ modkey, }, "p", function() awful.spawn("rofi -show drun -disable-history -show-icons") end,
+              {description = "show rofi drun", group = "launcher"}),
+    awful.key({ modkey, }, "r", function() awful.spawn("rofi -show run -disable-history -show-icons") end,
+              {description = "show rofi run", group = "launcher"}),
+    awful.key({ modkey, }, "e", function() awful.spawn("rofi -show emoji -modi emoji -emoji-mode copy") end,
+              {description = "show rofi emoji", group = "launcher"}),
+    awful.key({}, "XF86AudioPlay", function() awful.spawn("playerctl play-pause") end,
+              {description = "play/pause media", group = "media"}),
+    awful.key({}, "XF86AudioNext", function() awful.spawn("playerctl next") end,
+              {description = "next media", group = "media"}),
+    awful.key({}, "XF86AudioPrev", function() awful.spawn("playerctl previous") end,
+              {description = "previous media", group = "media"})
 )
 
 -- Bind all key numbers to tags.
