@@ -29,35 +29,22 @@
     };
   };
 
-  outputs = { self, nixpkgs, home-manager, firefox-addons, nvchad4nix, fenix, yeetmouse, nixcord, ...} @inputs: let 
-    inherit (self) outputs;
-    in {
-         # sudo nixos-rebuild switch --flake .#octo-pc
+  outputs = inputs@{ self, nixpkgs, home-manager, firefox-addons, nvchad4nix, fenix, yeetmouse, nixcord, ...}: {
+         # nh os switch .
          nixosConfigurations = {
 	   octo-pc = nixpkgs.lib.nixosSystem {
        system = "x86_64-linux";
-	     specialArgs = {inherit inputs outputs;};
+	     specialArgs = {inherit inputs;};
 	     modules = [ ./hosts/octo-pc/configuration.nix ];
 	   };
 	 };
 
-	 # home-manager switch --flake .#octo@octo-pc
+	 # nh home switch .
 	 homeConfigurations = {
 	   "octo@octo-pc" = home-manager.lib.homeManagerConfiguration {
 	     pkgs = nixpkgs.legacyPackages.x86_64-linux;
-	     extraSpecialArgs = {inherit inputs outputs;};
-	     modules = [
-       ./hosts/octo-pc/home.nix 
-       home-manager.nixosModules.home-manager
-          {
-            home-manager.useGlobalPkgs = true;
-            home-manager.useUserPackages = true;
-          
-          home-manager.sharedModules = [
-              inputs.nixcord.homeManagerModules.nixcord
-          ];
-          }
-       ];
+	     extraSpecialArgs = {inherit inputs;};
+	     modules = [ ./hosts/octo-pc/home.nix ];
 	   };
 	 };
   };

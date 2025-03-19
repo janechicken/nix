@@ -1,14 +1,10 @@
 { config, inputs, pkgs, lib, ... }:
 {
-  home.packages = with pkgs; [
-    (discord.override {
-      withVencord = true;
-     })
-  ];
+  imports = [ inputs.nixcord.homeManagerModules.nixcord ];
 
   programs.nixcord = {
     enable = true;
-    plugins = {
+    config.plugins = {
       alwaysExpandRoles.enable = true;
       alwaysTrust.enable = true;
       betterFolders.enable = true;

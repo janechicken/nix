@@ -6,7 +6,6 @@
   [
     ./librewolf.nix
     ./zsh.nix
-    inputs.nixcord.homeManagerModules.nixcord
   ];
   
 
