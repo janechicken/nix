@@ -111,14 +111,15 @@
     "nvchad-starter": {
       "flake": false,
       "locked": {
-        "path": "./dotfiles/nvim",
+        "lastModified": 1,
+        "narHash": "sha256-qVq0WLkaefB8tw9F1GH59pQQYMVaP6wR6ov4VfK1lGE=",
+        "path": "/nix/store/qckq8by4x5rfizsiawqwnkwps6nhcnk8-source/dotfiles/nvim",
         "type": "path"
       },
       "original": {
-        "path": "./dotfiles/nvim",
+        "path": "/nix/store/qckq8by4x5rfizsiawqwnkwps6nhcnk8-source/dotfiles/nvim",
         "type": "path"
-      },
-      "parent": []
+      }
     },
     "nvchad4nix": {
       "inputs": {
@@ -150,8 +151,7 @@
         "home-manager": "home-manager",
         "nixpkgs": "nixpkgs_2",
         "nvchad-starter": "nvchad-starter",
-        "nvchad4nix": "nvchad4nix",
-        "rust-overlay": "rust-overlay"
+        "nvchad4nix": "nvchad4nix"
       }
     },
     "rust-analyzer-src": {
@@ -168,26 +168,6 @@
         "owner": "rust-lang",
         "ref": "nightly",
         "repo": "rust-analyzer",
-        "type": "github"
-      }
-    },
-    "rust-overlay": {
-      "inputs": {
-        "nixpkgs": [
-          "nixpkgs"
-        ]
-      },
-      "locked": {
-        "lastModified": 1742351546,
-        "narHash": "sha256-GPubFcOXyi8TVm1xpltHYPcfGr+iO+if2u/EtzFVnHQ=",
-        "owner": "oxalica",
-        "repo": "rust-overlay",
-        "rev": "b0a7450168c62a46f87d204280e6d9d1c0292671",
-        "type": "github"
-      },
-      "original": {
-        "owner": "oxalica",
-        "repo": "rust-overlay",
         "type": "github"
       }
     }

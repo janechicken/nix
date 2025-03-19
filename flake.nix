@@ -12,7 +12,7 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
     nvchad-starter = {
-      url = "git+file:./dotfiles/nvim";
+      url = "./dotfiles/nvim";
       flake = false;
     };
     nvchad4nix = {
@@ -22,7 +22,7 @@
     };
   };
 
-  outputs = { self, nixpkgs, home-manager, firefox-addons, nvchad4nix, fenix, rust-overlay, ...} @inputs: let 
+  outputs = { self, nixpkgs, home-manager, firefox-addons, nvchad4nix, fenix, ...} @inputs: let 
     inherit (self) outputs;
     in {
          # sudo nixos-rebuild switch --flake .#octo-pc
