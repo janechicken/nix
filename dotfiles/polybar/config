@@ -1,0 +1,197 @@
+[colors]
+background = #0f0f0f
+background-alt = #222 
+foreground = #eee
+foreground-alt = #bbb
+
+[settings]
+format-foreground =
+format-underline = #4c7bab
+format-background = #222
+format-padding = 1
+format-overline =
+format-margin = 1
+format-offset =
+screenchange-reload = true
+
+[global/wm]
+margin-top = 0
+margin-bottom = 0
+
+[bar/bar]
+monitor = ${env:MONITOR:DP-2}
+monitor-fallback =
+monitor-strict = false
+monitor-exact = true
+override-redirect = false
+wm-restack = bspwm
+enable-ipc = true
+fixed-center = true
+bottom = false
+separator =
+
+width = 100%
+height = 32
+offset-x = 0
+offset-y = 0
+radius = 0.0
+
+underline-size = 3
+overline-size = 0
+
+background = ${colors.background}
+foreground = ${colors.foreground}
+
+module-margin-left = 0
+module-margin-right = 0
+
+font-0 = sans-serif:scale=10;
+font-1 = Noto Color Emoji:scale=10;
+
+modules-left = bspwm xwindow
+modules-center = time 
+modules-right =
+
+tray-position = right
+tray-padding = 0
+tray-margin = 0
+tray-background = ${colors.background}
+tray-offset-x = 0
+tray-offset-y = 0
+tray-scale = 1.0
+
+cursor-click = pointer
+cursor-scroll = default
+
+[module/subs]
+type = custom/script
+exec = polysubs
+interval = 300
+click-left = $BROWSER https://studio.youtube.com &
+click-right = chromium https://studio.youtube.com &
+
+[module/xwindow]
+type = internal/xwindow
+label =  %title:0:80:...%
+
+format-underline = ${colors.background}
+format-background = ${colors.background}
+format-padding =
+
+[module/bspwm]
+type = internal/bspwm
+
+enable-scroll = true
+label-focused = %name%
+label-focused-background = #222
+label-focused-underline = #4c7bab
+label-focused-padding = 1
+
+label-occupied = %name%
+label-occupied-padding = 1
+
+label-urgent = %name%!
+label-urgent-background = #d53
+label-urgent-padding = 1
+
+label-empty = %name%
+label-empty-foreground = ${colors.foreground-alt}
+label-empty-padding = 1
+
+format-underline = ${colors.background}
+format-background = ${colors.background}
+format-padding = 
+scroll-up = bspwm-desknext
+scroll-down = bspwm-deskprev
+
+; Separator in between workspaces
+label-separator =  
+
+[module/pacman-packages]
+type = custom/script
+label = "%output%"
+exec = eix -u --format '<installedversions:NAMEVERSION>' | wc -l
+format-prefix = "📦 "
+initial = 1
+
+[module/crypto]
+type = custom/script
+exec = echo 💰
+interval = 0
+click-left = $TERMINAL -e cointop &
+click-right = notifycrypto
+
+[module/torrents]
+type = custom/script
+exec = echo 📥
+click-left = $TERMINAL -e tremc &
+click-right = notifytorrents
+interval = 0
+
+[module/memory]
+type = custom/script
+exec = free --mebi | sed -n '2{p;q}' | awk '{printf ("%2.2fGiB/%2.2fGiB\n", ( $3 / 1024), ($2 / 1024))}'
+label = "%output%"
+interval = 10
+format-prefix = "🧠 "
+
+[module/cpu-usage]
+type = custom/script
+exec = polycpu
+label = "%output%"
+click-left = $TERMINAL -e htop &
+interval = 10
+format-prefix = "💻 "
+
+[module/cpu-temperature]
+type = custom/script
+exec = $HOME/.local/bin/cputemp
+label = "%output%"
+format-prefix="🔥 "
+interval = 0
+
+[module/weather]
+type = custom/script
+exec = i3weather
+label = "%output%"
+click-left = $TERMINAL -e w3m wttr.in/Adelaide &
+interval = 1800
+
+[module/volume]
+type = custom/script
+exec = $HOME/.local/bin/statusbar/sb-volume
+label = "%output%"
+click-right = pavucontrol 
+click-left = pamixer -t 
+interval = 0
+
+
+[module/time]
+type = custom/script
+exec = $HOME/.local/bin/statusbar/sb-clock
+label = "%output%"
+interval = 1
+
+[module/wifi]
+type = custom/script
+exec = $HOME/.local/bin/statusbar/sb-internet
+label = "%output%"
+click-left = kitty -e nmtui-connect
+
+[module/battery]
+type = custom/script
+exec = $HOME/.local/bin/statusbar/sb-battery 
+label = "%output%"
+interval = 10
+
+; [module/backlight]
+; type = custom/ipc
+; hook-0 = light -G | sed 's/\.[0-9]*//'
+; format-prefix = "💡 "
+; initial = 1
+
+; vim:ft=dosini
+
+[module/bspwmtest]
+type=custom/text
+content=%{A:bspc desktop -f '^1':} 1 %{A} %{A:bspc desktop -f '^2':} 2 %{A}

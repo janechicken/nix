@@ -1,0 +1,31 @@
+#flameshot gui
+ctrl + Print
+    flameshot gui --clipboard --path ~/Pictures/Screenshots
+
+Print
+    flameshot screen --clipboard --path ~/Pictures/Screenshots
+
+#bind rofi drun
+super + p
+    rofi -show drun -disable-history -show-icons
+
+#show rofi command run
+super + r
+    rofi -show run -disable-history -show-icons
+
+#rofi emoji plugin
+super + e
+    rofi -show emoji -modi emoji -emoji-mode copy
+
+super + Escape
+    killall sxhkd && setsid sxhkd
+
+
+# multimedia keys
+
+XF86AudioPlay
+    playerctl play-pause
+XF86AudioNext
+    playerctl next
+XF86AudioPrev
+    playerctl previous
