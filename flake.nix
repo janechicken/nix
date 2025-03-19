@@ -20,18 +20,20 @@
       inputs.nixpkgs.follows = "nixpkgs";
       inputs.nvchad-starter.follows = "nvchad-starter";
     };
+    yeetmouse = {
+    url = "github:AndyFilter/YeetMouse?dir=nix";
+    inputs.nixpkgs.follows = "nixpkgs";
+  };
   };
 
-  outputs = { self, nixpkgs, home-manager, firefox-addons, nvchad4nix, fenix, ...} @inputs: let 
+  outputs = { self, nixpkgs, home-manager, firefox-addons, nvchad4nix, fenix, yeetmouse, ...} @inputs: let 
     inherit (self) outputs;
     in {
          # sudo nixos-rebuild switch --flake .#octo-pc
          nixosConfigurations = {
 	   octo-pc = nixpkgs.lib.nixosSystem {
 	     specialArgs = {inherit inputs outputs;};
-	     modules = [ 
-       ./hosts/octo-pc/configuration.nix
-          ];
+	     modules = [ ./hosts/octo-pc/configuration.nix yeetmouse.nixosModules.default ];
 	   };
 	 };
 

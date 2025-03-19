@@ -150,7 +150,8 @@
         "home-manager": "home-manager",
         "nixpkgs": "nixpkgs_2",
         "nvchad-starter": "nvchad-starter",
-        "nvchad4nix": "nvchad4nix"
+        "nvchad4nix": "nvchad4nix",
+        "yeetmouse": "yeetmouse"
       }
     },
     "rust-analyzer-src": {
@@ -167,6 +168,28 @@
         "owner": "rust-lang",
         "ref": "nightly",
         "repo": "rust-analyzer",
+        "type": "github"
+      }
+    },
+    "yeetmouse": {
+      "inputs": {
+        "nixpkgs": [
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "dir": "nix",
+        "lastModified": 1739811646,
+        "narHash": "sha256-ISEA4XCDO1nZhWTTTPrzkqEMuVxKOZP6fXauhMpV0go=",
+        "owner": "AndyFilter",
+        "repo": "YeetMouse",
+        "rev": "fa35c33b23fd2f2a594f09c0eb08ee8b21b9c536",
+        "type": "github"
+      },
+      "original": {
+        "dir": "nix",
+        "owner": "AndyFilter",
+        "repo": "YeetMouse",
         "type": "github"
       }
     }
