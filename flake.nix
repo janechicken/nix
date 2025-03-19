@@ -12,17 +12,13 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
     nvchad-starter = {
-      url = "path:./dotfiles/nvim";
+      url = "git+file:./dotfiles/nvim";
       flake = false;
     };
     nvchad4nix = {
       url = "github:nix-community/nix4nvchad";
       inputs.nixpkgs.follows = "nixpkgs";
       inputs.nvchad-starter.follows = "nvchad-starter";
-    };
-    rust-overlay = {
-      url = "github:oxalica/rust-overlay";
-      inputs.nixpkgs.follows = "nixpkgs";
     };
   };
 
@@ -35,10 +31,6 @@
 	     specialArgs = {inherit inputs outputs;};
 	     modules = [ 
        ./hosts/octo-pc/configuration.nix
-          ({ pkgs, ... }: {
-            nixpkgs.overlays = [ rust-overlay.overlays.default ];
-            environment.systemPackages = [ pkgs.rust-bin.stable.latest.default ];
-          })
           ];
 	   };
 	 };
