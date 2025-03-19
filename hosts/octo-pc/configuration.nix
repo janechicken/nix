@@ -10,6 +10,8 @@
       ./hardware-configuration.nix
       ../../modules/fonts.nix
       inputs.yeetmouse.nixosModules.default
+      ../../modules/core.nix
+      ../../modules/fido.nix
     ];
 
   hardware.yeetmouse = {
@@ -161,24 +163,15 @@
   # List packages installed in system profile. To search, run:
   # $ nix search wget
    environment.systemPackages = with pkgs; [
-     wget
-     lsd
      xorg.xorgserver
      xorg.xf86inputevdev
      xorg.xf86inputsynaptics
      xorg.xf86inputlibinput
-     fastfetch
-     yubikey-manager
-     yubikey-personalization
-     yubikey-agent
      home-manager
      alsa-utils
-     pam_u2f
      dconf
      adwaita-icon-theme
      alsa-lib
-     unzip
-     nh
    ];
      environment.variables.EDITOR = "nvim";
 
@@ -188,10 +181,6 @@
    programs.gnupg.agent = {
      enable = true;
      enableSSHSupport = true;
-   };
-   security.pam.services = {
-     login.u2fAuth = true;
-     sudo.u2fAuth = true;
    };
 
   # List services that you want to enable:
