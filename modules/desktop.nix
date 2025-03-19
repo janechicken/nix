@@ -8,8 +8,6 @@
     ./zsh.nix
   ];
       home.packages = with pkgs; [
-      zsh
-      any-nix-shell
       bibata-cursors
       kitty
       gnome-tweaks
