@@ -6,4 +6,5 @@
   userName = "jane chicken";
   userEmail = "jane@janechicken.com";
   };
+  programs.lazygit.enable = true;
 }
