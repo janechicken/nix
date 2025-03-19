@@ -9,13 +9,12 @@
     [ # Include the results of the hardware scan.
       ./hardware-configuration.nix
       ../../modules/fonts.nix
+      ../../modules/nvchad.nix
     ];
 
   system.autoUpgrade.enable = true;
   system.autoUpgrade.allowReboot = true;
   nixpkgs.config.allowUnfree = true;
-
-  nixpkgs.overlays = [ ( import ../../overlays/nvchad.nix ) ];
 
   # Use the systemd-boot EFI boot loader.
   boot = {
