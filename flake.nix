@@ -21,7 +21,7 @@
       inputs.nvchad-starter.follows = "nvchad-starter";
     };
     yeetmouse = {
-    url = "github:AndyFilter/YeetMouse?dir=nix";
+    url = "github:AndyFilter/YeetMouse/driver/experimental/?dir=nix";
     inputs.nixpkgs.follows = "nixpkgs";
   };
   };
@@ -32,8 +32,9 @@
          # sudo nixos-rebuild switch --flake .#octo-pc
          nixosConfigurations = {
 	   octo-pc = nixpkgs.lib.nixosSystem {
+       system = "x86_64-linux";
 	     specialArgs = {inherit inputs outputs;};
-	     modules = [ ./hosts/octo-pc/configuration.nix yeetmouse.nixosModules.default ];
+	     modules = [ ./hosts/octo-pc/configuration.nix ];
 	   };
 	 };
 

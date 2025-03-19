@@ -2,15 +2,23 @@
 # your system. Help is available in the configuration.nix(5) man page, on
 # https://search.nixos.org/options and in the NixOS manual (`nixos-help`).
 
-{ config, lib, pkgs, ... }:
+{ config, lib, pkgs, inputs, ... }:
 
 {
   imports =
     [ # Include the results of the hardware scan.
       ./hardware-configuration.nix
       ../../modules/fonts.nix
-      ../../modules/yeetmouse.nix
+      inputs.yeetmouse.nixosModules.default
     ];
+
+  hardware.yeetmouse = {
+    enable = true;
+    sensitivity = 0.25;
+    outputCap = 5.0;
+    # offset = 0.0;
+    inputCap = 20.0;
+  };
 
   system.autoUpgrade.enable = true;
   system.autoUpgrade.allowReboot = true;

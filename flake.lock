@@ -27,11 +27,11 @@
       },
       "locked": {
         "dir": "pkgs/firefox-addons",
-        "lastModified": 1742327995,
-        "narHash": "sha256-cvqCqT7op8uRCIPUYK8CPJbRRmKytFtOzHqomMyO7u8=",
+        "lastModified": 1742410664,
+        "narHash": "sha256-IbHml9lhbD+6bNNbzX30zySRs7Y3WteeyDHj/melcmo=",
         "owner": "rycee",
         "repo": "nur-expressions",
-        "rev": "d91a2ea080804c3a9213d6e460e8cff68cfacf8d",
+        "rev": "4470fe1e563328d9b1d791dd005360ad3539fae3",
         "type": "gitlab"
       },
       "original": {
@@ -63,11 +63,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1742326330,
-        "narHash": "sha256-Tumt3tcMXJniSh7tw2gW+WAnVLeB3WWm+E+yYFnLBXo=",
+        "lastModified": 1742411829,
+        "narHash": "sha256-IwstGdqU2u3NG8KXtjirXCA0s1qm0zkZ7NrhUIVE/VQ=",
         "owner": "nix-community",
         "repo": "home-manager",
-        "rev": "22a36aa709de7dd42b562a433b9cefecf104a6ee",
+        "rev": "e4a40b441e49443ffd25c05614ad9c134a12e53c",
         "type": "github"
       },
       "original": {
@@ -179,16 +179,17 @@
       },
       "locked": {
         "dir": "nix",
-        "lastModified": 1739811646,
-        "narHash": "sha256-ISEA4XCDO1nZhWTTTPrzkqEMuVxKOZP6fXauhMpV0go=",
+        "lastModified": 1741608326,
+        "narHash": "sha256-GbODNiMTo3w9rippscGFVd0uiMw4RwcngM5LwUEqic4=",
         "owner": "AndyFilter",
         "repo": "YeetMouse",
-        "rev": "fa35c33b23fd2f2a594f09c0eb08ee8b21b9c536",
+        "rev": "390b0fea879e440d88df8febac787f04771a882e",
         "type": "github"
       },
       "original": {
         "dir": "nix",
         "owner": "AndyFilter",
+        "ref": "driver/experimental",
         "repo": "YeetMouse",
         "type": "github"
       }
