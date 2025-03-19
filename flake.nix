@@ -15,9 +15,18 @@
       url = "gitlab:rycee/nur-expressions?dir=pkgs/firefox-addons";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+    nvchad-starter = {
+      url = "path:./dotfiles/nvim";
+      flake = false;
+    };
+    nvchad4nix = {
+      url = "github:nix-community/nix4nvchad";
+      inputs.nixpkgs.follows = "nixpkgs";
+      inputs.nvchad-starter.follows = "nvchad-starter";
+    };
   };
 
-  outputs = { self, nixpkgs, home-manager, sf-mono-liga-src, firefox-addons, ...} @inputs: let 
+  outputs = { self, nixpkgs, home-manager, sf-mono-liga-src, firefox-addons, nvchad4nix, ...} @inputs: let 
     inherit (self) outputs;
     in {
          # sudo nixos-rebuild switch --flake .#octo-pc

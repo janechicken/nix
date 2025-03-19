@@ -15,6 +15,8 @@
   system.autoUpgrade.allowReboot = true;
   nixpkgs.config.allowUnfree = true;
 
+  nixpkgs.overlays = [ ( import ../../overlays/nvchad.nix ) ];
+
   # Use the systemd-boot EFI boot loader.
   boot = {
   initrd = {
@@ -152,7 +154,6 @@
   # List packages installed in system profile. To search, run:
   # $ nix search wget
    environment.systemPackages = with pkgs; [
-     neovim
      wget
      lsd
      xorg.xorgserver
@@ -169,6 +170,7 @@
      dconf
      adwaita-icon-theme
      alsa-lib
+     nvchad
    ];
      environment.variables.EDITOR = "nvim";
 
