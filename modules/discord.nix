@@ -1,6 +1,5 @@
 { config, inputs, pkgs, lib, ... }:
 {
-  imports = [ inputs.nixcord.homeManagerModules.nixcord ];
   home.packages = with pkgs; [
     (discord.override {
       withVencord = true;

@@ -46,8 +46,19 @@
 	   "octo@octo-pc" = home-manager.lib.homeManagerConfiguration {
 	     pkgs = nixpkgs.legacyPackages.x86_64-linux;
 	     extraSpecialArgs = {inherit inputs outputs;};
-	     modules = [ ./hosts/octo-pc/home.nix ];
+	     modules = [
+       ./hosts/octo-pc/home.nix 
+       home-manager.nixosModules.home-manager
+          {
+            home-manager.useGlobalPkgs = true;
+            home-manager.useUserPackages = true;
+          
+          home-manager.sharedModules = [
+              inputs.nixcord.homeManagerModules.nixcord
+          ];
+          }
+       ];
 	   };
 	 };
-       };
+  };
 }
