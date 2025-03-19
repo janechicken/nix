@@ -1,4 +1,4 @@
-{ inputs, pkgs, lib, ... }:
+{ config, inputs, pkgs, lib, ... }:
 
 {
   programs.git = {
@@ -6,5 +6,7 @@
   userName = "jane chicken";
   userEmail = "jane@janechicken.com";
   };
-  programs.lazygit.enable = true;
+  home.packages = with pkgs; [
+    lazygit
+  ];
 }
