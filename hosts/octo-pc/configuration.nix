@@ -170,6 +170,7 @@
      adwaita-icon-theme
      alsa-lib
      nvchad
+     unzip
    ];
      environment.variables.EDITOR = "nvim";
 
