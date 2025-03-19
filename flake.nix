@@ -23,10 +23,13 @@
     yeetmouse = {
     url = "github:AndyFilter/YeetMouse/driver/experimental/?dir=nix";
     inputs.nixpkgs.follows = "nixpkgs";
-  };
+    };
+    nixcord = {
+      url = "github:kaylorben/nixcord";
+    };
   };
 
-  outputs = { self, nixpkgs, home-manager, firefox-addons, nvchad4nix, fenix, yeetmouse, ...} @inputs: let 
+  outputs = { self, nixpkgs, home-manager, firefox-addons, nvchad4nix, fenix, yeetmouse, nixcord, ...} @inputs: let 
     inherit (self) outputs;
     in {
          # sudo nixos-rebuild switch --flake .#octo-pc

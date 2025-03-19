@@ -8,4 +8,5 @@
     fastfetch
     rage
   ];
+  nixpkgs.config = { allowBroken = true; allowUnfree = true; };
 }

@@ -6,7 +6,12 @@
   [
     ./librewolf.nix
     ./zsh.nix
+    inputs.nixcord.homeManagerModules.nixcord
   ];
+  
+
+      nixpkgs.config = { allowBroken = true; allowUnfree = true; };
+
       home.packages = with pkgs; [
       bibata-cursors
       kitty

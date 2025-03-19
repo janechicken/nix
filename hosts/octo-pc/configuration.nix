@@ -12,6 +12,7 @@
       inputs.yeetmouse.nixosModules.default
       ../../modules/core.nix
       ../../modules/fido.nix
+      ../../modules/udiskie.nix
     ];
 
   hardware.yeetmouse = {
@@ -24,7 +25,6 @@
 
   system.autoUpgrade.enable = true;
   system.autoUpgrade.allowReboot = true;
-  nixpkgs.config.allowUnfree = true;
 
   # Use the systemd-boot EFI boot loader.
   boot = {
