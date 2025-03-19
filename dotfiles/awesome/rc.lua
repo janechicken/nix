@@ -62,12 +62,11 @@ beautiful.init(gears.filesystem.get_configuration_dir() .. "mytheme.lua")
 --autostart
 autorun = true
 autorunApps = {
-    "vesktop",
+    "discord",
     "signal-desktop",
     "copyq",
-    "gajim",
-    "thunderbird",
-    "keepassxc"
+    "keepassxc",
+    "udiskie"
 }
 
 if autorun then

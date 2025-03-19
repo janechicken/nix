@@ -2,7 +2,7 @@
 {
 
   environment.systemPackages = with pkgs; [
-  # udiskie
+  udiskie
   udisks2
   ];
   # services.udiskie.enable = true;
