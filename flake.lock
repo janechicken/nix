@@ -77,14 +77,15 @@
     "nvchad-starter": {
       "flake": false,
       "locked": {
+        "lastModified": 1,
+        "narHash": "sha256-DNEep1xcBA58kpGynPTpvNg1h4vvQ86BlNVoHeITYjU=",
         "path": "./dotfiles/nvim",
         "type": "path"
       },
       "original": {
         "path": "./dotfiles/nvim",
         "type": "path"
-      },
-      "parent": []
+      }
     },
     "nvchad4nix": {
       "inputs": {
