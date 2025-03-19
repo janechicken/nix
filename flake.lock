@@ -111,15 +111,14 @@
     "nvchad-starter": {
       "flake": false,
       "locked": {
-        "lastModified": 1,
-        "narHash": "sha256-qVq0WLkaefB8tw9F1GH59pQQYMVaP6wR6ov4VfK1lGE=",
-        "path": "/nix/store/qckq8by4x5rfizsiawqwnkwps6nhcnk8-source/dotfiles/nvim",
+        "path": "./dotfiles/nvim",
         "type": "path"
       },
       "original": {
-        "path": "/nix/store/qckq8by4x5rfizsiawqwnkwps6nhcnk8-source/dotfiles/nvim",
+        "path": "./dotfiles/nvim",
         "type": "path"
-      }
+      },
+      "parent": []
     },
     "nvchad4nix": {
       "inputs": {

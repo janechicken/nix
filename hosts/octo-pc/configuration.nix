@@ -169,7 +169,6 @@
      adwaita-icon-theme
      alsa-lib
      unzip
-     rustup
      nh
    ];
      environment.variables.EDITOR = "nvim";
