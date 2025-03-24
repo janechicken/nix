@@ -7,14 +7,17 @@ local M = {}
 
 M.base46 = {
 	theme = "default-dark",
-
-	hl_override = {
-		Comment = { italic = true },
-		["@comment"] = { italic = true },
-	},
+  hl_override = {
+    Comment = { italic = true },
+    ["@comment"] = { link = "Comment" },
+    ["@keyword"] = { italic = true }
+  }
 }
 M.nvdash = { load_on_startup = true }
-M.ui = { cmp = { style = "atom" } }
+M.ui = {
+  cmp = { style = "atom" },
+  statusline = { theme = "vscode_colored" }
+}
 -- M.nvdash = { load_on_startup = true }
 -- M.ui = {
 --       tabufline = {

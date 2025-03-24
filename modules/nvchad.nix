@@ -25,6 +25,8 @@
         clang
         clang-tools
         rust-analyzer
+        cargo
+        rustc
       ];
     };
 }
