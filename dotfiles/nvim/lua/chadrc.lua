@@ -7,11 +7,11 @@ local M = {}
 
 M.base46 = {
 	theme = "default-dark",
-  hl_override = {
-    Comment = { italic = true },
-    ["@comment"] = { link = "Comment" },
-    ["@keyword"] = { italic = true }
-  }
+}
+M.base46.hl_override = {
+  Comment = { italic = true },
+  ["@comment"] = { link = "Comment" },
+  ["@keyword"] = { italic = true }
 }
 M.nvdash = { load_on_startup = true }
 M.ui = {
