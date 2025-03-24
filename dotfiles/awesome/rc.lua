@@ -14,7 +14,7 @@ local beautiful = require("beautiful")
 local naughty = require("naughty")
 local menubar = require("menubar")
 local hotkeys_popup = require("awful.hotkeys_popup")
---local vicious = require("vicious")
+-- local vicious = require("vicious")
 -- Enable hotkeys help widget for VIM and other apps
 -- when client with a matching name is opened:
 require("awful.hotkeys_popup.keys")
@@ -155,7 +155,7 @@ gears.timer {
 }
 
 cpu_widget = wibox.widget.textbox()
---vicious.register(cpu_widget, vicious.widgets.cpu, "[CPU: $1%]", 1)
+-- vicious.register(cpu_widget, vicious.widgets.cpu, "[CPU: $1%]", 1)
 
 
 

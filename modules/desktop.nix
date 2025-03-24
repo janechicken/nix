@@ -21,6 +21,8 @@
       playerctl
       killall
       btop
+      mpv
+      feh
       ];
 
       home.file = {
