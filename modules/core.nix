@@ -7,6 +7,7 @@
     wget
     fastfetch
     rage
+    uutils-coreutils-noprefix
   ];
   nixpkgs.config = { allowBroken = true; allowUnfree = true; };
 }
