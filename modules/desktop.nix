@@ -53,4 +53,11 @@
 	};
 
 	qt = { enable = true; platformTheme.name = "gtk"; style.name = "adwaita-dark"; };
+
+  home.pointerCursor = {
+    name = "Bibata-Modern-Classic";
+    package = pkgs.bibata-cursors;
+    x11.enable = true;
+    size = 20;
+  };
 }
