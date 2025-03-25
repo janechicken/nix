@@ -10,8 +10,9 @@ M.base46 = {
 }
 M.base46.hl_override = {
   Comment = { italic = true },
+  Keyword = { italic = true, bold = true },
   ["@comment"] = { link = "Comment" },
-  ["@keyword"] = { italic = true }
+  ["@keyword"] = { link = "Keyword" }
 }
 M.nvdash = { load_on_startup = true }
 M.ui = {

@@ -21,6 +21,17 @@ require("awful.hotkeys_popup.keys")
 
 --fullscren fix
 
+--autostart
+autorun = true
+autorunApps = {
+    "discord",
+    "signal-desktop",
+    "copyq",
+    "keepassxc",
+    "udiskie",
+    "copyq",
+    "dunst"
+}
 
 
 client.connect_signal("request::manage", function(client, context)
@@ -59,15 +70,6 @@ end
 -- Themes define colours, icons, font and wallpapers.
 beautiful.init(gears.filesystem.get_configuration_dir() .. "mytheme.lua")
 
---autostart
-autorun = true
-autorunApps = {
-    "discord",
-    "signal-desktop",
-    "copyq",
-    "keepassxc",
-    "udiskie"
-}
 
 if autorun then
    for app = 1, #autorunApps do

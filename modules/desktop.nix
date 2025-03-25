@@ -23,6 +23,12 @@
       btop
       mpv
       feh
+      xclip
+      copyq
+      scrot
+      dunst
+      easyeffects
+      pavucontrol
       ];
 
       home.file = {
@@ -30,13 +36,14 @@
 	".config/rofi" = { recursive = true; source = ../dotfiles/rofi; };
 	".xinitrc" = { source = ../dotfiles/.xinitrc; };
 	".config/picom" = { recursive = true; source = ../dotfiles/picom; };
+  ".config/dunst" = { recursive = true; source = ../dotfiles/dunst; };
       };
 
       home.sessionVariables = { EDITOR = "nvim"; VISUAL = "nvim"; MAKEFLAGS = "-j$(nproc)"; };
 
 	programs.kitty = {
 	  enable = true;
-	  themeFile = "gruvbox-dark-hard";
+	  themeFile = "flexoki_dark";
 	  shellIntegration.enableZshIntegration = true;
 	  settings = { connfirm_os_window_close = 0; enable_audio_bell = false; };
 	};
@@ -62,4 +69,6 @@
     x11.enable = true;
     size = 20;
   };
+
+  services.easyeffects.enable = true;
 }
