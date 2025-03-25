@@ -25,10 +25,10 @@
       feh
       xclip
       copyq
-      scrot
       dunst
       easyeffects
       pavucontrol
+      flameshot
       ];
 
       home.file = {

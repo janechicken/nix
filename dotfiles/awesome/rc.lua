@@ -530,7 +530,11 @@ for i = 1, 9 do
                           end
                       end
                   end,
-                  {description = "toggle focused client on tag #" .. i, group = "tag"}),
+                  {description = "toggle focused client on tag #" .. i, group = "tag"})
+  )
+end
+
+globalkeys = gears.table.join(globalkeys,
     awful.key({ modkey, }, "p", function() awful.spawn("rofi -show drun -disable-history -show-icons") end,
               {description = "show rofi drun", group = "launcher"}),
     awful.key({ modkey, }, "r", function() awful.spawn("rofi -show run -disable-history -show-icons") end,
@@ -542,9 +546,12 @@ for i = 1, 9 do
     awful.key({}, "XF86AudioNext", function() awful.spawn("playerctl next") end,
               {description = "next media", group = "media"}),
     awful.key({}, "XF86AudioPrev", function() awful.spawn("playerctl previous") end,
-              {description = "previous media", group = "media"})
-    )
-end
+              {description = "previous media", group = "media"}),
+    awful.key({}, "Print", function () awful.spawn.with_shell("flameshot screen --clipboard --path ~/Pictures/Screenshots") end,
+              {description = "screenshot", group = "screenshot"}),
+    awful.key({ "Control", }, "Print", function () awful.spawn.with_shell("flameshot gui --clipboard --path ~/Pictures/Screenshots") end,
+              {description = "screenshot sel", group = "screenshot"})
+)
 
 clientbuttons = gears.table.join(
     awful.button({ }, 1, function (c)
