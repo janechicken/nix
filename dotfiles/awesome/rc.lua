@@ -30,7 +30,8 @@ autorunApps = {
     "keepassxc",
     "udiskie",
     "copyq",
-    "dunst"
+    "dunst",
+    "flameshot"
 }
 
 
