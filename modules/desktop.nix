@@ -6,6 +6,8 @@
   [
     ./librewolf.nix
     ./zsh.nix
+    ./nvchad.nix
+    ./helix.nix
   ];
   
 
@@ -39,7 +41,7 @@
   ".config/dunst" = { recursive = true; source = ../dotfiles/dunst; };
       };
 
-      home.sessionVariables = { EDITOR = "nvim"; VISUAL = "nvim"; MAKEFLAGS = "-j$(nproc)"; };
+      home.sessionVariables = { MAKEFLAGS = "-j$(nproc)"; };
 
 	programs.kitty = {
 	  enable = true;
