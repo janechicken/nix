@@ -122,7 +122,7 @@
       };
       editor = {
         mouse = true;
-        clipboard-provider = "x-sel";
+        clipboard-provider = "x-clip";
         file-picker.hidden = false;
         end-of-line-diagnostics = "hint";
         true-color = true;
