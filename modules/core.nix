@@ -1,5 +1,8 @@
 { config, inputs, pkgs, lib, ... }:
 {
+  imports = [
+    ./helix.nix
+  ];
   environment.systemPackages = with pkgs; [
     nh
     unzip

@@ -6,7 +6,6 @@
   ../../modules/desktop.nix
   ../../modules/git.nix
   ../../modules/spotify.nix
-  ../../modules/nvchad.nix
   ../../modules/discord.nix
   ];
   # Home Manager needs a bit of information about you and the paths it should
