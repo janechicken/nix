@@ -119,6 +119,16 @@
       theme = "autumn-dark-custom";
       keys.normal = {
         esc = ["collapse_selection" "keep_primary_selection"];
+        up = "no_op";
+        down = "no_op";
+        left = "no_op";
+        right = "no_op";
+      };
+      keys.insert = {
+        up = "no_op";
+        down = "no_op";
+        left = "no_op";
+        right = "no_op";
       };
       editor = {
         mouse = true;
