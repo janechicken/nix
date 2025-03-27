@@ -16,6 +16,9 @@
         rust-analyzer
         cargo
         rustc
+        yaml-language-server
+        lldb
+        prettierd
         ];
     themes = {
       autumn-dark-custom = let
