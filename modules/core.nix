@@ -8,6 +8,9 @@
     fastfetch
     rage
     uutils-coreutils-noprefix
+    bat
+    btop
+    killall
   ];
   nixpkgs.config = { allowBroken = true; allowUnfree = true; };
 }

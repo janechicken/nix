@@ -17,8 +17,6 @@
     keepassxc
     nemo
     playerctl
-    killall
-    btop
     mpv
     feh
     xclip
