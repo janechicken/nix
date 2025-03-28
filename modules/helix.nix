@@ -139,6 +139,7 @@
         clipboard-provider = "x-clip";
         file-picker.hidden = false;
         end-of-line-diagnostics = "hint";
+        line-number = "relative";
         true-color = true;
         color-modes = true;
         auto-pairs = true;

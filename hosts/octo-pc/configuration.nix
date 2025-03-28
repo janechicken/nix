@@ -13,6 +13,7 @@
       ../../modules/core.nix
       ../../modules/fido.nix
       ../../modules/udiskie.nix
+      ../../modules/reaper.nix
     ];
 
   hardware.yeetmouse = {
@@ -154,7 +155,7 @@
   # Define a user account. Don't forget to set a password with ‘passwd’.
   users.users.octo = {
     isNormalUser = true;
-    extraGroups = [ "wheel" "input" "networkmanager" ];
+    extraGroups = [ "wheel" "input" "networkmanager" "audio" ];
     shell = pkgs.zsh;
   };
 
