@@ -5,16 +5,16 @@
 { config, lib, pkgs, inputs, ... }:
 
 {
-  imports =
-    [ # Include the results of the hardware scan.
-      ./hardware-configuration.nix
-      ../../modules/fonts.nix
-      inputs.yeetmouse.nixosModules.default
-      ../../modules/core.nix
-      ../../modules/fido.nix
-      ../../modules/udiskie.nix
-      ../../modules/reaper.nix
-    ];
+  imports = [ # Include the results of the hardware scan.
+    ./hardware-configuration.nix
+    ../../modules/fonts.nix
+    inputs.yeetmouse.nixosModules.default
+    ../../modules/core.nix
+    ../../modules/fido.nix
+    ../../modules/udiskie.nix
+    ../../modules/reaper.nix
+    ../../modules/audio.nix
+  ];
 
   hardware.yeetmouse = {
     enable = true;
@@ -29,34 +29,34 @@
 
   # Use the systemd-boot EFI boot loader.
   boot = {
-  initrd = {
-      kernelModules = ["i915"];
+    initrd = {
+      kernelModules = [ "i915" ];
       systemd.enable = true;
-      luks.devices."cryptroot".crypttabExtraOpts = ["fido2-device=auto"];
-  };
-  kernelPackages = pkgs.linuxPackages_latest;
+      luks.devices."cryptroot".crypttabExtraOpts = [ "fido2-device=auto" ];
+    };
+    kernelPackages = pkgs.linuxPackages_latest;
   };
   boot.loader = {
-      grub = {
-          enable = true;
-	  enableCryptodisk = true;
-	  useOSProber = true;
-	  efiSupport = true;
-	  copyKernels = true;
-	  device = "nodev";
-          extraEntries = ''
-              menuentry "Reboot" {
-                  reboot
-              }
-              menuentry "Poweroff" {
-                  halt
-              }
-          '';
-      };
-      efi = {
-          canTouchEfiVariables = true;
-	  #efiSysMountPoint = "/boot/efi";
-      };
+    grub = {
+      enable = true;
+      enableCryptodisk = true;
+      useOSProber = true;
+      efiSupport = true;
+      copyKernels = true;
+      device = "nodev";
+      extraEntries = ''
+        menuentry "Reboot" {
+            reboot
+        }
+        menuentry "Poweroff" {
+            halt
+        }
+      '';
+    };
+    efi = {
+      canTouchEfiVariables = true;
+      #efiSysMountPoint = "/boot/efi";
+    };
   };
 
   nix.settings.experimental-features = [ "nix-command" "flakes" ];
@@ -64,17 +64,18 @@
   networking.hostName = "octo-pc"; # Define your hostname.
   # Pick only one of the below networking options.
   # networking.wireless.enable = true;  # Enables wireless support via wpa_supplicant.
-   networking.networkmanager.enable = true;  # Easiest to use and most distros use this by default.
+  networking.networkmanager.enable =
+    true; # Easiest to use and most distros use this by default.
 
   # Set your time zone.
-   time.timeZone = "America/New_York";
+  time.timeZone = "America/New_York";
 
   # Configure network proxy if necessary
   # networking.proxy.default = "http://user:password@proxy:port/";
   # networking.proxy.noProxy = "127.0.0.1,localhost,internal.domain";
 
   # Select internationalisation properties.
-   i18n.defaultLocale = "en_US.UTF-8";
+  i18n.defaultLocale = "en_US.UTF-8";
   # console = {
   #   font = "Lat2-Terminus16";
   #   keyMap = "us";
@@ -82,59 +83,58 @@
   # };
 
   # Enable the X11 windowing system.
-   services.xserver = {
-   enable = true;
-   autorun = false;
-   displayManager.startx = {
-       enable = true;
-   };
-   windowManager.awesome = {
-       enable = true;
-       luaModules = with pkgs.luaPackages; [
-       luarocks
-       luadbi-mysql
-       vicious
-       ];
-   };
-   };
-   hardware.graphics = {
-       enable = true;
-       extraPackages = with pkgs; [ vpl-gpu-rt vaapiIntel intel-media-driver ];
-   };
-   services = {
-       displayManager.defaultSession = "none+awesome";
-       picom = {
-           enable = true;
-	   backend = "glx";
-	   shadow = true;
-	   vSync = true;
-       };
-       udev.packages = [ pkgs.yubikey-personalization ];
-       syncthing = {
-         enable = true;
-	 user = "octo";
-	 dataDir = "/home/octo";
-	 configDir = "/home/octo/.config/syncthing";
-	 openDefaultPorts = true;
-	 settings.gui = { user="admin"; password="admin"; };
-         settings.devices = {
-	   "phone" = { id = "ZGE6ZIT-632YYAI-CJFGW4Z-VQQYQWI-XQ5BIIP-2N6OWRX-FOOZINA-AMPD6QC"; };
-	 };
-	 settings.folders = {
-	   "sync" = {
-	     path = "/home/octo/sync";
-	     devices = [ "phone" ];
-	     ignorePerms = true;
-	   };
-	 };
-       };
-   };
-
+  services.xserver = {
+    enable = true;
+    autorun = false;
+    displayManager.startx = { enable = true; };
+    windowManager.awesome = {
+      enable = true;
+      luaModules = with pkgs.luaPackages; [ luarocks luadbi-mysql vicious ];
+    };
+  };
+  hardware.graphics = {
+    enable = true;
+    extraPackages = with pkgs; [ vpl-gpu-rt vaapiIntel intel-media-driver ];
+  };
+  services = {
+    displayManager.defaultSession = "none+awesome";
+    picom = {
+      enable = true;
+      backend = "glx";
+      shadow = true;
+      vSync = true;
+    };
+    udev.packages = [ pkgs.yubikey-personalization ];
+    syncthing = {
+      enable = true;
+      user = "octo";
+      dataDir = "/home/octo";
+      configDir = "/home/octo/.config/syncthing";
+      openDefaultPorts = true;
+      settings.gui = {
+        user = "admin";
+        password = "admin";
+      };
+      settings.devices = {
+        "phone" = {
+          id =
+            "ZGE6ZIT-632YYAI-CJFGW4Z-VQQYQWI-XQ5BIIP-2N6OWRX-FOOZINA-AMPD6QC";
+        };
+      };
+      settings.folders = {
+        "sync" = {
+          path = "/home/octo/sync";
+          devices = [ "phone" ];
+          ignorePerms = true;
+        };
+      };
+    };
+  };
 
   programs.zsh.enable = true;
 
   # Configure keymap in X11
-   services.xserver.xkb.layout = "us";
+  services.xserver.xkb.layout = "us";
   # services.xserver.xkb.options = "eurosign:e,caps:escape";
 
   # Enable CUPS to print documents.
@@ -142,12 +142,6 @@
 
   # Enable sound.
   # OR
-   services.pipewire = {
-     enable = true;
-     pulse.enable = true;
-     alsa.enable = true;
-     jack.enable = true;
-   };
 
   # Enable touchpad support (enabled default in most desktopManager).
   # services.libinput.enable = true;
@@ -163,26 +157,26 @@
 
   # List packages installed in system profile. To search, run:
   # $ nix search wget
-   environment.systemPackages = with pkgs; [
-     xorg.xorgserver
-     xorg.xf86inputevdev
-     xorg.xf86inputsynaptics
-     xorg.xf86inputlibinput
-     home-manager
-     alsa-utils
-     dconf
-     adwaita-icon-theme
-     alsa-lib
-   ];
-     environment.variables.EDITOR = "nvim";
+  environment.systemPackages = with pkgs; [
+    xorg.xorgserver
+    xorg.xf86inputevdev
+    xorg.xf86inputsynaptics
+    xorg.xf86inputlibinput
+    home-manager
+    alsa-utils
+    dconf
+    adwaita-icon-theme
+    alsa-lib
+  ];
+  environment.variables.EDITOR = "nvim";
 
   # Some programs need SUID wrappers, can be configured further or are
   # started in user sessions.
   # programs.mtr.enable = true;
-   programs.gnupg.agent = {
-     enable = true;
-     enableSSHSupport = true;
-   };
+  programs.gnupg.agent = {
+    enable = true;
+    enableSSHSupport = true;
+  };
 
   # List services that you want to enable:
 

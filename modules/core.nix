@@ -14,6 +14,7 @@
     wine
     wine-staging
     winetricks
+    wine64
   ];
   nixpkgs.config = { allowBroken = true; allowUnfree = true; };
 }
