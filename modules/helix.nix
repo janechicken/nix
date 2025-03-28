@@ -19,6 +19,7 @@
         yaml-language-server
         lldb
         prettierd
+        vscode-langservers-extracted
         ];
     themes = {
       autumn-dark-custom = let
