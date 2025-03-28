@@ -7,8 +7,7 @@
     profiles.octo = {
       search = {
         force = true;
-        default = "StartPage";
-        order = [ "StartPage" "DuckDuckGo" "Google" ];
+        default = "policy-StartPage";
       };
       extensions.packages =
         with inputs.firefox-addons.packages."x86_64-linux"; [
@@ -48,8 +47,8 @@
         "privacy.clearOnShutdown.history" = false;
         "privacy.clearOnShutdown.cookies" = false;
         "network.cookie.lifetimePolicy" = 0;
-        "browser.search.defaultenginename" = "StartPage";
-        "browser.search.order.1" = "StartPage";
+        "browser.search.defaultenginename" = "policy-StartPage";
+        "browser.search.order.1" = "policy-StartPage";
       };
     };
   };
