@@ -127,6 +127,7 @@
         down = "no_op";
         left = "no_op";
         right = "no_op";
+        C-g = [":new" ":insert-output lazygit" ":buffer-close!" ":redraw"];
       };
       keys.insert = {
         up = "no_op";
