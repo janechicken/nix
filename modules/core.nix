@@ -11,10 +11,9 @@
     bat
     btop
     killall
-    wine
-    wine-staging
+    wineWowPackages.stable    
+    wineWowPackages.staging
     winetricks
-    wine64
   ];
   nixpkgs.config = { allowBroken = true; allowUnfree = true; };
 }
