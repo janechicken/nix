@@ -8,6 +8,7 @@
   imports = [ # Include the results of the hardware scan.
     ../../modules/core.nix
     ./disk-config.nix
+    ./hardware-configuration.nix
   ];
 
   system.autoUpgrade.enable = true;
