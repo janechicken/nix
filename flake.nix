@@ -26,7 +26,7 @@
     };
     nixcord = { url = "github:kaylorben/nixcord"; };
     disko.url = "github:nix-community/disko";
-    disko.nixpkgs.follows = "nixpkgs";
+    disko.inputs.nixpkgs.follows = "nixpkgs";
   };
 
   outputs = inputs@{ self, nixpkgs, home-manager, firefox-addons, nvchad4nix
