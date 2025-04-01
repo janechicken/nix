@@ -14,30 +14,9 @@
   system.autoUpgrade.allowReboot = true;
 
   # Use the systemd-boot EFI boot loader.
-  boot = {
-    initrd = { systemd.enable = true; };
-    kernelPackages = pkgs.linuxPackages_latest;
-  };
   boot.loader = {
     grub = {
-      enable = true;
-      enableCryptodisk = true;
-      useOSProber = true;
       efiSupport = true;
-      copyKernels = true;
-      device = "nodev";
-      extraEntries = ''
-        menuentry "Reboot" {
-            reboot
-        }
-        menuentry "Poweroff" {
-            halt
-        }
-      '';
-    };
-    efi = {
-      canTouchEfiVariables = true;
-      #efiSysMountPoint = "/boot/efi";
     };
   };
 
@@ -70,10 +49,6 @@
     "sk-ssh-ed25519@openssh.com AAAAGnNrLXNzaC1lZDI1NTE5QG9wZW5zc2guY29tAAAAII7Z44P9200OB4HnskmL2yxVRJk+gM1hgjHtkKobDjETAAAABHNzaDo= octo@octo-pc"
   ];
 
-  services.openssh = {
-    enable = true;
-
-  };
   users.users.root = { shell = pkgs.zsh; };
 
   programs.zsh = {

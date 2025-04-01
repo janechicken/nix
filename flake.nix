@@ -25,8 +25,10 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
     nixcord = { url = "github:kaylorben/nixcord"; };
-    disko.url = "github:nix-community/disko";
-    disko.inputs.nixpkgs.follows = "nixpkgs";
+    disko = {
+      url = "github:nix-community/disko";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
   outputs = inputs@{ self, nixpkgs, home-manager, firefox-addons, nvchad4nix
@@ -42,7 +44,7 @@
         omen = nixpkgs.lib.nixosSystem {
           system = "x86_64-linux";
           specialArgs = { inherit inputs; };
-          modules = [ ./hosts/omen/configuration.nix ];
+          modules = [ ./hosts/omen/configuration.nix disko.nixoxModules.disko ];
         };
       };
 
