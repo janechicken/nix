@@ -16,7 +16,7 @@
   fileSystems."/" =
     { device = "/dev/disk/by-uuid/a66593ea-7c10-46fb-8957-d45850d7700d";
       fsType = "btrfs";
-      options = [ "subvol=@" "compress=zstd" "noatime" ];
+      options = [ "subvol=@" ];
     };
 
   boot.initrd.luks.devices."cryptroot".device = "/dev/disk/by-uuid/ebd0e2c3-8e5f-4a1a-b8c9-30751fc0af6d";
@@ -24,7 +24,7 @@
   fileSystems."/home" =
     { device = "/dev/disk/by-uuid/a66593ea-7c10-46fb-8957-d45850d7700d";
       fsType = "btrfs";
-      options = [ "subvol=@home" "compress=zstd" "noatime"];
+      options = [ "subvol=@home" ];
     };
 
   fileSystems."/boot" =

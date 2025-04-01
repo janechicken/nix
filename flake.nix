@@ -21,31 +21,39 @@
       inputs.nvchad-starter.follows = "nvchad-starter";
     };
     yeetmouse = {
-    url = "github:AndyFilter/YeetMouse/driver/experimental/?dir=nix";
-    inputs.nixpkgs.follows = "nixpkgs";
+      url = "github:AndyFilter/YeetMouse/driver/experimental/?dir=nix";
+      inputs.nixpkgs.follows = "nixpkgs";
     };
-    nixcord = {
-      url = "github:kaylorben/nixcord";
-    };
+    nixcord = { url = "github:kaylorben/nixcord"; };
+    disko.url = "github:nix-community/disko";
+    disko.nixpkgs.follows = "nixpkgs";
+    nixos-facter-modules.url = "github:numtide/nixos-facter-modules";
   };
 
-  outputs = inputs@{ self, nixpkgs, home-manager, firefox-addons, nvchad4nix, fenix, yeetmouse, nixcord, ...}: {
-         # nh os switch .
-         nixosConfigurations = {
-	   octo-pc = nixpkgs.lib.nixosSystem {
-       system = "x86_64-linux";
-	     specialArgs = {inherit inputs;};
-	     modules = [ ./hosts/octo-pc/configuration.nix ];
-	   };
-	 };
+  outputs = inputs@{ self, nixpkgs, home-manager, firefox-addons, nvchad4nix
+    , fenix, yeetmouse, nixcord, disko, nixos-facter-modules, ... }: {
+      # nh os switch .
+      nixosConfigurations = {
+        octo-pc = nixpkgs.lib.nixosSystem {
+          system = "x86_64-linux";
+          specialArgs = { inherit inputs; };
+          modules = [ ./hosts/octo-pc/configuration.nix ];
+        };
 
-	 # nh home switch .
-	 homeConfigurations = {
-	   "octo@octo-pc" = home-manager.lib.homeManagerConfiguration {
-	     pkgs = nixpkgs.legacyPackages.x86_64-linux;
-	     extraSpecialArgs = {inherit inputs;};
-	     modules = [ ./hosts/octo-pc/home.nix ];
-	   };
-	 };
-  };
+        omen = nixpkgs.lib.nixosSystem {
+          system = "x86_64-linux";
+          specialArgs = { inherit inputs; };
+          modules = [ ./hosts/omen/configuration.nix ];
+        };
+      };
+
+      # nh home switch .
+      homeConfigurations = {
+        "octo@octo-pc" = home-manager.lib.homeManagerConfiguration {
+          pkgs = nixpkgs.legacyPackages.x86_64-linux;
+          extraSpecialArgs = { inherit inputs; };
+          modules = [ ./hosts/octo-pc/home.nix ];
+        };
+      };
+    };
 }

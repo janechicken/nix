@@ -6,34 +6,16 @@
 
 {
   imports = [ # Include the results of the hardware scan.
-    ./hardware-configuration.nix
-    ../../modules/fonts.nix
-    inputs.yeetmouse.nixosModules.default
     ../../modules/core.nix
-    ../../modules/fido.nix
-    ../../modules/udiskie.nix
-    ../../modules/reaper.nix
-    ../../modules/audio.nix
+    ./disk-config.nix
   ];
-
-  hardware.yeetmouse = {
-    enable = true;
-    sensitivity = 0.25;
-    outputCap = 5.0;
-    # offset = 0.0;
-    inputCap = 20.0;
-  };
 
   system.autoUpgrade.enable = true;
   system.autoUpgrade.allowReboot = true;
 
   # Use the systemd-boot EFI boot loader.
   boot = {
-    initrd = {
-      kernelModules = [ "i915" ];
-      systemd.enable = true;
-      luks.devices."cryptroot".crypttabExtraOpts = [ "fido2-device=auto" ];
-    };
+    initrd = { systemd.enable = true; };
     kernelPackages = pkgs.linuxPackages_latest;
   };
   boot.loader = {
@@ -61,7 +43,7 @@
 
   nix.settings.experimental-features = [ "nix-command" "flakes" ];
 
-  networking.hostName = "octo-pc"; # Define your hostname.
+  networking.hostName = "omen"; # Define your hostname.
   # Pick only one of the below networking options.
   # networking.wireless.enable = true;  # Enables wireless support via wpa_supplicant.
   networking.networkmanager.enable =
@@ -82,59 +64,37 @@
   #   useXkbConfig = true; # use xkb.options in tty.
   # };
 
-  # Enable the X11 windowing system.
-  services.xserver = {
-    enable = true;
-    autorun = false;
-    displayManager.startx = { enable = true; };
-    windowManager.awesome = {
-      enable = true;
-      luaModules = with pkgs.luaPackages; [ luarocks luadbi-mysql vicious ];
-    };
-  };
-  hardware.graphics = {
-    enable = true;
-    extraPackages = with pkgs; [ vpl-gpu-rt vaapiIntel intel-media-driver ];
-  };
-  services = {
-    displayManager.defaultSession = "none+awesome";
-    picom = {
-      enable = true;
-      backend = "glx";
-      shadow = true;
-      vSync = true;
-    };
-    udev.packages = [ pkgs.yubikey-personalization ];
-    syncthing = {
-      enable = true;
-      user = "octo";
-      dataDir = "/home/octo";
-      configDir = "/home/octo/.config/syncthing";
-      openDefaultPorts = true;
-      settings.gui = {
-        user = "admin";
-        password = "admin";
-      };
-      settings.devices = {
-        "phone" = {
-          id =
-            "ZGE6ZIT-632YYAI-CJFGW4Z-VQQYQWI-XQ5BIIP-2N6OWRX-FOOZINA-AMPD6QC";
-        };
-      };
-      settings.folders = {
-        "sync" = {
-          path = "/home/octo/sync";
-          devices = [ "phone" ];
-          ignorePerms = true;
-        };
-      };
-    };
-  };
+  environment.systemPackages = with pkgs; [ curl gitMinimal any-nix-shell ];
 
-  programs.zsh.enable = true;
+  users.users.root.openssh.authorizedKeys.keys = [
+    "sk-ssh-ed25519@openssh.com AAAAGnNrLXNzaC1lZDI1NTE5QG9wZW5zc2guY29tAAAAII7Z44P9200OB4HnskmL2yxVRJk+gM1hgjHtkKobDjETAAAABHNzaDo= octo@octo-pc"
+  ];
 
+  services.openssh = {
+    enable = true;
+
+  };
+  users.users.root = { shell = pkgs.zsh; };
+
+  programs.zsh = {
+    enable = true;
+    enableCompletion = true;
+    autosuggestion.enable = true;
+    syntaxHighlighting.enable = true;
+    shellAliases = {
+      ls = "lsd -l";
+      ll = "lsd -la";
+      grep = "grep --color=auto";
+      c = "clear";
+      mkdir = "mkdir -p";
+    };
+    initExtra = ''
+      	  any-nix-shell zsh --info-right | source /dev/stdin
+          export PS1=$'%{\e[255m%}%n%{\e[38;5;99m%}@%{\e[38;5;63m%}%M [%{\e[38;5;99m%}%~%{\e[38;5;63m%}]%{\e[37m%} $ %{\e[255m%}'
+      	  fastfetch
+      	  '';
+  };
   # Configure keymap in X11
-  services.xserver.xkb.layout = "us";
   # services.xserver.xkb.options = "eurosign:e,caps:escape";
 
   # Enable CUPS to print documents.
@@ -147,35 +107,13 @@
   # services.libinput.enable = true;
 
   # Define a user account. Don't forget to set a password with ‘passwd’.
-  users.users.octo = {
-    isNormalUser = true;
-    extraGroups = [ "wheel" "input" "networkmanager" "audio" ];
-    shell = pkgs.zsh;
-  };
-
-  # programs.firefox.enable = true;
 
   # List packages installed in system profile. To search, run:
   # $ nix search wget
-  environment.systemPackages = with pkgs; [
-    xorg.xorgserver
-    xorg.xf86inputevdev
-    xorg.xf86inputsynaptics
-    xorg.xf86inputlibinput
-    home-manager
-    alsa-utils
-    dconf
-    adwaita-icon-theme
-    alsa-lib
-  ];
 
   # Some programs need SUID wrappers, can be configured further or are
   # started in user sessions.
   # programs.mtr.enable = true;
-  programs.gnupg.agent = {
-    enable = true;
-    enableSSHSupport = true;
-  };
 
   # List services that you want to enable:
 
