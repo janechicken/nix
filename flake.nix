@@ -30,7 +30,7 @@
   };
 
   outputs = inputs@{ self, nixpkgs, home-manager, firefox-addons, nvchad4nix
-    , fenix, yeetmouse, nixcord, disko, nixos-facter-modules, ... }: {
+    , fenix, yeetmouse, nixcord, disko, ... }: {
       # nh os switch .
       nixosConfigurations = {
         octo-pc = nixpkgs.lib.nixosSystem {
