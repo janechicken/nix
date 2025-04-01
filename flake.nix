@@ -27,7 +27,6 @@
     nixcord = { url = "github:kaylorben/nixcord"; };
     disko.url = "github:nix-community/disko";
     disko.nixpkgs.follows = "nixpkgs";
-    nixos-facter-modules.url = "github:numtide/nixos-facter-modules";
   };
 
   outputs = inputs@{ self, nixpkgs, home-manager, firefox-addons, nvchad4nix
