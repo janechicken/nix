@@ -2,7 +2,7 @@
 
 {
   # this assumes xorg and awesome are both already enabled in configuration.nix, this just copies the xinitrc and awesome config
-  imports = [ ./librewolf.nix ./zsh.nix ./nvchad.nix ./helix.nix ];
+  imports = [ ./librewolf.nix ./zsh.nix ./helix.nix ];
 
   nixpkgs.config = {
     allowBroken = true;

@@ -11,15 +11,6 @@
       url = "gitlab:rycee/nur-expressions?dir=pkgs/firefox-addons";
       inputs.nixpkgs.follows = "nixpkgs";
     };
-    nvchad-starter = {
-      url = "./dotfiles/nvim";
-      flake = false;
-    };
-    nvchad4nix = {
-      url = "github:nix-community/nix4nvchad";
-      inputs.nixpkgs.follows = "nixpkgs";
-      inputs.nvchad-starter.follows = "nvchad-starter";
-    };
     yeetmouse = {
       url = "github:AndyFilter/YeetMouse/driver/experimental/?dir=nix";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -31,8 +22,7 @@
     };
   };
 
-  outputs = inputs@{ self, nixpkgs, home-manager, firefox-addons, nvchad4nix
-    , fenix, yeetmouse, nixcord, disko, ... }: {
+  outputs = inputs@{ self, nixpkgs, home-manager, firefox-addons,  fenix, yeetmouse, nixcord, disko, ... }: {
       # nh os switch .
       nixosConfigurations = {
         octo-pc = nixpkgs.lib.nixosSystem {
