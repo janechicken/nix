@@ -81,9 +81,8 @@
   boot = {
     supportedFilesystems = [ "zfs" ];
     zfs = {
-      enableUnstable = true;  # For latest features
       requestEncryptionCredentials = true;
     };
   };
-  networking.hostId = builtins.substring 0 8 (builtins.readFile "/etc/machine-id");
+  networking.hostId = "deadbeef";
 }
