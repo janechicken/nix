@@ -26,7 +26,7 @@
   system.autoUpgrade.allowReboot = true;
 
   # Use the systemd-boot EFI boot loader.
-  boot.loader = { grub = { efiSupport = true; }; };
+  boot.loader = { grub = { efiSupport = true; dev="nodev"; }; };
 
   nix.settings.experimental-features = [ "nix-command" "flakes" ];
 
