@@ -31,6 +31,7 @@
   nix.settings.experimental-features = [ "nix-command" "flakes" ];
 
   networking.hostName = "omen"; # Define your hostname.
+  networking.hostId = "dfffee29";
   # Pick only one of the below networking options.
   # networking.wireless.enable = true;  # Enables wireless support via wpa_supplicant.
   networking.networkmanager.enable =
@@ -38,6 +39,7 @@
 
   # Set your time zone.
   time.timeZone = "America/New_York";
+  programs.zsh.enable = true;
 
   # Configure network proxy if necessary
   # networking.proxy.default = "http://user:password@proxy:port/";
@@ -59,24 +61,6 @@
 
   users.users.root = { shell = pkgs.zsh; };
 
-  programs.zsh = {
-    enable = true;
-    enableCompletion = true;
-    autosuggestion.enable = true;
-    syntaxHighlighting.enable = true;
-    shellAliases = {
-      ls = "lsd -l";
-      ll = "lsd -la";
-      grep = "grep --color=auto";
-      c = "clear";
-      mkdir = "mkdir -p";
-    };
-    initExtra = ''
-      	  any-nix-shell zsh --info-right | source /dev/stdin
-          export PS1=$'%{\e[255m%}%n%{\e[38;5;99m%}@%{\e[38;5;63m%}%M [%{\e[38;5;99m%}%~%{\e[38;5;63m%}]%{\e[37m%} $ %{\e[255m%}'
-      	  fastfetch
-      	  '';
-  };
   # Configure keymap in X11
   # services.xserver.xkb.options = "eurosign:e,caps:escape";
 

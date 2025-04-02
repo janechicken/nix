@@ -46,5 +46,12 @@
           modules = [ ./hosts/octo-pc/home.nix ];
         };
       };
+      homeConfigurations = {
+        "root@omen" = home-manager.lib.homeManagerConfiguration {
+          pkgs = nixpkgs.legacyPackages.x86_64-linux;
+          extraSpecialArgs = { inherit inputs; };
+          modules = [ ./hosts/omen/home.nix ];
+        };
+      };
     };
 }

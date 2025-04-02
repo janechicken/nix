@@ -162,7 +162,6 @@
     xorg.xf86inputevdev
     xorg.xf86inputsynaptics
     xorg.xf86inputlibinput
-    home-manager
     alsa-utils
     dconf
     adwaita-icon-theme

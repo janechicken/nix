@@ -1,10 +1,10 @@
-# Example to create a bios compatible gpt partition
 { lib, ... }: {
   disko.devices = {
     disk.main = {
       device = lib.mkDefault "/dev/nvme0n1";
       type = "disk";
       content = {
+        type = "gpt";  # Added missing partition table type
         partitions = {
           ESP = {
             priority = 1;
@@ -21,7 +21,7 @@
           };
           root = {
             size = "100%";
-            type = "disk";
+            # Removed incorrect 'type = "disk"' here (not needed for partitions)
             content = {
               type = "btrfs";
               extraArgs = [ "-f" ];
@@ -52,9 +52,7 @@
         };
       };
     };
-  };
-  zpool = {
-    zstorage = {
+    zpool.zstorage = {  # Moved zpool inside disko.devices
       type = "zpool";
       datasets = {
         storage = {

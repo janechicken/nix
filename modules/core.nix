@@ -14,6 +14,7 @@
     wineWowPackages.stable    
     wineWowPackages.staging
     winetricks
+    home-manager
   ];
   nixpkgs.config = { allowBroken = true; allowUnfree = true; };
 }
