@@ -4,13 +4,13 @@
       device = lib.mkDefault "/dev/nvme0n1";
       type = "disk";
       content = {
-        type = "gpt";  # Added missing partition table type
+        type = "gpt";
         partitions = {
           ESP = {
             priority = 1;
             name = "ESP";
             start = "1M";
-            end = "128M";
+            end = "512M";  # Increased size for better compatibility
             type = "EF00";
             content = {
               type = "filesystem";
@@ -21,7 +21,6 @@
           };
           root = {
             size = "100%";
-            # Removed incorrect 'type = "disk"' here (not needed for partitions)
             content = {
               type = "btrfs";
               extraArgs = [ "-f" ];
@@ -30,12 +29,17 @@
                   mountpoint = "/";
                   mountOptions = [ "compress=zstd" "noatime" ];
                 };
+                "/home" = {  # Added recommended subvolume
+                  mountpoint = "/home";
+                  mountOptions = [ "compress=zstd" ];
+                };
               };
             };
           };
         };
       };
     };
+
     disk.storage = {
       type = "disk";
       device = "/dev/sda";
@@ -52,8 +56,12 @@
         };
       };
     };
-    zpool.zstorage = {  # Moved zpool inside disko.devices
+
+    zpool.zstorage = {
       type = "zpool";
+      options = {
+        ashift = "12";  # Recommended for modern drives
+      };
       datasets = {
         storage = {
           type = "zfs_fs";
@@ -61,9 +69,21 @@
           options = {
             compression = "zstd";
             atime = "off";
+            xattr = "sa";  # Recommended for performance
+            acltype = "posixacl";
           };
         };
       };
     };
   };
+
+  # Required ZFS system configuration
+  boot = {
+    supportedFilesystems = [ "zfs" ];
+    zfs = {
+      enableUnstable = true;  # For latest features
+      requestEncryptionCredentials = true;
+    };
+  };
+  networking.hostId = builtins.substring 0 8 (builtins.readFile "/etc/machine-id");
 }

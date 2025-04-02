@@ -26,12 +26,16 @@
   system.autoUpgrade.allowReboot = true;
 
   # Use the systemd-boot EFI boot loader.
-  boot.loader = { grub = { efiSupport = true; efiInstallAsRemovable = true; };
-
+  boot.loader = {
+    grub = {
+      efiSupport = true;
+      efiInstallAsRemovable = true;
+      devices = [ "nodev" ];
+    };
+  };
   nix.settings.experimental-features = [ "nix-command" "flakes" ];
 
   networking.hostName = "omen"; # Define your hostname.
-  networking.hostId = "dfffee29";
   # Pick only one of the below networking options.
   # networking.wireless.enable = true;  # Enables wireless support via wpa_supplicant.
   networking.networkmanager.enable =
@@ -85,7 +89,7 @@
   # List services that you want to enable:
 
   # Enable the OpenSSH daemon.
-  # services.openssh.enable = true;
+  services.openssh.enable = true;
 
   # Open ports in the firewall.
   # networking.firewall.allowedTCPPorts = [ ... ];
@@ -117,5 +121,4 @@
   # For more information, see `man configuration.nix` or https://nixos.org/manual/nixos/stable/options#opt-system.stateVersion .
   system.stateVersion = "25.05"; # Did you read the comment?
 
-};
 }
