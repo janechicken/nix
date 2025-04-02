@@ -11,15 +11,22 @@
     ./hardware-configuration.nix
   ];
 
+  services.logind = {
+    lidSwitch = "ignore";
+    lidSwitchDocked = "ignore";
+    lidSwitchExternalPower = "ignore";
+    extraConfig = ''
+      IdleAction=ignore
+      HandlePowerKey=ignore
+      HandleSuspendKey=ignore
+    '';
+  };
+
   system.autoUpgrade.enable = true;
   system.autoUpgrade.allowReboot = true;
 
   # Use the systemd-boot EFI boot loader.
-  boot.loader = {
-    grub = {
-      efiSupport = true;
-    };
-  };
+  boot.loader = { grub = { efiSupport = true; }; };
 
   nix.settings.experimental-features = [ "nix-command" "flakes" ];
 
