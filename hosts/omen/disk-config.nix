@@ -21,6 +21,7 @@
           };
           root = {
             size = "100%";
+            type = "disk";
             content = {
               type = "btrfs";
               extraArgs = [ "-f" ];
