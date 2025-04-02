@@ -34,7 +34,7 @@
         omen = nixpkgs.lib.nixosSystem {
           system = "x86_64-linux";
           specialArgs = { inherit inputs; };
-          modules = [ ./hosts/omen/configuration.nix disko.nixoxModules.disko ];
+          modules = [ ./hosts/omen/configuration.nix disko.nixosModules.disko ];
         };
       };
 
