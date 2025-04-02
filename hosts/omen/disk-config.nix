@@ -10,7 +10,7 @@
             priority = 1;
             name = "ESP";
             start = "1M";
-            end = "512M";  # Increased size for better compatibility
+            end = "512M"; # Increased size for better compatibility
             type = "EF00";
             content = {
               type = "filesystem";
@@ -29,7 +29,7 @@
                   mountpoint = "/";
                   mountOptions = [ "compress=zstd" "noatime" ];
                 };
-                "/home" = {  # Added recommended subvolume
+                "/home" = { # Added recommended subvolume
                   mountpoint = "/home";
                   mountOptions = [ "compress=zstd" ];
                 };
@@ -55,22 +55,22 @@
           };
         };
       };
-    };
-
-    zpool.zstorage = {
-      type = "zpool";
-      options = {
-        ashift = "12";  # Recommended for modern drives
-      };
-      datasets = {
-        storage = {
+      zpool.zstorage = {
+        type = "zpool";
+        # Disable pool root mount
+        rootFsOptions = {
+          canmount = "off"; # Critical: prevents pool root mount
+          mountpoint = "none"; # Ensures no /zstorage appears
+        };
+        # Only mount the storage dataset
+        datasets.storage = {
           type = "zfs_fs";
-          mountpoint = "/storage";
+          mountpoint = "/storage"; # This will be your only visible mount
           options = {
             compression = "zstd";
             atime = "off";
-            xattr = "sa";  # Recommended for performance
-            acltype = "posixacl";
+            xattr = "sa"; # Better performance
+            acltype = "posixacl"; # Standard permissions
           };
         };
       };
@@ -80,9 +80,7 @@
   # Required ZFS system configuration
   boot = {
     supportedFilesystems = [ "zfs" ];
-    zfs = {
-      requestEncryptionCredentials = true;
-    };
+    zfs = { requestEncryptionCredentials = true; };
   };
   networking.hostId = "deadbeef";
 }
