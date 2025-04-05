@@ -21,7 +21,6 @@
     feh
     xclip
     copyq
-    dunst
     easyeffects
     pavucontrol
     flameshot
@@ -40,10 +39,6 @@
     ".config/picom" = {
       recursive = true;
       source = ../dotfiles/picom;
-    };
-    ".config/dunst" = {
-      recursive = true;
-      source = ../dotfiles/dunst;
     };
   };
 

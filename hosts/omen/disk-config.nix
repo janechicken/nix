@@ -55,23 +55,23 @@
           };
         };
       };
-      zpool.zstorage = {
-        type = "zpool";
-        # Disable pool root mount
-        rootFsOptions = {
-          canmount = "off"; # Critical: prevents pool root mount
-          mountpoint = "none"; # Ensures no /zstorage appears
-        };
-        # Only mount the storage dataset
-        datasets.storage = {
-          type = "zfs_fs";
-          mountpoint = "/storage"; # This will be your only visible mount
-          options = {
-            compression = "zstd";
-            atime = "off";
-            xattr = "sa"; # Better performance
-            acltype = "posixacl"; # Standard permissions
-          };
+    };
+    zpool.zstorage = {
+      type = "zpool";
+      # Disable pool root mount
+      rootFsOptions = {
+        canmount = "off"; # Critical: prevents pool root mount
+        mountpoint = "none"; # Ensures no /zstorage appears
+      };
+      # Only mount the storage dataset
+      datasets.storage = {
+        type = "zfs_fs";
+        mountpoint = "/storage"; # This will be your only visible mount
+        options = {
+          compression = "zstd";
+          atime = "off";
+          xattr = "sa"; # Better performance
+          acltype = "posixacl"; # Standard permissions
         };
       };
     };

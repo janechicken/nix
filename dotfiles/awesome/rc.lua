@@ -19,6 +19,21 @@ local hotkeys_popup = require("awful.hotkeys_popup")
 -- when client with a matching name is opened:
 require("awful.hotkeys_popup.keys")
 
+
+-- notification config
+naughty.config.defaults.ontop = true
+-- naughty.config.defaults.icon_size = dpi(32)
+naughty.config.defaults.screen = awful.screen.focused()
+naughty.config.defaults.timeout = 10
+naughty.config.defaults.title = "System Notification"
+naughty.config.defaults.position = "bottom_right"
+naughty.config.presets.low.timeout = 10
+naughty.config.presets.critical.timeout = 0
+naughty.config.presets.ok = naughty.config.presets.normal
+naughty.config.presets.info = naughty.config.presets.normal
+naughty.config.presets.warn = naughty.config.presets.critical
+beautiful.notification_max_width = 10
+
 --fullscren fix
 
 --autostart
@@ -30,7 +45,6 @@ autorunApps = {
     "keepassxc",
     "udiskie",
     "copyq",
-    "dunst",
     "flameshot",
     "easyeffects --gapplication-service"
 }
