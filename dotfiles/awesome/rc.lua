@@ -46,7 +46,8 @@ autorunApps = {
     "udiskie",
     "copyq",
     "flameshot",
-    "easyeffects --gapplication-service"
+    "easyeffects --gapplication-service",
+    "mailspring --password-store=\"gnome-libsecret\" -b"
 }
 
 

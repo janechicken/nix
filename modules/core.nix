@@ -15,6 +15,11 @@
     wineWowPackages.staging
     winetricks
     home-manager
+    gnome-keyring
+    libsecret
   ];
+
+  services.gnome.gnome-keyring.enable = true;
+  
   nixpkgs.config = { allowBroken = true; allowUnfree = true; };
 }
