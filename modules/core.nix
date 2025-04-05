@@ -17,6 +17,7 @@
     home-manager
     gnome-keyring
     libsecret
+    zenity
   ];
 
   services.gnome.gnome-keyring.enable = true;
