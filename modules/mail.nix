@@ -1,4 +1,4 @@
 { config, inputs, pkgs, lib, ... }:
 {
-  home.packages = with pkgs; [ mailspring ];
+  home.packages = with pkgs; [ thunderbird-bin ];
 }

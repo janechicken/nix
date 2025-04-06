@@ -4,7 +4,7 @@
   programs.git = {
   enable = true;
   userName = "jane chicken";
-  userEmail = "jane@janechicken.com";
+  userEmail = "janechicken@purelymail.com";
   };
   home.packages = with pkgs; [
     lazygit

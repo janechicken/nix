@@ -18,9 +18,11 @@
     gnome-keyring
     libsecret
     zenity
+    gpg-tui
   ];
 
   services.gnome.gnome-keyring.enable = true;
+  programs.seahorse.enable = true;
   
   nixpkgs.config = { allowBroken = true; allowUnfree = true; };
 }
