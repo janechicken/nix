@@ -7,7 +7,7 @@
   ../../modules/git.nix
   ../../modules/spotify.nix
   ../../modules/discord.nix
-  ../../modules/mail.nix
+  ../../modules/gpg.nix
   ../../modules/crypto.nix
   ];
   # Home Manager needs a bit of information about you and the paths it should

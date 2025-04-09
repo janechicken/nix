@@ -49,7 +49,7 @@
       roleColorEverywhere.enable = true;
       serverListIndicators.enable = true;
       shikiCodeblocks.enable = true;
-      showHiddenChannels.enable = true;
+      showHiddenChannels.enable = false;
       showHiddenThings.enable = true;
       showMeYourName.enable = true;
       silentTyping.enable = true;
