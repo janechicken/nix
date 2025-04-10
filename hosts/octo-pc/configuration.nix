@@ -14,6 +14,7 @@
     ../../modules/udiskie.nix
     ../../modules/reaper.nix
     ../../modules/audio.nix
+    ../../modules/steam.nix
   ];
 
   hardware.yeetmouse = {
