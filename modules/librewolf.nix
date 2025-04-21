@@ -49,6 +49,7 @@
         "network.cookie.lifetimePolicy" = 0;
         "browser.search.defaultenginename" = "policy-StartPage";
         "browser.search.order.1" = "policy-StartPage";
+        "xpinstall.signatures.required" = false;
       };
     };
   };
