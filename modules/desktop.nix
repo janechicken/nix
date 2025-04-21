@@ -24,6 +24,7 @@
     easyeffects
     pavucontrol
     flameshot
+    brave
   ];
 
   home.file = {
