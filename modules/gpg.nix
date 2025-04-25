@@ -1,5 +1,5 @@
 { configs, inputs, pkgs, lib, ... }: {
-  home.packages = with pkgs; [ gcr ];
+  home.packages = with pkgs; [ gcr kleopatra ];
 
   services.gpg-agent = {
     enable = true;
