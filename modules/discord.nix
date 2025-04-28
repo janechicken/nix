@@ -1,6 +1,6 @@
 { config, inputs, pkgs, lib, ... }:
 {
-  imports = [ inputs.nixcord.homeManagerModules.nixcord ];
+  imports = [ inputs.nixcord.homeModules.nixcord ];
 
   programs.nixcord = {
     enable = true;
