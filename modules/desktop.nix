@@ -1,4 +1,4 @@
-{ config, inputs, pkgs, lib, ... }:
+{ config, inputs, pkgs, lib, system, ... }:
 
 {
   # this assumes xorg and awesome are both already enabled in configuration.nix, this just copies the xinitrc and awesome config
@@ -9,22 +9,23 @@
     allowUnfree = true;
   };
 
-  home.packages = with pkgs; [
-    bibata-cursors
-    kitty
-    gnome-tweaks
-    lxappearance
-    keepassxc
-    nemo
-    playerctl
-    mpv
-    feh
-    xclip
-    copyq
-    easyeffects
-    pavucontrol
-    flameshot
-    brave
+  home.packages = [
+    pkgs.bibata-cursors
+    pkgs.kitty
+    pkgs.gnome-tweaks
+    pkgs.lxappearance
+    pkgs.keepassxc
+    pkgs.nemo
+    pkgs.playerctl
+    pkgs.mpv
+    pkgs.feh
+    pkgs.xclip
+    pkgs.copyq
+    pkgs.easyeffects
+    pkgs.pavucontrol
+    pkgs.flameshot
+    pkgs.brave
+    inputs.nix-alien.packages."x86_64-linux".nix-alien
   ];
 
   home.file = {

@@ -20,9 +20,12 @@
       url = "github:nix-community/disko";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+    nix-alien = {
+      url = "github:thiagokokada/nix-alien";
+    };
   };
 
-  outputs = inputs@{ self, nixpkgs, home-manager, firefox-addons,  fenix, yeetmouse, nixcord, disko, ... }: {
+  outputs = inputs@{ self, nixpkgs, home-manager, firefox-addons,  fenix, yeetmouse, nixcord, disko, nix-alien, ... }: {
       # nh os switch .
       nixosConfigurations = {
         octo-pc = nixpkgs.lib.nixosSystem {
