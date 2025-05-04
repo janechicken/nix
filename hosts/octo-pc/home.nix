@@ -8,6 +8,7 @@
     ../../modules/discord.nix
     ../../modules/gpg.nix
     ../../modules/crypto.nix
+    ../../modules/cemu.nix
   ];
   # Home Manager needs a bit of information about you and the paths it should
   # manage.
