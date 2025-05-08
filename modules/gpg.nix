@@ -8,7 +8,7 @@
     defaultCacheTtlSsh = 36000;
     maxCacheTtlSsh = 36000;
     enableSshSupport = true;
-    pinentryPackage = pkgs.pinentry-rofi;
+    pinentry.package = pkgs.pinentry-rofi;
   };
 
   programs.gpg = {
