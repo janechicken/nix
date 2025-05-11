@@ -1,8 +1,18 @@
-{ config, inputs, pkgs, lib, ... }:
+{ config, inputs, pkgs,  lib, ... }:
+let
+     mypkgs = import (builtins.fetchTree {
+         type = "github";
+         owner = "nixos"; 
+         repo = "nixpkgs";
+         rev = "028048884dc9517e548703beb24a11408cc51402";
+     }) { inherit (pkgs) system; };
 
+     myPkg = mypkgs.librewolf;
+in
 {
   programs.librewolf = {
     enable = true;
+    package = myPkg;
     nativeMessagingHosts = [ pkgs.keepassxc ];
     profiles.octo = {
       search = {

@@ -563,9 +563,9 @@ globalkeys = gears.table.join(globalkeys,
               {description = "next media", group = "media"}),
     awful.key({}, "XF86AudioPrev", function() awful.spawn("playerctl previous") end,
               {description = "previous media", group = "media"}),
-    awful.key({}, "Print", function () awful.spawn.with_shell("flameshot screen --clipboard --path ~/Pictures/Screenshots") end,
+    awful.key({}, "Print", function () awful.spawn.with_shell("flameshot screen --clipboard") end,
               {description = "screenshot", group = "screenshot"}),
-    awful.key({ "Control", }, "Print", function () awful.spawn.with_shell("flameshot gui --clipboard --path ~/Pictures/Screenshots") end,
+    awful.key({ "Control", }, "Print", function () awful.spawn.with_shell("flameshot gui --clipboard") end,
               {description = "screenshot sel", group = "screenshot"})
 )
 
