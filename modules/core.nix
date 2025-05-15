@@ -23,6 +23,7 @@
 
   services.gnome.gnome-keyring.enable = true;
   programs.seahorse.enable = true;
+  boot.loader.grub.configurationLimit = 42;
   
   nixpkgs.config = { allowBroken = true; allowUnfree = true; };
 }
