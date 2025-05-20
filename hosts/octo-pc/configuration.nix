@@ -15,7 +15,6 @@
     ../../modules/reaper.nix
     ../../modules/audio.nix
     ../../modules/steam.nix
-    ../../modules/graphics.nix
   ];
 
   hardware.yeetmouse = {
@@ -96,7 +95,14 @@
   };
   hardware.graphics = {
     enable = true;
-    extraPackages = with pkgs; [ vpl-gpu-rt vaapiIntel intel-media-driver ];
+    extraPackages = with pkgs; [ vpl-gpu-rt vaapiIntel intel-media-driver nvidia-vaapi-driver vaapiVdpau libvdpau-va-gl ];
+  };
+  hardware.nvidia = {
+    open = true;
+    modesetting.enable = false;
+    powerManagement.enable = true;
+    nvidiaSettings = true;
+    package = config.boot.kernelPackages.nvidiaPackages.stable;
   };
   services = {
     displayManager.defaultSession = "none+awesome";
@@ -168,6 +174,8 @@
     dconf
     adwaita-icon-theme
     alsa-lib
+    input-remapper
+    cudatoolkit
   ];
 
   # Some programs need SUID wrappers, can be configured further or are

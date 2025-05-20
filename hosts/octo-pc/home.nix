@@ -10,6 +10,7 @@
     ../../modules/crypto.nix
     ../../modules/cemu.nix
     ../../modules/hex.nix
+    ../../modules/obs.nix
   ];
   # Home Manager needs a bit of information about you and the paths it should
   # manage.
@@ -45,7 +46,6 @@
       # (pkgs.writeShellScriptBin "my-hello" ''
       #   echo "Hello, ${config.home.username}!"
       # '')
-      input-remapper
     ];
 
   # Home Manager is pretty good at managing dotfiles. The primary way to manage
