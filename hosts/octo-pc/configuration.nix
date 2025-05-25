@@ -93,6 +93,10 @@
       luaModules = with pkgs.luaPackages; [ luarocks luadbi-mysql vicious ];
     };
   };
+  hardware.opengl = {
+    enable = true;
+    driSupport32Bit = true;
+  };
   hardware.graphics = {
     enable = true;
     extraPackages = with pkgs; [ vpl-gpu-rt vaapiIntel intel-media-driver nvidia-vaapi-driver vaapiVdpau libvdpau-va-gl ];
@@ -137,6 +141,7 @@
         };
       };
     };
+    input-remapper.enable = true;
   };
 
   programs.zsh.enable = true;
@@ -174,7 +179,6 @@
     dconf
     adwaita-icon-theme
     alsa-lib
-    input-remapper
     cudatoolkit
   ];
 

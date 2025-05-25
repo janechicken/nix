@@ -19,6 +19,7 @@
     libsecret
     zenity
     gpg-tui
+    appimage-run
   ];
 
   services.gnome.gnome-keyring.enable = true;
