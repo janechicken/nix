@@ -9,6 +9,7 @@
     plugins = with pkgs.obs-studio-plugins; [
       obs-vkcapture
       obs-pipewire-audio-capture
+      obs-multi-rtmp
     ];
   };
 }
