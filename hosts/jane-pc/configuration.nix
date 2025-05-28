@@ -63,7 +63,7 @@
 
   nix.settings.experimental-features = [ "nix-command" "flakes" ];
 
-  networking.hostName = "octo-pc"; # Define your hostname.
+  networking.hostName = "jane-pc"; # Define your hostname.
   # Pick only one of the below networking options.
   # networking.wireless.enable = true;  # Enables wireless support via wpa_supplicant.
   networking.networkmanager.enable =
@@ -117,9 +117,9 @@
     udev.packages = [ pkgs.yubikey-personalization ];
     syncthing = {
       enable = true;
-      user = "octo";
-      dataDir = "/home/octo";
-      configDir = "/home/octo/.config/syncthing";
+      user = "jane";
+      dataDir = "/home/jane";
+      configDir = "/home/jane/.config/syncthing";
       openDefaultPorts = true;
       settings.gui = {
         user = "admin";
@@ -133,7 +133,7 @@
       };
       settings.folders = {
         "sync" = {
-          path = "/home/octo/sync";
+          path = "/home/jane/sync";
           devices = [ "phone" ];
           ignorePerms = true;
         };
@@ -158,7 +158,7 @@
   # services.libinput.enable = true;
 
   # Define a user account. Don't forget to set a password with ‘passwd’.
-  users.users.octo = {
+  users.users.jane = {
     isNormalUser = true;
     extraGroups = [ "wheel" "input" "networkmanager" "audio" ];
     shell = pkgs.zsh;

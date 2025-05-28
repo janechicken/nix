@@ -13,8 +13,8 @@
   ];
   # Home Manager needs a bit of information about you and the paths it should
   # manage.
-  home.username = "octo";
-  home.homeDirectory = "/home/octo";
+  home.username = "jane";
+  home.homeDirectory = "/home/jane";
 
   # This value determines the Home Manager release that your configuration is
   # compatible with. This helps avoid breakage when a new Home Manager release
@@ -65,7 +65,7 @@
   #
   # or
   #
-  #  /etc/profiles/per-user/octo/etc/profile.d/hm-session-vars.sh
+  #  /etc/profiles/per-user/jane/etc/profile.d/hm-session-vars.sh
   #
   home.sessionVariables = { };
 

@@ -1,5 +1,5 @@
 {
-  description = "octos nix configs";
+  description = "janes nix configs";
 
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs?ref=nixos-unstable";
@@ -28,10 +28,10 @@
   outputs = inputs@{ self, nixpkgs, home-manager, firefox-addons,  fenix, yeetmouse, nixcord, disko, nix-alien, ... }: {
       # nh os switch .
       nixosConfigurations = {
-        octo-pc = nixpkgs.lib.nixosSystem {
+        jane-pc = nixpkgs.lib.nixosSystem {
           system = "x86_64-linux";
           specialArgs = { inherit inputs; };
-          modules = [ ./hosts/octo-pc/configuration.nix ];
+          modules = [ ./hosts/jane-pc/configuration.nix ];
         };
 
         omen = nixpkgs.lib.nixosSystem {
@@ -43,10 +43,10 @@
 
       # nh home switch .
       homeConfigurations = {
-        "octo@octo-pc" = home-manager.lib.homeManagerConfiguration {
+        "jane@jane-pc" = home-manager.lib.homeManagerConfiguration {
           pkgs = nixpkgs.legacyPackages.x86_64-linux;
           extraSpecialArgs = { inherit inputs; };
-          modules = [ ./hosts/octo-pc/home.nix ];
+          modules = [ ./hosts/jane-pc/home.nix ];
         };
       };
       homeConfigurations = {
