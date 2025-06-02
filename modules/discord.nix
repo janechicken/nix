@@ -64,7 +64,7 @@
       userVoiceShow.enable = true;
       validReply.enable = true;
       validUser.enable = true;
-      vcNarrator.enable = true;
+      vcNarrator.enable = false;
       vcNarrator.volume = 0.25;
       vcNarrator.sayOwnName = false;
       vcNarrator.latinOnly = true;
