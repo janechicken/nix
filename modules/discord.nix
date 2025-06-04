@@ -2,6 +2,8 @@
 {
   imports = [ inputs.nixcord.homeModules.nixcord ];
 
+  home.packages = [ pkgs.discover-overlay ];
+
   programs.nixcord = {
     enable = true;
     config.plugins = {
