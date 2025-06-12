@@ -1,5 +1,5 @@
 { configs, inputs, pkgs, lib, ... }: {
-  home.packages = with pkgs; [ gcr kdePackages.kleopatra ];
+  home.packages = with pkgs; [ kdePackages.kleopatra ];
 
   services.gpg-agent = {
     enable = true;
