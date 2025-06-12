@@ -15,8 +15,6 @@
     wineWowPackages.staging
     winetricks
     home-manager
-    gnome-keyring
-    libsecret
     zenity
     gpg-tui
     appimage-run

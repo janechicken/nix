@@ -10,14 +10,10 @@
     enableSshSupport = true;
     pinentry.package = pkgs.pinentry-rofi;
   };
-  programs.seahorse.enable = true;
-  services.gnome.gnome-keyring.enable = true;
-  security.pam.services = {
-    login.enableGnomeKeyring = true;
-  };
   services.dbus.packages = [ pkgs.gnome-keyring pkgs.gcr ];
   programs.gpg = {
     enable = true;
     settings = { default-key = "78704CDE27D95D3E17065F23ACC77E2F16E02769"; };
   };
+
 }
