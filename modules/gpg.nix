@@ -1,5 +1,5 @@
 { configs, inputs, pkgs, lib, ... }: {
-  home.packages = with pkgs; [ gcr kdePackages.kleopatra ];
+  home.packages = with pkgs; [ kdePackages.kleopatra ];
 
   services.gpg-agent = {
     enable = true;
@@ -10,12 +10,14 @@
     enableSshSupport = true;
     pinentry.package = pkgs.pinentry-rofi;
   };
-  services.gnome-keyring.enable = true;
-
-  programs.gpg = {
-  enable = true;
-  settings = {
-    default-key = "78704CDE27D95D3E17065F23ACC77E2F16E02769";
+  programs.seahorse.enable = true;
+  services.gnome.gnome-keyring.enable = true;
+  security.pam.services = {
+    login.enableGnomeKeyring = true;
   };
-};
+  services.dbus.packages = [ pkgs.gnome-keyring pkgs.gcr ];
+  programs.gpg = {
+    enable = true;
+    settings = { default-key = "78704CDE27D95D3E17065F23ACC77E2F16E02769"; };
+  };
 }
