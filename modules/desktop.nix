@@ -26,7 +26,6 @@
     pkgs.flameshot
     pkgs.brave
     inputs.nix-alien.packages."x86_64-linux".nix-alien
-    pkgs.mumble
   ];
 
   home.file = {

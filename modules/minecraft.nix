@@ -1,4 +1,11 @@
 { config, inputs, pkgs, lib, ... }:
 {
-  home.packages = [ pkgs.prismlauncher ];
+  home.packages = with pkgs;[
+    (prismlauncher.override {
+      jdks = [
+        jdk23
+        jdk
+      ];
+    })
+  ];
 }
