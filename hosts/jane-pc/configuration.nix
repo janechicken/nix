@@ -16,7 +16,7 @@
     ../../modules/audio.nix
     ../../modules/steam.nix
     ../../modules/obs.nix
-    ../../modules/gpg.nix
+    ../../modules/keyring.nix
   ];
 
   hardware.yeetmouse = {

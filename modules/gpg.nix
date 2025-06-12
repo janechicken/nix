@@ -10,7 +10,6 @@
     enableSshSupport = true;
     pinentry.package = pkgs.pinentry-rofi;
   };
-  services.dbus.packages = [ pkgs.gnome-keyring pkgs.gcr ];
   programs.gpg = {
     enable = true;
     settings = { default-key = "78704CDE27D95D3E17065F23ACC77E2F16E02769"; };
