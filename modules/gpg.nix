@@ -1,5 +1,5 @@
 { configs, inputs, pkgs, lib, ... }: {
-  home.packages = with pkgs; [ kdePackages.kleopatra ];
+  home.packages = with pkgs; [ gcr kdePackages.kleopatra ];
 
   services.gpg-agent = {
     enable = true;
@@ -10,6 +10,7 @@
     enableSshSupport = true;
     pinentry.package = pkgs.pinentry-rofi;
   };
+  services.gnome-keyring.enable = true;
 
   programs.gpg = {
   enable = true;
