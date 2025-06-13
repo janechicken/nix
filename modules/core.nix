@@ -18,6 +18,11 @@
     zenity
     gpg-tui
     appimage-run
+    rar
+    unrar
+    zip
+    unzip
+    qrrs
   ];
 
   services.gnome.gnome-keyring.enable = true;
