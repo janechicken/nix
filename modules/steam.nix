@@ -7,7 +7,7 @@
   environment.systemPackages = with pkgs; [
     mangohud
     protonup
-    (heroic.override { extraPkgs = (pkgs: [ pkgs.zip pkgs.unzip pkgs.rar pkgs.unrar ]); })
+    heroic
   ];
   programs.gamemode.enable = true;
 }
