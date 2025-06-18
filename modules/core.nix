@@ -18,10 +18,7 @@
     zenity
     gpg-tui
     appimage-run
-    rar
-    unrar
-    zip
-    unzip
+    p7zip-rar
     qrrs
   ];
 

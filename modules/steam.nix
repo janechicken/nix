@@ -5,9 +5,10 @@
   };
 
   environment.systemPackages = with pkgs; [
-    mangohud
+    (mangohud.override { nvidiaSupport = false; })
     protonup
-    heroic
+    (heroic.override { extraPkgs = pkgs: [ pkgs.gamescope ]; })
+
   ];
   programs.gamemode.enable = true;
   programs.gamescope.enable = true;
