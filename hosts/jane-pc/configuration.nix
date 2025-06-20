@@ -94,10 +94,21 @@
       enable = true;
       luaModules = with pkgs.luaPackages; [ luarocks luadbi-mysql vicious ];
     };
+    deviceSection = ''
+      Option "TearFree" "False"
+      Option "VariableRefresh" "True"
+    '';
   };
   hardware.graphics = {
     enable = true;
-    extraPackages = with pkgs; [ vpl-gpu-rt vaapiIntel intel-media-driver nvidia-vaapi-driver vaapiVdpau libvdpau-va-gl ];
+    extraPackages = with pkgs; [
+      vpl-gpu-rt
+      vaapiIntel
+      intel-media-driver
+      nvidia-vaapi-driver
+      vaapiVdpau
+      libvdpau-va-gl
+    ];
     enable32Bit = true;
   };
   hardware.nvidia = {
