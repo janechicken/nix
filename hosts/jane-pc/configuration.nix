@@ -62,6 +62,8 @@
     };
   };
 
+  xdg.portal.enable = true;
+
   nix.settings.experimental-features = [ "nix-command" "flakes" ];
 
   networking.hostName = "jane-pc"; # Define your hostname.
@@ -119,6 +121,7 @@
     package = config.boot.kernelPackages.nvidiaPackages.stable;
   };
   services = {
+    flatpak.enable = true;
     displayManager.defaultSession = "none+awesome";
     picom = {
       enable = true;
@@ -127,6 +130,9 @@
       vSync = true;
     };
     udev.packages = [ pkgs.yubikey-personalization ];
+    udev.extraRules = ''
+      KERNEL=="hidraw*", ATTRS{idProduct}=="6012", ATTRS{idVendor}=="2dc8", MODE="0660", TAG+="uaccess"
+    '';
     syncthing = {
       enable = true;
       user = "jane";
