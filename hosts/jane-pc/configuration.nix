@@ -131,7 +131,10 @@
     };
     udev.packages = [ pkgs.yubikey-personalization ];
     udev.extraRules = ''
-      KERNEL=="hidraw*", ATTRS{idProduct}=="6012", ATTRS{idVendor}=="2dc8", MODE="0660", TAG+="uaccess"
+    # 2.4GHz/Dongle
+    KERNEL=="hidraw*", ATTRS{idProduct}=="6012", ATTRS{idVendor}=="2dc8", MODE="0660", GROUP="input"
+    # Bluetooth
+    KERNEL=="hidraw*", KERNELS=="*2DC8:6012*", MODE="0660", GROUP="input"
     '';
     syncthing = {
       enable = true;
@@ -178,7 +181,7 @@
   # Define a user account. Don't forget to set a password with ‘passwd’.
   users.users.jane = {
     isNormalUser = true;
-    extraGroups = [ "wheel" "input" "networkmanager" "audio" ];
+    extraGroups = [ "wheel" "input" "networkmanager" "audio" "input" ];
     shell = pkgs.zsh;
   };
 
