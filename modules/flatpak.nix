@@ -1,5 +1,6 @@
 { config, inputs, pkgs, lib, ... }: {
   services.flatpak.enable = true;
-  environment.systemPackages = with pkgs; [
-   ];
+  environment.profiles =
+    [ "$HOME/.local/share/flatpak/exports" "/var/lib/flatpak/exports" ];
+  environment.systemPackages = with pkgs; [ ];
 }
