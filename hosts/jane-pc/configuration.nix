@@ -17,6 +17,7 @@
     ../../modules/steam.nix
     ../../modules/obs.nix
     ../../modules/keyring.nix
+    ../../modules/flatpak.nix
   ];
 
   hardware.yeetmouse = {
@@ -121,7 +122,6 @@
     package = config.boot.kernelPackages.nvidiaPackages.stable;
   };
   services = {
-    flatpak.enable = true;
     displayManager.defaultSession = "none+awesome";
     picom = {
       enable = true;
