@@ -2,7 +2,6 @@
 {
   environment.systemPackages = with pkgs; [
     nh
-    unzip
     lsd
     wget
     fastfetch
