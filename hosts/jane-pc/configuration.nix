@@ -28,19 +28,19 @@
     inputCap = 20.0;
   };
 
-  services.udev.packages = let
-    controllerUdevRules = pkgs.writeTextFile {
-      name = "controller-udev-rules";
+  services.udev.packages = [
+    (pkgs.writeTextFile {
+      name = "controller-udev";
+      destination = "/etc/udev/rules.d/99-controller.rules";
       text = ''
         # 2.4GHz/Dongle
         KERNEL=="hidraw*", ATTRS{idVendor}=="2dc8", ATTRS{idProduct}=="6012", MODE="0660", GROUP="input"
         # Bluetooth
         KERNEL=="hidraw*", KERNELS=="*2DC8:6012*", MODE="0660", GROUP="input"
       '';
-      destination = "/etc/udev/rules.d/98-controller.rules";
-    };
-  in [ controllerUdevRules pkgs.yubikey-personalization ];
-
+    })
+    pkgs.yubikey-personalization
+  ];
   system.autoUpgrade.enable = true;
   system.autoUpgrade.allowReboot = true;
 
