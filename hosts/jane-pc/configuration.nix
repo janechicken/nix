@@ -75,6 +75,7 @@
   };
 
   xdg.portal.enable = true;
+  xdg.portal.config.common.default = "*";
 
   nix.settings.experimental-features = [ "nix-command" "flakes" ];
 
