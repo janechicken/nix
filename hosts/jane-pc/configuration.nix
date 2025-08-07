@@ -8,7 +8,6 @@
   imports = [ # Include the results of the hardware scan.
     ./hardware-configuration.nix
     ../../modules/fonts.nix
-    inputs.yeetmouse.nixosModules.default
     ../../modules/core.nix
     ../../modules/fido.nix
     ../../modules/udiskie.nix
@@ -20,27 +19,17 @@
     ../../modules/flatpak.nix
   ];
 
-  hardware.yeetmouse = {
-    enable = true;
-    sensitivity = 0.25;
-    outputCap = 5.0;
-    # offset = 0.0;
-    inputCap = 20.0;
-  };
-
   services.udev.packages = [
-    (pkgs.writeTextFile {
-      name = "controller-udev";
-      destination = "/etc/udev/rules.d/99-controller.rules";
-      text = ''
-        # 2.4GHz/Dongle
-        KERNEL=="hidraw*", ATTRS{idVendor}=="2dc8", ATTRS{idProduct}=="6012", MODE="0660", GROUP="input"
-        # Bluetooth
-        KERNEL=="hidraw*", KERNELS=="*2DC8:6012*", MODE="0660", GROUP="input"
-      '';
-    })
     pkgs.yubikey-personalization
   ];
+
+  services.udev.extraRules = ''
+    # 2.4GHz/Dongle
+    KERNEL=="hidraw*", ATTRS{idVendor}=="2dc8", ATTRS{idProduct}=="6012", MODE="0660", GROUP="input"
+    # Bluetooth
+    KERNEL=="hidraw*", KERNELS=="*2DC8:6012*", MODE="0660", GROUP="input"
+  '';
+
   system.autoUpgrade.enable = true;
   system.autoUpgrade.allowReboot = true;
 
