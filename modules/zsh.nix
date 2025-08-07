@@ -17,6 +17,7 @@
       spt = "spotify_player";
     };
     initContent = ''
+          autoload -U compinit && compinit -u
       	  any-nix-shell zsh --info-right | source /dev/stdin
           export PS1=$'%{\e[255m%}%n%{\e[38;5;99m%}@%{\e[38;5;63m%}%M [%{\e[38;5;99m%}%~%{\e[38;5;63m%}]%{\e[37m%} $ %{\e[255m%}'
       	  fastfetch
