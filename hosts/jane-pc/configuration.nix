@@ -33,6 +33,15 @@
   system.autoUpgrade.enable = true;
   system.autoUpgrade.allowReboot = true;
 
+  programs.nix-ld.enable = true;
+  programs.nix-ld.libraries = with pkgs; [
+    glib
+    gtk3
+    python3
+    python3Packages.pygobject3
+    gobject-introspection
+  ];
+
   # Use the systemd-boot EFI boot loader.
   boot = {
     initrd = {
@@ -194,6 +203,7 @@
     adwaita-icon-theme
     alsa-lib
     cudatoolkit
+    appimage-run
   ];
 
   # Some programs need SUID wrappers, can be configured further or are
