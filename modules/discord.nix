@@ -5,7 +5,6 @@
 
   programs.nixcord = {
     enable = true;
-    vesktop.enable = true;
     config.plugins = {
       alwaysExpandRoles.enable = true;
       alwaysTrust.enable = true;
