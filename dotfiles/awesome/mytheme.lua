@@ -15,7 +15,7 @@ theme.font          = "monospace 11"
 
 theme.bg_normal     = "#111111"
 theme.bg_focus      = "#875fff"
-theme.bg_urgent     = "#ff0000"
+theme.bg_urgent     = "#d7ff5f"
 theme.bg_minimize   = "#222"
 theme.bg_systray    = theme.bg_normal
 
@@ -28,7 +28,7 @@ theme.useless_gap   = dpi(5)
 theme.border_width  = dpi(3)
 theme.border_normal = "#111111"
 theme.border_focus  = "#875fff"
-theme.border_marked = "#91231c"
+theme.border_marked = "#d7ff5f"
 
 -- There are other variable sets
 -- overriding the default one when
