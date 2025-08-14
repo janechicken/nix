@@ -9,7 +9,7 @@ configuration {
   icon-theme: "Papirus";
 }
 
-@theme "/dev/null"
+@theme "./simple.rasi"
 
 * {
   bg: #111111;
