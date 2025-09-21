@@ -16,5 +16,7 @@ let
     (yabridge.override { wine = myPkg; })
     (yabridgectl.override { wine = myPkg; })
     lsp-plugins
+    qpwgraph
+    qjackctl
   ];
 }
