@@ -5,6 +5,7 @@
 
   programs.nixcord = {
     enable = true;
+    equibop.enable = true;
     config.plugins = {
       alwaysExpandRoles.enable = true;
       alwaysTrust.enable = true;
@@ -12,9 +13,9 @@
       betterRoleContext.enable = true;
       betterSessions.enable = true;
       betterUploadButton.enable = true;
-      blurNSFW.enable = true;
+      blurNsfw.enable = true;
       callTimer.enable = true;
-      clearURLs.enable = true;
+      clearUrLs.enable = true;
       clientTheme.enable = true;
       clientTheme.color = "111111";
       crashHandler.enable = true;
@@ -40,7 +41,7 @@
       noDevtoolsWarning.enable = false;
       noOnboardingDelay.enable = true;
       noPendingCount.enable = true;
-      onePingPerDM.enable = true;
+      onePingPerDm.enable = true;
       openInApp.enable = true;
       permissionsViewer.enable = true;
       platformIndicators.enable = true;
@@ -68,7 +69,7 @@
       viewIcons.enable = true;
       viewRaw.enable = true;
       volumeBooster.enable = true;
-      volumeBooster.multiplier = 5;
+      volumeBooster.multiplier = 5.0;
       whoReacted.enable = true;
       voiceChatDoubleClick.enable = true;
       webRichPresence.enable = true;

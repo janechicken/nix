@@ -6,7 +6,7 @@
 
   environment.systemPackages = with pkgs; [
     (mangohud.override { nvidiaSupport = false; })
-    protonup
+    protonup-ng
     (heroic.override { extraPkgs = pkgs: [ pkgs.gamescope ]; })
 
   ];

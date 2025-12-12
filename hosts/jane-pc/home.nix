@@ -17,6 +17,7 @@
   # manage.
   home.username = "jane";
   home.homeDirectory = "/home/jane";
+  nixpkgs.config.permittedInsecurePackages = [ "python3.13-ecdsa-0.19.1" ];
 
   # This value determines the Home Manager release that your configuration is
   # compatible with. This helps avoid breakage when a new Home Manager release
