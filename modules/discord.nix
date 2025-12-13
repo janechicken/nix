@@ -1,7 +1,7 @@
 { config, inputs, pkgs, lib, ... }: {
   imports = [ inputs.nixcord.homeModules.nixcord ];
 
-  home.packages = [ pkgs.discover-overlay ];
+  home.packages = [ pkgs.discover-overlay pkgs.arrpc ];
 
   programs.nixcord = {
     enable = true;
