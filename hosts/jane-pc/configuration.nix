@@ -114,12 +114,15 @@
       Option "TearFree" "False"
       Option "VariableRefresh" "True"
     '';
+  videoDrivers = [ "modesetting" "nvidia" ];
   };
+  environment.sessionVariables = {
+  LIBVA_DRIVER_NAME = "iHD";
+};
   hardware.graphics = {
     enable = true;
     extraPackages = with pkgs; [
       vpl-gpu-rt
-      intel-vaapi-driver
       intel-media-driver
       nvidia-vaapi-driver
       libva-vdpau-driver
@@ -132,7 +135,7 @@
     modesetting.enable = false;
     powerManagement.enable = true;
     nvidiaSettings = true;
-    package = config.boot.kernelPackages.nvidiaPackages.stable;
+    package = config.boot.kernelPackages.nvidiaPackages.beta;
   };
   services = {
     displayManager.defaultSession = "none+awesome";
