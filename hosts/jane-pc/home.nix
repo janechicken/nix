@@ -3,6 +3,7 @@
 {
   imports = [
     ../../modules/desktop.nix
+    ../../modules/creative.nix
     ../../modules/git.nix
     ../../modules/spotify.nix
     ../../modules/discord.nix
