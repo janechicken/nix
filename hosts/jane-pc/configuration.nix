@@ -17,6 +17,7 @@
     ../../modules/obs.nix
     ../../modules/keyring.nix
     ../../modules/flatpak.nix
+    ../../modules/wine.nix
   ];
 
   services.udev.packages = [
