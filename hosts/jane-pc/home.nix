@@ -13,6 +13,7 @@
     ../../modules/minecraft.nix
     ../../modules/gpg.nix
     ../../modules/dolphin.nix
+    ../../modules/chess.nix
   ];
   # Home Manager needs a bit of information about you and the paths it should
   # manage.

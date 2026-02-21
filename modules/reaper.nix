@@ -13,8 +13,10 @@ let
  {
   environment.systemPackages = with pkgs; [
     reaper
-    (yabridge.override { wine = myPkg; })
-    (yabridgectl.override { wine = myPkg; })
+    # (yabridge.override { wine = myPkg; })
+    # (yabridgectl.override { wine = myPkg; })
+    yabridge
+    yabridgectl
     lsp-plugins
     qpwgraph
     qjackctl
