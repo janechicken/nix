@@ -2,6 +2,6 @@
 
   environment.systemPackages = with pkgs;
     [
-      wine
+      wineWow64Packages.stableFull
     ];
 }
