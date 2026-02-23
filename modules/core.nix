@@ -10,8 +10,8 @@
     bat
     btop
     killall
-    wineWowPackages.stable    
-    wineWowPackages.staging
+    wineWow64Packages.stable    
+    wineWow64Packages.staging
     winetricks
     home-manager
     zenity
