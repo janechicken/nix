@@ -2,8 +2,8 @@
  {
   environment.systemPackages = with pkgs; [
     reaper
-    # yabridge
-    # yabridgectl
+    yabridge
+    yabridgectl
     lsp-plugins
     qpwgraph
     qjackctl

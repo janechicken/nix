@@ -1,0 +1,150 @@
+{
+  "$schema": "https://zed.dev/schema/themes/v0.2.0.json",
+  "name": "Helix Autumn Port",
+  "author": "Ported from Helix by Grok (for jane chicken)",
+  "themes": [
+    {
+      "name": "Autumn Dark",
+      "appearance": "dark",
+      "style": {
+        "editor.background": "#090909",
+        "editor.foreground": "#F3F2CC",
+        "editor.line_number": "#404040",
+        "editor.active_line.background": "#111111",
+        "editor.gutter.background": "#090909",
+        "editor.invisible": "#626C66",
+        "editor.wrap_guide": "#0e0e0e",
+        "editor.active_wrap_guide": "#626C66",
+        "background": "#090909",
+        "surface.background": "#1a1a1a",
+        "panel.background": "#1a1a1a",
+        "tab_bar.background": "#1a1a1a",
+        "tab.active_background": "#1a1a1a",
+        "tab.inactive_background": "#1a1a1a",
+        "status_bar.background": "#1a1a1a",
+        "border": "#404040",
+        "border.focused": "#626C66",
+        "border.selected": "#aaaaaa",
+        "text": "#F3F2CC",
+        "text.muted": "#626C66",
+        "text.disabled": "#626C66",
+        "element.background": "#1a1a1a",
+        "element.hover": "#404040",
+        "element.selected": "#aaaaaa",
+        "element.active": "#aaaaaa",
+        "scrollbar.track.background": "#090909",
+        "scrollbar.thumb.background": "#626C66",
+        "scrollbar.thumb.hover_background": "#aaaaaa",
+        "selection.background": "#404040",
+        "conflict": "#ffff9f",
+        "created": "#99be70",
+        "deleted": "#F05E48",
+        "error": "#F05E48",
+        "hint": "#626C66",
+        "info": "#ffff9f",
+        "modified": "#ffff9f",
+        "predictive": "#626C66",
+        "success": "#99be70",
+        "warning": "#ffff9f",
+        "terminal.background": "#090909",
+        "terminal.foreground": "#F3F2CC",
+        "terminal.bright_foreground": "#F3F2CC",
+        "syntax": {
+          "attribute": {
+            "color": "#86c1b9"
+          },
+          "constant": {
+            "color": "#F3F2CC"
+          },
+          "constant.character.escape": {
+            "color": "#86c1b9"
+          },
+          "constant.numeric": {
+            "color": "#86c1b9"
+          },
+          "constructor": {
+            "color": "#FAD566"
+          },
+          "function": {
+            "color": "#FAD566"
+          },
+          "keyword": {
+            "color": "#F05E48",
+            "font_weight": 700,
+            "font_style": "italic"
+          },
+          "markup.bold": {
+            "font_weight": 700
+          },
+          "markup.heading": {
+            "color": "#FAD566"
+          },
+          "markup.italic": {
+            "font_style": "italic"
+          },
+          "markup.link.text": {
+            "color": "#F3F2CC"
+          },
+          "markup.link.url": {
+            "color": "#72a59e"
+          },
+          "markup.list": {
+            "color": "#F3F2CC"
+          },
+          "markup.quote": {
+            "color": "#cfba8b"
+          },
+          "markup.raw": {
+            "color": "#99be70"
+          },
+          "markup.strikethrough": {
+            "font_style": "oblique"
+          },
+          "namespace": {
+            "color": "#F3F2CC"
+          },
+          "operator": {
+            "color": "#F3F2CC"
+          },
+          "special": {
+            "color": "#FAD566"
+          },
+          "string": {
+            "color": "#99be70"
+          },
+          "type": {
+            "color": "#F3F2CC",
+            "font_style": "italic"
+          },
+          "variable": {
+            "color": "#F3F2CC"
+          },
+          "variable.other.member": {
+            "color": "#cfba8b"
+          },
+          "comment": {
+            "color": "#626C66",
+            "font_style": "italic"
+          }
+        },
+        "players": [
+          {
+            "background": "#FAD566",
+            "cursor": "#F3F2CC",
+            "selection": "#404040"
+          },
+          {
+            "background": "#99be70",
+            "cursor": "#F3F2CC",
+            "selection": "#404040"
+          },
+          {
+            "background": "#86c1b9",
+            "cursor": "#F3F2CC",
+            "selection": "#404040"
+          }
+        ]
+      }
+    }
+  ]
+}
