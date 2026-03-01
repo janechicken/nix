@@ -285,6 +285,7 @@
         down = "no_op";
         left = "no_op";
         right = "no_op";
+        C-space = "completion";
       };
       editor = {
         mouse = true;

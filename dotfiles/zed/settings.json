@@ -8,7 +8,7 @@
   "minimap": {
     "thumb": "always",
     "display_in": "active_editor",
-    "show": "never",
+    "show": "auto",
   },
   "inlay_hints": {
     "enabled": true,

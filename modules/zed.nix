@@ -31,7 +31,9 @@
       lldb
       prettierd
       vscode-langservers-extracted
+      nil
     ];
+    extensions = [ "lua" "nix" ];
     # mutableUserSettings = false;
     # mutableUserKeymaps = false;
   };
