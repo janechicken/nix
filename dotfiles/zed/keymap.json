@@ -1,34 +1,27 @@
-// Zed keymap
-//
-// For information on binding keys, see the Zed
-// documentation: https://zed.dev/docs/key-bindings
-//
-// To see the default key bindings run `zed: open default keymap`
-// from the command palette.
 [
   {
     "context": "Picker > Editor",
     "bindings": {
-      "enter": "picker::ConfirmCompletion",
-    },
+      "enter": "picker::ConfirmCompletion"
+    }
   },
   {
     "context": "(Editor && edit_prediction)",
     "bindings": {
-      "enter": "editor::AcceptEditPrediction",
-    },
+      "enter": "editor::AcceptEditPrediction"
+    }
   },
   {
     "context": "(Editor && showing_completions)",
     "bindings": {
-      "enter": "editor::ComposeCompletion",
-    },
+      "enter": "editor::ComposeCompletion"
+    }
   },
   {
     "context": "(Editor && showing_completions)",
     "bindings": {
       "tab": "editor::ContextMenuNext",
-      "Shift-tab": "editor::ContextMenuPrevious",
-    },
-  },
+      "Shift-tab": "editor::ContextMenuPrevious"
+    }
+  }
 ]

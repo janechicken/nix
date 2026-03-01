@@ -7,9 +7,9 @@
 }:
 {
   home.file = {
-    ".config/zed/" = {
+    ".config/zed/themes" = {
       recursive = true;
-      source = ../dotfiles/zed;
+      source = ../dotfiles/zed/themes;
     };
   };
   programs.zed-editor = {
@@ -34,7 +34,10 @@
       nil
     ];
     extensions = [ "lua" "nix" ];
+    userSettings = builtins.fromJSON (builtins.readFile ../dotfiles/zed/settings.json);
+    userKeymaps = builtins.fromJSON (builtins.readFile ../dotfiles/zed/keymap.json);
+    };
     # mutableUserSettings = false;
     # mutableUserKeymaps = false;
-  };
+    # 
 }

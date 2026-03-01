@@ -1,24 +1,24 @@
 {
   "completions": {
-    "lsp_insert_mode": "replace",
+    "lsp_insert_mode": "replace"
   },
   "prettier": {
-    "allowed": true,
+    "allowed": true
   },
   "minimap": {
     "thumb": "always",
     "display_in": "active_editor",
-    "show": "auto",
+    "show": "auto"
   },
   "inlay_hints": {
-    "enabled": true,
+    "enabled": true
   },
   "which_key": {
     "delay_ms": 0,
-    "enabled": true,
+    "enabled": true
   },
   "session": {
-    "trust_all_worktrees": true,
+    "trust_all_worktrees": true
   },
   "ui_font_family": "JetBrainsMono Nerd Font",
   "buffer_font_family": "JetBrainsMono Nerd Font",
@@ -28,8 +28,8 @@
   "buffer_font_size": 14,
   "telemetry": {
     "diagnostics": false,
-    "metrics": false,
+    "metrics": false
   },
   "theme": "Autumn Dark",
-  "ui_font_size": 16,
+  "ui_font_size": 16
 }
