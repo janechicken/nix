@@ -1,0 +1,35 @@
+{
+  "completions": {
+    "lsp_insert_mode": "replace",
+  },
+  "prettier": {
+    "allowed": true,
+  },
+  "minimap": {
+    "thumb": "always",
+    "display_in": "active_editor",
+    "show": "never",
+  },
+  "inlay_hints": {
+    "enabled": true,
+  },
+  "which_key": {
+    "delay_ms": 0,
+    "enabled": true,
+  },
+  "session": {
+    "trust_all_worktrees": true,
+  },
+  "ui_font_family": "JetBrainsMono Nerd Font",
+  "buffer_font_family": "JetBrainsMono Nerd Font",
+  "helix_mode": true,
+  "vim_mode": false,
+  "base_keymap": "VSCode",
+  "buffer_font_size": 14,
+  "telemetry": {
+    "diagnostics": false,
+    "metrics": false,
+  },
+  "theme": "Autumn Dark",
+  "ui_font_size": 16,
+}
