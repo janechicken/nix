@@ -1,19 +1,15 @@
 {
   "hover_popover_enabled": true,
   "auto_signature_help": false,
-  "language_models": {
-    "ollama": {
-      "api_url": "http://192.168.7.20:11434"
-    }
-  },
-  "edit_predictions": {
-    "ollama": {
-      "api_url": "http://192.168.7.20:11434"
-    }
-  },
+  "lsp_document_colors": "background",
   "auto_install_extensions": {
     "lua": true,
     "nix": true
+  },
+  "agent": {
+    "provider": "deepseek",
+    "model": "deepseek-chat",
+    "enable_thinking": false
   },
   "base_keymap": "VSCode",
   "buffer_font_family": "JetBrainsMono Nerd Font",

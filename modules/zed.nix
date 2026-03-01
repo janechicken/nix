@@ -33,7 +33,7 @@
       vscode-langservers-extracted
       nil
     ];
-    extensions = [ "lua" "nix" ];
+    extensions = [ "lua" "nix" "color highlight" ];
     userSettings = builtins.fromJSON (builtins.readFile ../dotfiles/zed/settings.json);
     userKeymaps = builtins.fromJSON (builtins.readFile ../dotfiles/zed/keymap.json);
     };
