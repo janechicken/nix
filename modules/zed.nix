@@ -41,8 +41,21 @@
       if [ -f "$HOME/.config/zed/deepseek_api_key" ]; then
         export DEEPSEEK_API_KEY="$(cat "$HOME/.config/zed/deepseek_api_key")"
       fi
-      # Execute the real zeditor binary
-      exec zeditor "$@"
+      # Execute the real zeditor binary from the wrapped package
+      exec ${config.programs.zed-editor.package}/bin/.zeditor-wrapped "$@"
+    '';
+    executable = true;
+  };
+
+  home.file.".local/bin/zeditor" = {
+    text = ''
+      #!/bin/sh
+      # Read DeepSeek API key if the file exists
+      if [ -f "$HOME/.config/zed/deepseek_api_key" ]; then
+        export DEEPSEEK_API_KEY="$(cat "$HOME/.config/zed/deepseek_api_key")"
+      fi
+      # Execute the real zeditor binary from the wrapped package
+      exec ${config.programs.zed-editor.package}/bin/.zeditor-wrapped "$@"
     '';
     executable = true;
   };
@@ -51,7 +64,7 @@
   xdg.desktopEntries."dev.zed.Zed" = {
     name = "Zed";
     genericName = "Code Editor";
-    exec = "${config.home.homeDirectory}/.local/bin/zed %U";
+    exec = "${config.home.homeDirectory}/.local/bin/zeditor %U";
     icon = "zed";
     terminal = false;
     type = "Application";
