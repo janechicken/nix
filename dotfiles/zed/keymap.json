@@ -6,12 +6,6 @@
     }
   },
   {
-    "context": "(Editor && edit_prediction)",
-    "bindings": {
-      "enter": "editor::AcceptEditPrediction"
-    }
-  },
-  {
     "context": "(Editor && showing_completions)",
     "bindings": {
       "enter": "editor::ComposeCompletion"
