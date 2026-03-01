@@ -41,8 +41,8 @@
       if [ -f "$HOME/.config/zed/deepseek_api_key" ]; then
         export DEEPSEEK_API_KEY="$(cat "$HOME/.config/zed/deepseek_api_key")"
       fi
-      # Execute the real zed binary
-      exec ${config.programs.zed-editor.package}/bin/zed "$@"
+      # Execute the real zeditor binary
+      exec zeditor "$@"
     '';
     executable = true;
   };
