@@ -1,10 +1,4 @@
-{
-  config,
-  inputs,
-  pkgs,
-  lib,
-  ...
-}:
+{ config, inputs, pkgs, lib, ... }:
 {
   home.file = {
     ".config/zed/themes" = {
@@ -39,5 +33,5 @@
     mutableUserSettings = false;
     mutableUserKeymaps = false;
     };
-    # 
+    #
 }

@@ -15,6 +15,7 @@
     ../../modules/dolphin.nix
     ../../modules/chess.nix
     ../../modules/zed.nix
+    ../../secrets/secrets.nix
   ];
   # Home Manager needs a bit of information about you and the paths it should
   # manage.
