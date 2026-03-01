@@ -47,16 +47,16 @@
     executable = true;
   };
 
-  home.activation.fixZedDesktopEntry = lib.hm.dag.entryAfter ["writeBoundary"] ''
-    DESKTOP_FILE="$HOME/.nix-profile/share/applications/zed.desktop"
-    if [ -f "$DESKTOP_FILE" ]; then
-      # Backup the original
-      cp "$DESKTOP_FILE" "$DESKTOP_FILE.backup"
-      # Replace Exec line to use our wrapper
-      sed -i 's|^Exec=.*|Exec=$HOME/.local/bin/zed %F|' "$DESKTOP_FILE"
-      echo "Updated desktop entry to use zed wrapper with DEEPSEEK_API_KEY"
-    else
-      echo "Warning: zed.desktop not found at $DESKTOP_FILE"
-    fi
-  '';
+  # Create our own desktop entry that overrides the system one
+  xdg.desktopEntries."dev.zed.Zed" = {
+    name = "Zed";
+    genericName = "Code Editor";
+    exec = "${config.home.homeDirectory}/.local/bin/zed %U";
+    icon = "zed";
+    terminal = false;
+    type = "Application";
+    categories = [ "Development" "TextEditor" ];
+    mimeType = [ "text/plain" "inode/directory" ];
+
+  };
 }
