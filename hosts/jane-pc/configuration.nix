@@ -116,8 +116,8 @@
   videoDrivers = [ "modesetting" ];
   };
   environment.sessionVariables = {
-  LIBVA_DRIVER_NAME = "iHD";
-};
+    LIBVA_DRIVER_NAME = "iHD";
+  };
   hardware.graphics = {
     enable = true;
     extraPackages = with pkgs; [
@@ -246,4 +246,3 @@
   system.stateVersion = "25.05"; # Did you read the comment?
 
 }
-

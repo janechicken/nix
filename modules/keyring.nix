@@ -1,5 +1,5 @@
 { config, inputs, pkgs, lib, ... }: {
-  environment.systemPackages = with pkgs; [ libsecret gnome-keyring ];
+  environment.systemPackages = with pkgs; [ libsecret gnome-keyring gcr ];
 
   services.dbus.packages = [ pkgs.gnome-keyring pkgs.gcr ];
   programs.seahorse.enable = true;
