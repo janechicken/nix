@@ -1,4 +1,10 @@
 {
+  "agent": {
+    "default_model": {
+      "provider": "openrouter",
+      "model": "minimax/minimax-m2.5"
+    }
+  },
   "hover_popover_enabled": true,
   "auto_signature_help": false,
   "lsp_document_colors": "background",
