@@ -15,7 +15,7 @@
   "helix_mode": true,
   "inlay_hints": {
     "show_background": true,
-    "enabled": true
+    "enabled": false
   },
   "minimap": {
     "display_in": "active_editor",
