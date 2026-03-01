@@ -17,10 +17,14 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
     nix-alien = { url = "github:thiagokokada/nix-alien"; };
+    sops-nix = {
+      url = "github:Mic92/sops-nix";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
   outputs = inputs@{ self, nixpkgs, home-manager, firefox-addons, fenix, nixcord
-    , disko, nix-alien, ... }: {
+    , disko, nix-alien, sops-nix, ... }: {
       # nh os switch .
       nixosConfigurations = {
         jane-pc = nixpkgs.lib.nixosSystem {
@@ -43,8 +47,6 @@
           extraSpecialArgs = { inherit inputs; };
           modules = [ ./hosts/jane-pc/home.nix ];
         };
-      };
-      homeConfigurations = {
         "root@omen" = home-manager.lib.homeManagerConfiguration {
           pkgs = nixpkgs.legacyPackages.x86_64-linux;
           extraSpecialArgs = { inherit inputs; };
