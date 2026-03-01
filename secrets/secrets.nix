@@ -12,8 +12,8 @@
       };
       openrouter_api_key = {
         sopsFile = ./secrets.yaml;
-        path = "${config.home.homeDirectory}/.config/zed/openrouter_api_key"
-      }
+        path = "${config.home.homeDirectory}/.config/zed/openrouter_api_key";
+      };
     };
   };
 }

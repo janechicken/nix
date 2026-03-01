@@ -17,6 +17,7 @@
     ../../modules/obs.nix
     ../../modules/keyring.nix
     ../../modules/flatpak.nix
+    ../../secrets/secrets-root.nix
   ];
 
   services.udev.packages = [
