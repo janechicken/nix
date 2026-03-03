@@ -7,7 +7,12 @@
 
       model = "deepseek/deepseek-v3.2";
 
-      small_model = "deepseek/deepseek-v3.2";
+      command.test = {
+        description = "Run tests for the Nix configuration";
+        template = "You are a test runner. Execute tests and report results.\n\nGuidelines:\n- For Nix projects: use \"nh os build .\" and \"nh home build .\" to test configurations\n- Run both NixOS and home-manager builds to verify the config\n- Report test results clearly - pass/fail, any errors or warnings\n- Do NOT make changes - only run tests and report results";
+        agent = "build";
+        model = "deepseek/deepseek-v3.2";
+      };
 
       agent = {
         code-reviewer = {
@@ -35,20 +40,6 @@
             write = true;
             edit = true;
             bash = false;
-          };
-        };
-
-        git = {
-          description = "Helps with git operations - diffs, commits, status, and more";
-          mode = "subagent";
-          model = "deepseek/deepseek-v3.2";
-          prompt = "You are a git assistant. Help with various git operations as requested.\n\nGuidelines:\n- When asked for diff/status, use bash to run git commands and show the output\n- When asked to create a commit message, use chat context and git diff to understand what changed\n- Focus on the WHY, not just the WHAT - explain the reason for changes\n- Keep commit messages concise - one sentence if possible, more if needed\n- Use imperative mood (e.g., \"Add\", \"Fix\", \"Update\" not \"Added\", \"Fixed\", \"Updated\")\n- If no specific action requested, just have a conversation about the git state\n- Do NOT auto-commit - only create messages when explicitly asked\n- Example workflows:\n  - User: \"@git diff\" -> Run git diff and explain what changed\n  - User: \"@git commit\" -> Analyze diff and suggest a commit message\n  - User: \"@git status\" -> Run git status and explain current state";
-          tools = {
-            read = true;
-            grep = true;
-            write = false;
-            edit = false;
-            bash = true;
           };
         };
       };

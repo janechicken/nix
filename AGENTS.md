@@ -178,6 +178,16 @@ imports = [
 
 ### Testing Changes
 1. Test build: `nh os test .` and `nh home test .`
+2. Run via opencode: Use `@test` agent to discover and run appropriate tests
+
+### OpenCode Agents
+This project includes custom opencode agents (see `modules/opencode.nix`):
+- `@code-reviewer` - Reviews code for security, performance, and standards
+- `@docs-generator` - Generates markdown documentation (no emojis)
+
+### OpenCode Commands
+- `/test` - Runs tests for the Nix configuration (builds both NixOS and home-manager)
+- `/review` - Reviews git changes (built-in command)
 
 ### Don'ts
 - Don't hardcode paths like `/home/jane` - use `config.users.users.jane.homeDirectory`
