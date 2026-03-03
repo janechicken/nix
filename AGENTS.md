@@ -182,7 +182,7 @@ imports = [
 
 ### OpenCode Agents
 This project includes custom opencode agents (see `modules/opencode.nix`):
-- `@code-reviewer` - Reviews code for security, performance, and standards
+- `@reviewer` - Reviews code for security, performance, and standards
 - `@docs-generator` - Generates markdown documentation (no emojis)
 
 ### OpenCode Commands
