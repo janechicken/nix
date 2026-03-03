@@ -5,6 +5,16 @@
       "model": "deepseek/deepseek-v3.2"
     }
   },
+  "lsp": {
+    "luau-lsp": {
+      "settings": {
+        "roblox": {
+          "enabled": true
+        }
+      }
+    }
+  },
+
   "hover_popover_enabled": true,
   "auto_signature_help": false,
   "lsp_document_colors": "background",
