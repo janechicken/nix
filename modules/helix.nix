@@ -26,7 +26,6 @@
       lldb
       prettierd
       vscode-langservers-extracted
-      textlsp
     ];
     themes = {
       autumn-dark-custom =
