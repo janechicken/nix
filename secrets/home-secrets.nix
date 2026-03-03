@@ -3,6 +3,7 @@
 {
   home.packages = with pkgs; [
     sops
-    age
+    rage
+    ssh-ssh-to-age
   ];
 }

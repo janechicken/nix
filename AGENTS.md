@@ -178,7 +178,6 @@ imports = [
 
 ### Testing Changes
 1. Test build: `nh os test .` and `nh home test .`
-2. Run via opencode: Use `@test` agent to discover and run appropriate tests
 
 ### OpenCode Agents
 This project includes custom opencode agents (see `modules/opencode.nix`):
