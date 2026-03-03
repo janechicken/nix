@@ -15,8 +15,10 @@
     ../../modules/dolphin.nix
     ../../modules/chess.nix
     ../../modules/zed.nix
-    inputs.sops-nix.homeManagerModules.sops
-    ../../secrets/secrets.nix
+    ../../modules/opencode.nix
+    ../../modules/messaging.nix
+    ../../modules/syncthing.nix
+    ../../secrets/home-secrets.nix
   ];
   # Home Manager needs a bit of information about you and the paths it should
   # manage.
@@ -41,19 +43,8 @@
     # pkgs.hello
 
     # # It is sometimes useful to fine-tune packages, for example, by applying
-    # # overrides. You can do that directly here, just don't forget the
-    # # parentheses. Maybe you want to install Nerd Fonts with a limited number of
-    # # fonts?
-    # (pkgs.nerdfonts.override { fonts = [ "FantasqueSansMono" ]; })
-
-    # # You can also create simple shell scripts directly inside your
-    # # configuration. For example, this adds a command 'my-hello' to your
-    # # environment:
-    # (pkgs.writeShellScriptBin "my-hello" ''
-    #   echo "Hello, ${config.home.username}!"
-    # '')
-    mumble
-    gajim
+    # # overrides to package configurations. You can do that directly here,
+    # # just don't forget the parentheses.
   ];
 
   # Home Manager is pretty good at managing dotfiles. The primary way to manage

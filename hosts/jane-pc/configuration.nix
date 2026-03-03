@@ -17,7 +17,10 @@
     ../../modules/obs.nix
     ../../modules/keyring.nix
     ../../modules/flatpak.nix
-    ../../secrets/secrets-root.nix
+    ../../modules/nix-ld.nix
+    ../../modules/xdg-portal.nix
+    inputs.sops-nix.nixosModules.sops
+    ../../secrets/sops-nix.nix
   ];
 
   services.udev.packages = [
@@ -33,15 +36,6 @@
 
   system.autoUpgrade.enable = true;
   system.autoUpgrade.allowReboot = true;
-
-  programs.nix-ld.enable = true;
-  programs.nix-ld.libraries = with pkgs; [
-    glib
-    gtk3
-    python3
-    python3Packages.pygobject3
-    gobject-introspection
-  ];
 
   # Use the systemd-boot EFI boot loader.
   boot = {
@@ -74,9 +68,6 @@
       #efiSysMountPoint = "/boot/efi";
     };
   };
-
-  xdg.portal.enable = true;
-  xdg.portal.config.common.default = "*";
 
   nix.settings.experimental-features = [ "nix-command" "flakes" ];
 
@@ -118,6 +109,7 @@
   };
   environment.sessionVariables = {
     LIBVA_DRIVER_NAME = "iHD";
+    OPENROUTER_API_KEY = "$(cat /run/secrets/openrouter_api_key)";
   };
   hardware.graphics = {
     enable = true;
@@ -137,31 +129,6 @@
       shadow = true;
       vSync = true;
     };
-    syncthing = {
-      enable = true;
-      user = "jane";
-      dataDir = "/home/jane";
-      configDir = "/home/jane/.config/syncthing";
-      openDefaultPorts = true;
-      settings.gui = {
-        user = "admin";
-        password = "admin";
-      };
-      settings.devices = {
-        "phone" = {
-          id =
-            "ZGE6ZIT-632YYAI-CJFGW4Z-VQQYQWI-XQ5BIIP-2N6OWRX-FOOZINA-AMPD6QC";
-        };
-      };
-      settings.folders = {
-        "sync" = {
-          path = "/home/jane/sync";
-          devices = [ "phone" ];
-          ignorePerms = true;
-        };
-      };
-    };
-    input-remapper.enable = true;
   };
 
   programs.zsh.enable = true;
@@ -212,9 +179,6 @@
   };
 
   # List services that you want to enable:
-
-  # Enable the OpenSSH daemon.
-  # services.openssh.enable = true;
 
   # Open ports in the firewall.
   # networking.firewall.allowedTCPPorts = [ ... ];
