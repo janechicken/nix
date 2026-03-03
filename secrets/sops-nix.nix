@@ -16,6 +16,9 @@
     owner = config.users.users.jane.name;
     path = "/home/jane/.ssh/id_rsa.pub";
   };
+  # sops.secrets."gpg_key" = { # uncomment when needed
+  #   owner = config.users.users.jane.name;
+  # };
 
   # Set environment variable system-wide
   environment.sessionVariables = {
