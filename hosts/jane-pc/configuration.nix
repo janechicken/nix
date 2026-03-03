@@ -109,7 +109,6 @@
   };
   environment.sessionVariables = {
     LIBVA_DRIVER_NAME = "iHD";
-    OPENROUTER_API_KEY = "$(cat /run/secrets/openrouter_api_key)";
   };
   hardware.graphics = {
     enable = true;
