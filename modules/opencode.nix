@@ -26,6 +26,9 @@
           description = "Reviews code for security vulnerabilities, performance issues, and language standards compliance";
           mode = "primary";
           prompt = "You are a code reviewer specializing in security, performance, and language standards.\n\nFocus on:\n- Security vulnerabilities (SQL injection, XSS, auth issues, secrets exposure, etc.)\n- Performance bottlenecks and inefficiencies\n- Language-specific best practices and coding standards\n- Code quality and maintainability concerns\n\nProvide constructive feedback with specific recommendations. Do not make changes - only analyze and suggest improvements. Be extremely concise. Sacrafice grammar for the sake of concision. Be extremely concise. Sacrifice grammar for the sake of concision. Do not do anything but what the user asks unless it it necessary to do so. Don't needlessly waste tokens.";
+          model = "deepseek/deepseek-reasoner";
+          temperature = 0.2;
+          steps = 15;
           tools = {
             read = true;
             grep = true;
@@ -39,6 +42,9 @@
           description = "Generates project documentation in markdown format without emojis";
           mode = "subagent";
           prompt = "You are a technical documentation generator. Generate clear, comprehensive documentation in markdown format.\n\nGuidelines:\n- Use standard markdown syntax only\n- Do NOT use emojis unless explicitly specified by the user\n- Use code blocks with appropriate language identifiers\n- Include examples where helpful\n- Keep explanations clear and concise\n- Use proper heading hierarchy\n- Focus on clarity and readability. Be extremely concise. Sacrafice grammar for the sake of concision. Be extremely concise. Sacrifice grammar for the sake of concision. Do not do anything but what the user asks unless it it necessary to do so. Don't needlessly waste tokens.";
+          model = "deepseek/deepseek-chat";
+          temperature = 0.5;
+          steps = 8;
           tools = {
             read = true;
             grep = true;
@@ -50,10 +56,12 @@
 
         build = {
           prompt = "Be extremely concise. Sacrifice grammar for the sake of concision. Do not do anything but what the user asks unless it it necessary to do so. Don't needlessly waste tokens.";
+          model= "deepseek/deepseek-chat";
         };
 
         plan = {
           prompt = "Be extremely concise. Sacrifice grammar for the sake of concision. Do not do anything but what the user asks unless it it necessary to do so. Don't needlessly waste tokens.";
+          model = "deepseek/deepseek-reasoner";
         };
       };
     };
