@@ -19,7 +19,7 @@
     settings = {
       theme = "gruvbox";
 
-      model = "deepseek/deepseek-v3.2";
+      model = "deepseek-chat";
 
       agent = {
         reviewer = {

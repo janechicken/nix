@@ -3,7 +3,7 @@
   "agent": {
     "default_model": {
       "provider": "openrouter",
-      "model": "deepseek/deepseek-v3.2"
+      "model": "deepseek-chat"
     }
   },
   "lsp": {
