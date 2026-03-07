@@ -250,6 +250,68 @@ client.connect_signal("property::floating", function(c)
   end
 end)
 
+-- Volume control function
+local volume_notification = nil
+
+local function volume_control(action)
+  local cmd
+  local description
+  
+  if action == "up" then
+    cmd = "wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%+"
+    description = "Volume up"
+  elseif action == "down" then
+    cmd = "wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%-"
+    description = "Volume down"
+  elseif action == "mute" then
+    cmd = "wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle"
+    description = "Toggle mute"
+  else
+    return
+  end
+  
+  awful.spawn.easy_async_with_shell(cmd .. " && wpctl get-volume @DEFAULT_AUDIO_SINK@", function(stdout, stderr, reason, exit_code)
+    if exit_code ~= 0 then
+      naughty.notify({
+        preset = naughty.config.presets.critical,
+        title = "Volume Error",
+        text = "Failed to adjust volume: " .. (stderr or reason)
+      })
+      return
+    end
+    
+    -- Parse volume output
+    local volume_text = stdout:gsub("\n", "")
+    local is_muted = volume_text:match("%[MUTED%]")
+    local volume_value = volume_text:match("Volume:%s*(%d+%.?%d*)") or "0"
+    
+    -- Convert to percentage (wpctl outputs 1.0 = 100%)
+    local volume_percent = math.floor(tonumber(volume_value) * 100 + 0.5)
+    
+    -- Create notification text
+    local notification_text
+    if is_muted then
+      notification_text = "Muted"
+    else
+      notification_text = "Volume: " .. volume_percent .. "%"
+    end
+    
+    -- Replace existing volume notification instead of creating new one
+    if volume_notification then
+      naughty.destroy(volume_notification)
+      volume_notification = nil
+    end
+    
+    -- Show notification
+    volume_notification = naughty.notify({
+      preset = naughty.config.presets.normal,
+      title = description,
+      text = notification_text,
+      timeout = 2
+    })
+  end)
+end
+
 -- This is used later as the default terminal and editor to run.
 terminal = "kitty"
 editor = os.getenv("EDITOR")
@@ -629,6 +691,12 @@ globalkeys = gears.table.join(globalkeys,
     { description = "next media", group = "media" }),
   awful.key({}, "XF86AudioPrev", function() awful.spawn("playerctl previous") end,
     { description = "previous media", group = "media" }),
+  awful.key({}, "XF86AudioRaiseVolume", function() volume_control("up") end,
+    { description = "volume up", group = "media" }),
+  awful.key({}, "XF86AudioLowerVolume", function() volume_control("down") end,
+    { description = "volume down", group = "media" }),
+  awful.key({}, "XF86AudioMute", function() volume_control("mute") end,
+    { description = "toggle mute", group = "media" }),
   awful.key({}, "Print", function() awful.spawn.with_shell("flameshot screen --clipboard") end,
     { description = "screenshot", group = "screenshot" }),
   awful.key({ "Control", }, "Print", function() awful.spawn.with_shell("flameshot gui --clipboard") end,
