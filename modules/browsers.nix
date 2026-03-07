@@ -3,11 +3,13 @@
   programs.librewolf = {
     enable = true;
     nativeMessagingHosts = [ pkgs.keepassxc ];
-    profiles.octo = {
-      search = {
-        force = true;
-        default = "policy-StartPage";
+    policies = {
+      SearchEngines = {
+        Default = "Startpage";
       };
+    };
+    
+    profiles.jane = {
       extensions.packages =
         with inputs.firefox-addons.packages."x86_64-linux"; [
           keepassxc-browser
@@ -46,8 +48,6 @@
         "privacy.clearOnShutdown.history" = false;
         "privacy.clearOnShutdown.cookies" = false;
         "network.cookie.lifetimePolicy" = 0;
-        "browser.search.defaultenginename" = "policy-StartPage";
-        "browser.search.order.1" = "policy-StartPage";
         "xpinstall.signatures.required" = false;
       };
     };

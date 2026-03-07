@@ -23,7 +23,7 @@
     };
   };
 
-  outputs = inputs@{ self, nixpkgs, home-manager, firefox-addons, fenix, nixcord
+  outputs = inputs@{ self, nixpkgs, home-manager, firefox-addons, nixcord
     , disko, nix-alien, sops-nix, ... }: {
       # nh os switch .
       nixosConfigurations = {
