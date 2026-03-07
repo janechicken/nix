@@ -45,6 +45,12 @@
       luks.devices."crypthome".crypttabExtraOpts = [ "fido2-device=auto" ];
     };
     kernelPackages = pkgs.linuxPackages_latest;
+    kernelParams = [
+      # Force PCIe ASPM for consistent power states
+      "pcie_aspm=force"
+      # Ensure backlight control works
+      "acpi_backlight=vendor"
+    ];
   };
   boot.loader = {
     grub = {
@@ -110,6 +116,8 @@
   hardware.nvidia = {
     open = true;
     nvidiaSettings = true;
+    powerManagement.enable = true;
+    modesetting.enable = true;
   };
 
   hardware.graphics = {
@@ -165,7 +173,7 @@
   # OR
 
   # Enable touchpad support (enabled default in most desktopManager).
-  # services.libinput.enable = true;
+  services.libinput.enable = true;
 
   # Define a user account. Don't forget to set a password with ‘passwd’.
   users.users.jane = {
@@ -229,6 +237,12 @@
   # and migrated your data accordingly.
   #
   # For more information, see `man configuration.nix` or https://nixos.org/manual/nixos/stable/options#opt-system.stateVersion .
+  systemd.sleep.settings.Sleep = {
+    HibernateMode = "shutdown";
+    SuspendState = "mem";
+    ResumeDelaySec = 2;
+  };
+
   system.stateVersion = "25.05"; # Did you read the comment?
 
 }
