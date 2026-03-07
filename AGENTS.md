@@ -6,31 +6,16 @@ This repository contains NixOS and Home Manager configurations using flakes.
 
 ### NixOS System Build
 ```bash
-# Build and switch to new configuration
-nh os switch .
-
 # Build only (dry run)
 nh os build .
-
-# Test configuration without switching
-nh os test .
 
 ```
 
 ### Home Manager Build
 ```bash
 # Switch home-manager configuration
-nh home switch .
+nh os buid .
 
-```
-
-### Using nh (recommended)
-```bash
-# Rebuild and switch OS (from home directory)
-nh os switch
-
-# Rebuild home manager
-nh home switch
 ```
 
 ### Linting/Formatting
@@ -176,9 +161,6 @@ imports = [
 - Check evaluation with `nix eval .#nixosConfigurations.<host>.config.<option>`
 - Use `nix logs` to debug failed builds
 
-### Testing Changes
-1. Test build: `nh os test .` and `nh home test .`
-
 ### OpenCode Agents
 This project includes custom opencode agents (see `modules/opencode.nix`):
 - `@reviewer` - Reviews code for security, performance, and standards
@@ -193,4 +175,4 @@ This project includes custom opencode agents (see `modules/opencode.nix`):
 - Don't commit encrypted secrets or age keys
 - Don't use `nix-env` for system packages (use NixOS options)
 - Don't mix NixOS and Home Manager secrets management (pick one approach)
-- Don't run `nh home switch .` or `nh os switch .` yourself, leave it to the user to switch
+- Never run `nh home switch .` or `nh os switch .` yourself, leave it to the user to switch
