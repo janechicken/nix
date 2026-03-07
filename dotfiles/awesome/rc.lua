@@ -179,53 +179,168 @@ update_battery()
 
 -- Create network widget
 local net_widget = wibox.widget.textbox()
--- Function to get network status using ip
+
+-- Closure variables for speed calculation
+local prev_interface = nil
+local prev_rx_bytes = nil
+local prev_tx_bytes = nil
+local prev_time = nil
+local measuring = false
+
+-- Function to get network status and speeds
 local function update_network()
+    -- Get default route interface
     local f = io.popen("ip route get 1.1.1.1 2>/dev/null | grep -oP 'dev \\K\\S+'")
-    if f then
-        local interface = f:read("*l")
-        f:close()
-        if interface then
-            -- Check if interface is up
-            local f2 = io.popen("ip link show " .. interface .. " 2>/dev/null | grep -q 'state UP' && echo 'up' || echo 'down'")
-            if f2 then
-                local status = f2:read("*l")
-                f2:close()
-                if status == "up" then
-                    -- Get signal strength for wireless interfaces
-                    if interface:match("^wlan") or interface:match("^wlp") then
-                        local f3 = io.popen("cat /proc/net/wireless 2>/dev/null | grep " .. interface .. " | awk '{print $3}' | sed 's/\\.//'")
-                        if f3 then
-                            local quality = f3:read("*l")
-                            f3:close()
-                            if quality then
-                                local percent = tonumber(quality)
-                                if percent then
-                                    net_widget:set_text("[NET: " .. interface .. " " .. percent .. "%]")
-                                else
-                                    net_widget:set_text("[NET: " .. interface .. "]")
-                                end
-                            else
-                                net_widget:set_text("[NET: " .. interface .. "]")
-                            end
-                        else
-                            net_widget:set_text("[NET: " .. interface .. "]")
-                        end
-                    else
-                        net_widget:set_text("[NET: " .. interface .. "]")
-                    end
-                else
-                    net_widget:set_text("[NET: down]")
-                end
-            else
-                net_widget:set_text("[NET: err]")
-            end
-        else
-            net_widget:set_text("[NET: none]")
-        end
-    else
+    if not f then
         net_widget:set_text("[NET: err]")
+        prev_interface = nil
+        prev_rx_bytes = nil
+        prev_tx_bytes = nil
+        prev_time = nil
+        measuring = false
+        return
     end
+    
+    local interface = f:read("*l")
+    f:close()
+    
+    if not interface then
+        net_widget:set_text("[NET: none]")
+        prev_interface = nil
+        prev_rx_bytes = nil
+        prev_tx_bytes = nil
+        prev_time = nil
+        measuring = false
+        return
+    end
+    
+    -- Check if interface is up
+    local f2 = io.popen("ip link show " .. interface .. " 2>/dev/null | grep -q 'state UP' && echo 'up' || echo 'down'")
+    if not f2 then
+        net_widget:set_text("[NET: err]")
+        prev_interface = nil
+        prev_rx_bytes = nil
+        prev_tx_bytes = nil
+        prev_time = nil
+        measuring = false
+        return
+    end
+    
+    local status = f2:read("*l")
+    f2:close()
+    
+    if status ~= "up" then
+        net_widget:set_text("[NET: down]")
+        prev_interface = nil
+        prev_rx_bytes = nil
+        prev_tx_bytes = nil
+        prev_time = nil
+        measuring = false
+        return
+    end
+    
+    -- Interface is up, get current byte counts
+    local current_time = os.time()
+    local rx_file = io.open("/sys/class/net/" .. interface .. "/statistics/rx_bytes", "r")
+    local tx_file = io.open("/sys/class/net/" .. interface .. "/statistics/tx_bytes", "r")
+    
+    if not rx_file or not tx_file then
+        net_widget:set_text("[NET: err]")
+        if rx_file then rx_file:close() end
+        if tx_file then tx_file:close() end
+        prev_interface = nil
+        prev_rx_bytes = nil
+        prev_tx_bytes = nil
+        prev_time = nil
+        measuring = false
+        return
+    end
+    
+    local current_rx = tonumber(rx_file:read("*a"))
+    local current_tx = tonumber(tx_file:read("*a"))
+    rx_file:close()
+    tx_file:close()
+    
+    if not current_rx or not current_tx then
+        net_widget:set_text("[NET: err]")
+        prev_interface = nil
+        prev_rx_bytes = nil
+        prev_tx_bytes = nil
+        prev_time = nil
+        measuring = false
+        return
+    end
+    
+    -- Reset previous values if interface changed
+    if prev_interface ~= interface then
+        prev_interface = interface
+        prev_rx_bytes = current_rx
+        prev_tx_bytes = current_tx
+        prev_time = current_time
+        measuring = true
+        net_widget:set_text("[NET: ...]")
+        return
+    end
+    
+    -- Calculate speeds (MB/s = bytes / seconds / 1048576)
+    local time_diff = current_time - prev_time
+    if time_diff <= 0 then
+        -- Not enough time elapsed, keep previous display
+        return
+    end
+    
+    local rx_diff = current_rx - prev_rx_bytes
+    local tx_diff = current_tx - prev_tx_bytes
+    
+    -- Debug: print raw values
+    -- print("DEBUG: time_diff=" .. time_diff .. " rx_diff=" .. rx_diff .. " tx_diff=" .. tx_diff)
+    
+    -- Safeguard against counter reset or negative values
+    if rx_diff < 0 then rx_diff = 0 end
+    if tx_diff < 0 then tx_diff = 0 end
+    
+    local down_mbs = rx_diff / time_diff / 1048576
+    local up_mbs = tx_diff / time_diff / 1048576
+    
+    -- Debug: print calculated MB/s
+    -- print("DEBUG: down_mbs=" .. down_mbs .. " up_mbs=" .. up_mbs)
+    
+    -- Cap unrealistic speeds (e.g., > 1000 MB/s)
+    if down_mbs > 1000 then down_mbs = 1000 end
+    if up_mbs > 1000 then up_mbs = 1000 end
+    
+    -- Update previous values
+    prev_rx_bytes = current_rx
+    prev_tx_bytes = current_tx
+    prev_time = current_time
+    
+    -- Format speeds with appropriate units
+    local down_str, up_str, unit
+    local threshold = 0.1  -- 0.1 MB/s = ~100 KB/s
+    
+    -- Use KB/s if either speed is below threshold (simpler)
+    if down_mbs < threshold or up_mbs < threshold then
+        -- Use KB/s for both
+        local down_kbs = rx_diff / time_diff / 1024
+        local up_kbs = tx_diff / time_diff / 1024
+        down_str = string.format("%.1f", down_kbs)
+        up_str = string.format("%.1f", up_kbs)
+        unit = "KB/s"
+    else
+        -- Use MB/s for both
+        down_str = string.format("%.1f", down_mbs)
+        up_str = string.format("%.1f", up_mbs)
+        unit = "MB/s"
+    end
+    
+    -- Determine prefix for Ethernet interfaces
+    local prefix = ""
+    if interface:match("^eth") or interface:match("^en") then
+        prefix = "E: "
+    end
+    
+    -- Set widget text
+    net_widget:set_text("[" .. prefix .. "↓" .. down_str .. " ↑" .. up_str .. " " .. unit .. "]")
 end
 
 gears.timer {
