@@ -3,16 +3,12 @@
 {
   imports = [
     ../../modules/desktop.nix
-    ../../modules/creative.nix
     ../../modules/git.nix
     ../../modules/spotify.nix
     ../../modules/discord.nix
     ../../modules/crypto.nix
-    ../../modules/cemu.nix
     ../../modules/hex.nix
-    ../../modules/minecraft.nix
     ../../modules/gpg.nix
-    ../../modules/dolphin.nix
     ../../modules/chess.nix
     ../../modules/zed.nix
     ../../modules/opencode.nix
@@ -58,7 +54,6 @@
       
       picom &
       
-      xrandr --output DP-3 --primary --mode 1920x1080 --rate 165 --pos 0x0 --output DP-1 --mode 1920x1080 --pos 1920x0
       exec awesome
     '';
   };

@@ -32,6 +32,11 @@
           specialArgs = { inherit inputs; };
           modules = [ ./hosts/jane-pc/configuration.nix ];
         };
+        jane-laptop = nixpkgs.lib.nixosSystem {
+          system = "x86_64-linux";
+          specialArgs = { inherit inputs; };
+          modules = [ ./hosts/jane-laptop/configuration.nix ];
+        };
       };
 
       # nh home switch .
@@ -40,6 +45,11 @@
           pkgs = nixpkgs.legacyPackages.x86_64-linux;
           extraSpecialArgs = { inherit inputs; };
           modules = [ ./hosts/jane-pc/home.nix ];
+        };
+        "jane@jane-laptop" = home-manager.lib.homeManagerConfiguration {
+          pkgs = nixpkgs.legacyPackages.x86_64-linux;
+          extraSpecialArgs = { inherit inputs; };
+          modules = [ ./hosts/jane-laptop/home.nix ];
         };
       };
     };

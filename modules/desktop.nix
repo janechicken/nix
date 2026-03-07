@@ -36,7 +36,6 @@
       recursive = true;
       source = ../dotfiles/rofi;
     };
-    ".xinitrc" = { source = ../dotfiles/.xinitrc; };
     ".config/picom" = {
       recursive = true;
       source = ../dotfiles/picom;
