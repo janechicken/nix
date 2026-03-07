@@ -3,8 +3,8 @@
 {
 
   fonts.packages = with pkgs; [
-    noto-fonts
-    noto-fonts-cjk-sans
+    adwaita-fonts
+    dejavu_fonts
     twemoji-color-font
     nerd-fonts.jetbrains-mono
   ];
@@ -13,8 +13,8 @@
     enable = true;
     defaultFonts = {
       monospace = [ "JetBrainsMono Nerd Font" ];
-      serif = [ "Noto Serif" ];
-      sansSerif = [ "Noto Sans" ];
+      serif = [ "DejaVu Serif" ];
+      sansSerif = [ "Adwaita Sans" ];
       emoji = [ "Twitter Color Emoji" ];
     };
   };

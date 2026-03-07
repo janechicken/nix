@@ -9,6 +9,7 @@
     autosuggestion.enable = true;
     syntaxHighlighting.enable = true;
     dotDir = config.home.homeDirectory;
+    envExtra = "export NOSYSZSHRC=1";
     shellAliases = {
       ls = "lsd -l";
       ll = "lsd -la";
