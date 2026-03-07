@@ -143,41 +143,99 @@ gears.timer {
   callback = sync_mem_widget,
 }
 
-local temp_widget = wibox.widget {
-  widget = wibox.widget.textbox,
-  text = "[Temp: Loading...]"
-}
 
-local function sync_temp_widget()
-  -- Use a temporary file to store the output
-  awful.spawn.easy_async("sensors", function(stdout)
-    -- Find the Tctl line and extract the temperature
-    for line in stdout:gmatch("[^\r\n]+") do
-      if line:match("Tctl") then
-        local cpu_temp = line:match("(%+%d+%.%d+)°C")         -- Extract the temperature value
-        if cpu_temp then
-          temp_widget.text = "[" .. cpu_temp .. " C]"
-        else
-          temp_widget.text = "[N/A]"
-        end
-        break         -- Exit the loop after finding the Tctl line
-      end
-    end
-  end)
-end
-
--- Update the widget immediately
-sync_temp_widget()
-
--- Create a timer to update the widget every 5 seconds
-gears.timer {
-  timeout = 5,
-  autostart = true,
-  callback = sync_temp_widget,
-}
 
 cpu_widget = wibox.widget.textbox()
 -- vicious.register(cpu_widget, vicious.widgets.cpu, "[CPU: $1%]", 1)
+
+-- Create battery widget
+local battery_widget = wibox.widget.textbox()
+-- Function to get battery percentage using acpi
+local function update_battery()
+    local f = io.popen("acpi -b 2>/dev/null")
+    if f then
+        local output = f:read("*all")
+        f:close()
+        -- Extract percentage from acpi output
+        local percentage = output:match("(%d+)%%")
+        if percentage then
+            battery_widget:set_text("[" .. percentage .. "% BAT]")
+        else
+            battery_widget:set_text("[N/A BAT]")
+        end
+    else
+        battery_widget:set_text("[N/A] BAT")
+    end
+end
+
+gears.timer {
+    timeout = 10,
+    autostart = true,
+    callback = update_battery,
+}
+
+-- Initial update
+update_battery()
+
+-- Create network widget
+local net_widget = wibox.widget.textbox()
+-- Function to get network status using ip
+local function update_network()
+    local f = io.popen("ip route get 1.1.1.1 2>/dev/null | grep -oP 'dev \\K\\S+'")
+    if f then
+        local interface = f:read("*l")
+        f:close()
+        if interface then
+            -- Check if interface is up
+            local f2 = io.popen("ip link show " .. interface .. " 2>/dev/null | grep -q 'state UP' && echo 'up' || echo 'down'")
+            if f2 then
+                local status = f2:read("*l")
+                f2:close()
+                if status == "up" then
+                    -- Get signal strength for wireless interfaces
+                    if interface:match("^wlan") or interface:match("^wlp") then
+                        local f3 = io.popen("cat /proc/net/wireless 2>/dev/null | grep " .. interface .. " | awk '{print $3}' | sed 's/\\.//'")
+                        if f3 then
+                            local quality = f3:read("*l")
+                            f3:close()
+                            if quality then
+                                local percent = tonumber(quality)
+                                if percent then
+                                    net_widget:set_text("[NET: " .. interface .. " " .. percent .. "%]")
+                                else
+                                    net_widget:set_text("[NET: " .. interface .. "]")
+                                end
+                            else
+                                net_widget:set_text("[NET: " .. interface .. "]")
+                            end
+                        else
+                            net_widget:set_text("[NET: " .. interface .. "]")
+                        end
+                    else
+                        net_widget:set_text("[NET: " .. interface .. "]")
+                    end
+                else
+                    net_widget:set_text("[NET: down]")
+                end
+            else
+                net_widget:set_text("[NET: err]")
+            end
+        else
+            net_widget:set_text("[NET: none]")
+        end
+    else
+        net_widget:set_text("[NET: err]")
+    end
+end
+
+gears.timer {
+    timeout = 5,
+    autostart = true,
+    callback = update_network,
+}
+
+-- Initial update
+update_network()
 
 
 
@@ -350,17 +408,19 @@ awful.screen.connect_for_each_screen(function(s)
     s.mytasklist,     -- Middle widget
     {                 -- Right widgets
       layout = wibox.layout.fixed.horizontal,
-      text_margin,
-      wibox.widget.systray(),
-      text_margin,
-      cpu_widget,
-      text_margin,
-      temp_widget,
-      text_margin,
-      mem_widget,
-      text_margin,
-      mytextclock,
-      text_margin,
+       text_margin,
+       wibox.widget.systray(),
+       text_margin,
+       net_widget,
+       text_margin,
+       cpu_widget,
+       text_margin,
+       battery_widget,
+       text_margin,
+       mem_widget,
+       text_margin,
+       mytextclock,
+       text_margin,
     },
   }
 end)

@@ -17,6 +17,7 @@
     ../../modules/keyring.nix
     ../../modules/flatpak.nix
     ../../modules/nix-ld.nix
+    ../../modules/networking.nix
     ../../modules/xdg-portal.nix
     inputs.sops-nix.nixosModules.sops
     ../../secrets/sops-nix.nix
