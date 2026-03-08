@@ -12,8 +12,8 @@
     wget
     fastfetch
     uutils-coreutils-noprefix
-    (lib.meta.setPrio 5 procps)
-    (lib.meta.setPrio 6 toybox)
+    procps
+    (lib.meta.setPrio 11 toybox)
     bat
     btop
     wineWow64Packages.stable
