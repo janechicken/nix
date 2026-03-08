@@ -10,6 +10,7 @@
     };
     
     profiles.jane = {
+      search.force = true;
       extensions.packages =
         with inputs.firefox-addons.packages."x86_64-linux"; [
           keepassxc-browser
@@ -47,6 +48,7 @@
         "privacy.clearOnShutdown.downloads" = true;
         "privacy.clearOnShutdown.history" = false;
         "privacy.clearOnShutdown.cookies" = false;
+        "privacy.sanitize.sanitizeOnShutdown" = false;
         "network.cookie.lifetimePolicy" = 0;
         "xpinstall.signatures.required" = false;
       };

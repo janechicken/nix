@@ -38,6 +38,22 @@
           };
         };
 
+        chatbot = {
+          description = "General-purpose chatbot using deepseek-chat";
+          mode = "primary";
+          prompt = "Be extremely concise. Sacrifice grammar for the sake of concision. Do not do anything but what the user asks unless it it necessary to do so. Don't needlessly waste tokens.";
+          model = "deepseek/deepseek-chat";
+          temperature = 0.7;
+          steps = 10;
+          tools = {
+            read = true;
+            grep = true;
+            write = false;
+            edit = false;
+            bash = false;
+          };
+        };
+
         docs-generator = {
           description = "Generates project documentation in markdown format without emojis";
           mode = "subagent";
