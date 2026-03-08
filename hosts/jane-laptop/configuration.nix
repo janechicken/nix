@@ -2,10 +2,17 @@
 # your system. Help is available in the configuration.nix(5) man page, on
 # https://search.nixos.org/options and in the NixOS manual (`nixos-help`).
 
-{ config, lib, pkgs, inputs, ... }:
+{
+  config,
+  lib,
+  pkgs,
+  inputs,
+  ...
+}:
 
 {
-  imports = [ # Include the results of the hardware scan.
+  imports = [
+    # Include the results of the hardware scan.
     ./hardware-configuration.nix
     ../../modules/fonts.nix
     ../../modules/core.nix
@@ -32,6 +39,7 @@
     KERNEL=="hidraw*", ATTRS{idVendor}=="2dc8", ATTRS{idProduct}=="6012", MODE="0660", GROUP="input"
     # Bluetooth
     KERNEL=="hidraw*", KERNELS=="*2DC8:6012*", MODE="0660", GROUP="input"
+    ACTION=="add", SUBSYSTEM=="pci", ATTR{vendor}=="0x10de", ATTR{device}=="0x2191", ATTR{power/control}="auto"
   '';
 
   system.autoUpgrade.enable = true;
@@ -75,13 +83,15 @@
     };
   };
 
-  nix.settings.experimental-features = [ "nix-command" "flakes" ];
+  nix.settings.experimental-features = [
+    "nix-command"
+    "flakes"
+  ];
 
   networking.hostName = "jane-laptop"; # Define your hostname.
   # Pick only one of the below networking options.
   # networking.wireless.enable = true;  # Enables wireless support via wpa_supplicant.
-  networking.networkmanager.enable =
-    true; # Easiest to use and most distros use this by default.
+  networking.networkmanager.enable = true; # Easiest to use and most distros use this by default.
 
   # Set your time zone.
   time.timeZone = "America/New_York";
@@ -103,10 +113,16 @@
     enable = true;
     autorun = false;
     videoDrivers = [ "nvidia" ];
-    displayManager.startx = { enable = true; };
+    displayManager.startx = {
+      enable = true;
+    };
     windowManager.awesome = {
       enable = true;
-      luaModules = with pkgs.luaPackages; [ luarocks luadbi-mysql vicious ];
+      luaModules = with pkgs.luaPackages; [
+        luarocks
+        luadbi-mysql
+        vicious
+      ];
     };
     dpi = 120;
   };
@@ -143,19 +159,25 @@
       powerKeyLongPress = "poweroff";
     };
 
-    auto-cpufreq = {
+    tlp = {
       enable = true;
       settings = {
-        battery = {
-          governor = "powersave";
-          turbo = "never";
-          energy_performance_preference = "power";
-        };
-        charger = {
-          governor = "performance";
-          turbo = "auto";
-          energy_performance_preference = "performance";
-        };
+        CPU_SCALING_GOVERNOR_ON_BAT = "powersave";
+        CPU_SCALING_GOVERNOR_ON_AC = "performance";
+        CPU_ENERGY_PERF_POLICY_ON_BAT = "power";
+        CPU_ENERGY_PERF_POLICY_ON_AC = "performance";
+        CPU_MIN_PERF_ON_BAT = 0;
+        CPU_MAX_PERF_ON_BAT = 50;
+        CPU_BOOST_ON_AC = 1;
+        CPU_BOOST_ON_BAT = 0;
+        RUNTIME_PM_ON_AC = "on";
+        RUNTIME_PM_ON_BAT = "auto";
+        PCIE_ASPM_ON_BAT = "powersupersave";
+        PCIE_ASPM_ON_AC = "performance";
+        DEVICES_TO_ENABLE_ON_LAN_DISCONNECT = "wifi wwan";
+        DEVICES_TO_DISABLE_ON_LAN_CONNECT = "wifi wwan";
+        DEVICES_TO_DISABLE_ON_BAT = "bluetooth wwan";
+        WIFI_PWR_ON_BAT = "on";
       };
     };
   };
@@ -178,7 +200,12 @@
   # Define a user account. Don't forget to set a password with ‘passwd’.
   users.users.jane = {
     isNormalUser = true;
-    extraGroups = [ "wheel" "input" "networkmanager" "audio" ];
+    extraGroups = [
+      "wheel"
+      "input"
+      "networkmanager"
+      "audio"
+    ];
     shell = pkgs.zsh;
   };
 
@@ -213,7 +240,7 @@
   # networking.firewall.allowedTCPPorts = [ ... ];
   # networking.firewall.allowedUDPPorts = [ ... ];
   # Or disable the firewall altogether.
-  # networking.firewall.enable = false;
+  networking.firewall.enable = false;
 
   # Copy the NixOS configuration file and link it from the resulting system
   # (/run/current-system/configuration.nix). This is useful in case you
