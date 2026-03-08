@@ -25,6 +25,7 @@
     pkgs.flameshot
     inputs.nix-alien.packages."x86_64-linux".nix-alien
     pkgs.yt-dlp
+    pkgs.xbacklight
   ];
 
   home.file = {
