@@ -26,6 +26,7 @@
     ../../modules/nix-ld.nix
     ../../modules/networking.nix
     ../../modules/xdg-portal.nix
+    ../../modules/lock.nix
     inputs.sops-nix.nixosModules.sops
     ../../secrets/sops-nix.nix
   ];

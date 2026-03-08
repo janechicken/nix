@@ -21,6 +21,7 @@
     ../../modules/xdg-portal.nix
     inputs.sops-nix.nixosModules.sops
     ../../secrets/sops-nix.nix
+    ../../modules/lock.nix
   ];
 
   services.udev.packages = [
