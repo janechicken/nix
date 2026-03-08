@@ -150,26 +150,58 @@ cpu_widget = wibox.widget.textbox()
 
 -- Create battery widget
 local battery_widget = wibox.widget.textbox()
--- Function to get battery percentage using acpi
+-- Function to get battery percentage and status using sysfs
 local function update_battery()
-    local f = io.popen("acpi -b 2>/dev/null")
-    if f then
-        local output = f:read("*all")
-        f:close()
-        -- Extract percentage from acpi output
-        local percentage = output:match("(%d+)%%")
-        if percentage then
-            battery_widget:set_text("[" .. percentage .. "% BAT]")
+    -- Try to read battery status and capacity from sysfs
+    local status_file = io.open("/sys/class/power_supply/BAT1/status", "r")
+    local capacity_file = io.open("/sys/class/power_supply/BAT1/capacity", "r")
+    
+    if status_file and capacity_file then
+        local status = status_file:read("*l")
+        local capacity = capacity_file:read("*l")
+        status_file:close()
+        capacity_file:close()
+        
+        if capacity then
+            if status == "Charging" then
+                battery_widget:set_text("[" .. capacity .. "% BAT ↑]")
+            elseif status == "Discharging" then
+                battery_widget:set_text("[" .. capacity .. "% BAT ↓]")
+            else
+                battery_widget:set_text("[" .. capacity .. "% BAT]")
+            end
         else
             battery_widget:set_text("[N/A BAT]")
         end
     else
-        battery_widget:set_text("[N/A] BAT")
+        -- Fallback to acpi if sysfs not available
+        local f = io.popen("acpi -b 2>/dev/null")
+        if f then
+            local output = f:read("*all")
+            f:close()
+            local percentage = output:match("(%d+)%%")
+            local charging = output:match("Charging")
+            local discharging = output:match("Discharging")
+            
+            if percentage then
+                if charging then
+                    battery_widget:set_text("[" .. percentage .. "% BAT ↑]")
+                elseif discharging then
+                    battery_widget:set_text("[" .. percentage .. "% BAT ↓]")
+                else
+                    battery_widget:set_text("[" .. percentage .. "% BAT]")
+                end
+            else
+                battery_widget:set_text("[N/A BAT]")
+            end
+        else
+            battery_widget:set_text("[N/A BAT]")
+        end
     end
 end
 
 gears.timer {
-    timeout = 10,
+    timeout = 5,
     autostart = true,
     callback = update_battery,
 }
