@@ -1,4 +1,10 @@
-{ config, inputs, pkgs, lib, ... }:
+{
+  config,
+  inputs,
+  pkgs,
+  lib,
+  ...
+}:
 {
   environment.systemPackages = with pkgs; [
     nh
@@ -6,11 +12,11 @@
     wget
     fastfetch
     uutils-coreutils-noprefix
+    (lib.meta.setPrio 5 procps)
+    (lib.meta.setPrio 6 toybox)
     bat
     btop
-    killall
-    toybox
-    wineWow64Packages.stable    
+    wineWow64Packages.stable
     wineWow64Packages.staging
     winetricks
     home-manager
@@ -20,5 +26,8 @@
     qrrs
   ];
 
-  nixpkgs.config = { allowBroken = true; allowUnfree = true; };
+  nixpkgs.config = {
+    allowBroken = true;
+    allowUnfree = true;
+  };
 }
