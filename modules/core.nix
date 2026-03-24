@@ -16,8 +16,7 @@
     (lib.meta.setPrio 11 toybox)
     bat
     btop
-    wineWow64Packages.stable
-    wineWow64Packages.staging
+    wineWow64Packages.yabridge
     winetricks
     home-manager
     zenity

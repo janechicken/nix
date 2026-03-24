@@ -288,6 +288,9 @@
         C-space = "completion";
       };
       editor = {
+        soft-wrap = {
+          enable = true;
+        };
         mouse = true;
         clipboard-provider = "x-clip";
         file-picker.hidden = false;
