@@ -16,7 +16,6 @@
     (lib.meta.setPrio 11 toybox)
     bat
     btop
-    # wineWow64Packages.yabridge
     wineWow64Packages.staging
     winetricks
     home-manager
