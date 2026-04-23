@@ -16,8 +16,10 @@
         Usage: /git
       '';
     };
-    settings = {
+    tui = {
       theme = "gruvbox";
+    };
+    settings = {
 
       model = "deepseek-chat";
 
@@ -72,7 +74,7 @@
 
         build = {
           prompt = "Be extremely concise. Sacrifice grammar for the sake of concision. Do not do anything but what the user asks unless it it necessary to do so. Don't needlessly waste tokens.";
-          model= "deepseek/deepseek-chat";
+          model = "deepseek/deepseek-chat";
         };
 
         plan = {

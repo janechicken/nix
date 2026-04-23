@@ -34,7 +34,7 @@
       mentionAvatars.enable = true;
       messageLogger.enable = true;
       moreCommands.enable = true;
-      moreKaomoji.enable = true;
+      # moreKaomoji.enable = true;
       # MutualGroupDMs.enable = true;
       noBlockedMessages.enable = true;
       noF1.enable = true;
