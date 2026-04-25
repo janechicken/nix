@@ -1,6 +1,4 @@
-{ config, inputs, pkgs, lib }:
+{ config, inputs, pkgs, lib, ... }:
 {
-  services.openvpn = {
-    enable = true;
-  };
+  environment.systemPackages = [ pkgs.openvpn ];
 }
