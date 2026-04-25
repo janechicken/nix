@@ -22,6 +22,7 @@
     inputs.sops-nix.nixosModules.sops
     ../../secrets/sops-nix.nix
     ../../modules/lock.nix
+    ../../modules/openvpn.nix
   ];
 
   services.udev.packages = [
