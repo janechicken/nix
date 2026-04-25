@@ -31,6 +31,27 @@
 
       model = "deepseek/deepseek-v4-flash";
 
+      provider = {
+        deepseek = {
+          models = {
+            deepseek-v4-flash = {
+              variants = {
+                none = {
+                  thinking.type = "disabled";
+                };
+              };
+            };
+            deepseek-v4-pro = {
+              variants = {
+                none = {
+                  thinking.type = "disabled";
+                };
+              };
+            };
+          };
+        };
+      };
+
       agent = {
         reviewer = {
           description = "Reviews code for security vulnerabilities, performance issues, and language standards compliance";
