@@ -21,7 +21,7 @@
     };
     settings = {
 
-      model = "deepseek-chat";
+      model = "deepseek-v4-flash";
 
       agent = {
         reviewer = {
