@@ -55,7 +55,7 @@
       
       picom &
       
-      exec awesome
+      exec dbus-run-session awesome
     '';
   };
 
