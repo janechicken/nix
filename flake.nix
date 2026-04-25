@@ -24,7 +24,14 @@
   };
 
   outputs = inputs@{ self, nixpkgs, home-manager, firefox-addons, nixcord
-    , disko, nix-alien, sops-nix, ... }: {
+    , disko, nix-alien, sops-nix, ... }:
+    let
+      overlayFiles = import ./overlays/default.nix;
+      overlay = nixpkgs.lib.composeManyExtensions (map import overlayFiles);
+      # For home-manager, pkgs must already have the overlay applied
+      pkgsWithOverlay = nixpkgs.legacyPackages.x86_64-linux.extend overlay;
+    in
+    {
       # nh os switch .
       nixosConfigurations = {
         jane-pc = nixpkgs.lib.nixosSystem {
@@ -42,12 +49,12 @@
       # nh home switch .
       homeConfigurations = {
         "jane@jane-pc" = home-manager.lib.homeManagerConfiguration {
-          pkgs = nixpkgs.legacyPackages.x86_64-linux;
+          pkgs = pkgsWithOverlay;
           extraSpecialArgs = { inherit inputs; };
           modules = [ ./hosts/jane-pc/home.nix ];
         };
         "jane@jane-laptop" = home-manager.lib.homeManagerConfiguration {
-          pkgs = nixpkgs.legacyPackages.x86_64-linux;
+          pkgs = pkgsWithOverlay;
           extraSpecialArgs = { inherit inputs; };
           modules = [ ./hosts/jane-laptop/home.nix ];
         };
