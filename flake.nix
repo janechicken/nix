@@ -21,6 +21,7 @@
       url = "github:Mic92/sops-nix";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+    renix.url = "github:ironfisto/renix?dir=main";
   };
 
   outputs = inputs@{ self, nixpkgs, home-manager, firefox-addons, nixcord
