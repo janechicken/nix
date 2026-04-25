@@ -5,7 +5,11 @@
 
   programs.nixcord = {
     enable = true;
-    equibop.enable = true;
+
+    # Only use Vesktop standalone client, don't patch regular Discord
+    discord.enable = false;
+    vesktop.enable = true;
+
     config.plugins = {
       alwaysExpandRoles.enable = true;
       alwaysTrust.enable = true;
@@ -33,7 +37,8 @@
       memberCount.enable = true;
       mentionAvatars.enable = true;
       messageLogger.enable = true;
-      moreCommands.enable = true;
+      # moreCommands is Equicord-only; Vesktop uses Vencord so it's not available
+      # moreCommands.enable = true;
       # moreKaomoji.enable = true;
       # MutualGroupDMs.enable = true;
       noBlockedMessages.enable = true;
