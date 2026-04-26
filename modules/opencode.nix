@@ -28,6 +28,7 @@ in
         Usage: /git
       '';
       solve-challenge = solveChallengeContent;
+      breath = "Stop for a second. Take a breather. Give background info, your problems, your goals, your achievements, and what you've done so far. I'll give my own insight";
     };
     tui = {
       theme = "gruvbox";
