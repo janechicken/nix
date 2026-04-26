@@ -1,7 +1,9 @@
 { pkgs, inputs, ... }:
 
 let
-  solveChallengeContent = builtins.readFile "${inputs.ctf-skills}/solve-challenge/SKILL.md";
+  skillDir = "${inputs.ctf-skills}";
+  solveChallengeContent = builtins.readFile "${skillDir}/solve-challenge/SKILL.md";
+  ctfWriteupContent = builtins.readFile "${skillDir}/ctf-writeup/SKILL.md";
 in
 {
   programs.opencode = {
@@ -28,6 +30,7 @@ in
         Usage: /git
       '';
       solve-challenge = solveChallengeContent;
+      ctf-writeup = ctfWriteupContent;
       breath = "Stop for a second. Take a breather. Give background info, your problems, your goals, your achievements, and what you've done so far. I'll give my own insight";
     };
     tui = {

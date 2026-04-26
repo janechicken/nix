@@ -9,5 +9,5 @@ let
     ignoreCollisions = true;
   };
 in {
-  home.packages = [ renixBundle pkgs.feroxbuster pkgs.seclists pkgs.waybackurls pkgs.katana pkgs.pwntools pkgs.python312Packages.pwntools ];
+  home.packages = [ renixBundle pkgs.feroxbuster pkgs.seclists pkgs.waybackurls pkgs.katana pkgs.python312Packages.pwntools ];
 }
