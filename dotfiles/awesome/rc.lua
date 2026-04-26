@@ -39,7 +39,7 @@ beautiful.notification_max_width = 10
 --autostart
 autorun = true
 autorunApps = {
-  "equibop -m",
+  "vesktop -m",
   "arrpc",
   "signal-desktop",
   "copyq",
