@@ -16,6 +16,7 @@
     ../../modules/chess.nix
     ../../modules/zed.nix
     ../../modules/opencode.nix
+    ../../modules/ctf-skills.nix
     ../../modules/messaging.nix
     ../../modules/syncthing.nix
     ../../modules/obsidian.nix

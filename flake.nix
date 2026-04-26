@@ -22,6 +22,10 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
     renix.url = "github:ironfisto/renix?dir=main";
+    ctf-skills = {
+      url = "github:ljagiello/ctf-skills";
+      flake = false;
+    };
   };
 
   outputs = inputs@{ self, nixpkgs, home-manager, firefox-addons, nixcord

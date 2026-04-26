@@ -1,5 +1,21 @@
 {
   "nodes": {
+    "ctf-skills": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1776923820,
+        "narHash": "sha256-Oj7uLyhGfycH1NlUnO+UGn6cwyLkVdL8ULEtwgf4U50=",
+        "owner": "ljagiello",
+        "repo": "ctf-skills",
+        "rev": "ed2a356db92b078d52b4590c2ebbbf2e6641a7ee",
+        "type": "github"
+      },
+      "original": {
+        "owner": "ljagiello",
+        "repo": "ctf-skills",
+        "type": "github"
+      }
+    },
     "disko": {
       "inputs": {
         "nixpkgs": [
@@ -307,6 +323,7 @@
     },
     "root": {
       "inputs": {
+        "ctf-skills": "ctf-skills",
         "disko": "disko",
         "firefox-addons": "firefox-addons",
         "home-manager": "home-manager",
