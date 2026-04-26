@@ -1,4 +1,8 @@
-{ pkgs, ... }:
+{ pkgs, inputs, ... }:
+
+let
+  solveChallengeContent = builtins.readFile "${inputs.ctf-skills}/solve-challenge/SKILL.md";
+in
 {
   programs.opencode = {
     enable = true;
@@ -23,6 +27,7 @@
         You are a git assistant, simply do what the user runs you with. For example if a user runs git commit, do git commit, but you are what creates the message. Be concise, in one sentence if possible, but its okay to exceed that if there are multiple changes. In the git commit message, explain what and why, not just what changed.
         Usage: /git
       '';
+      solve-challenge = solveChallengeContent;
     };
     tui = {
       theme = "gruvbox";
