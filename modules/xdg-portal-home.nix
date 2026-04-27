@@ -1,5 +1,9 @@
-{ pkgs, lib, ... }:
-
+{
+  config,
+  pkgs,
+  lib,
+  ...
+}:
 {
   xdg.portal = {
     enable = true;

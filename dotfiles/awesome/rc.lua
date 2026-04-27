@@ -46,7 +46,6 @@ autorunApps = {
   "keepassxc",
   "udiskie",
   "copyq",
-  "flameshot",
   "easyeffects --gapplication-service",
 }
 
@@ -850,10 +849,10 @@ globalkeys = gears.table.join(globalkeys,
     { description = "increase brightness", group = "media" }),
   awful.key({}, "XF86MonBrightnessDown", function() awful.spawn("xbacklight -dec 10") end,
     { description = "decrease brightness", group = "media" }),
-  awful.key({}, "Print", function() awful.spawn.with_shell("flameshot screen --clipboard") end,
-    { description = "screenshot", group = "screenshot" }),
-  awful.key({ "Control", }, "Print", function() awful.spawn.with_shell("flameshot gui --clipboard") end,
-    { description = "screenshot sel", group = "screenshot" })
+  awful.key({}, "Print", function() awful.spawn.with_shell("f=~/Pictures/Screenshots/$(date +%Y-%m-%d_%H-%M-%S).png; maim \"$f\" && xclip -selection clipboard -t image/png \"$f\"") end,
+    { description = "screenshot sel", group = "screenshot" }),
+  awful.key({ "Control", }, "Print", function() awful.spawn.with_shell("f=~/Pictures/Screenshots/$(date +%Y-%m-%d_%H-%M-%S).png; maim -s \"$f\" && xclip -selection clipboard -t image/png \"$f\"") end,
+    { description = "screenshot full", group = "screenshot" })
 )
 
 clientbuttons = gears.table.join(
