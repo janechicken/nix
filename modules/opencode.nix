@@ -38,9 +38,41 @@ in
     };
     settings = {
 
-      model = "deepseek/deepseek-v4-flash";
+      model = "opencode-go/deepseek-v4-flash";
 
       provider = {
+        opencode-go = {
+          models = {
+            deepseek-v4-flash = {
+              variants = {
+                none = {
+                  thinking.type = "disabled";
+                };
+              };
+            };
+            deepseek-v4-pro = {
+              variants = {
+                none = {
+                  thinking.type = "disabled";
+                };
+              };
+            };
+            "kimi-k2.6" = {
+              variants = {
+                none = {
+                  thinking.type = "disabled";
+                };
+              };
+            };
+            "glm-5.1" = {
+              variants = {
+                none = {
+                  thinking.type = "disabled";
+                };
+              };
+            };
+          };
+        };
         deepseek = {
           models = {
             deepseek-v4-flash = {
@@ -66,7 +98,7 @@ in
           description = "Reviews code for security vulnerabilities, performance issues, and language standards compliance";
           mode = "primary";
           prompt = "You are a code reviewer specializing in security, performance, and language standards.\n\nFocus on:\n- Security vulnerabilities (SQL injection, XSS, auth issues, secrets exposure, etc.)\n- Performance bottlenecks and inefficiencies\n- Language-specific best practices and coding standards\n- Code quality and maintainability concerns\n\nProvide constructive feedback with specific recommendations. Do not make changes - only analyze and suggest improvements.";
-          model = "deepseek/deepseek-v4-flash";
+          model = "opencode-go/deepseek-v4-flash";
           temperature = 0.2;
           steps = 15;
           tools = {
@@ -81,7 +113,7 @@ in
         chatbot = {
           description = "General-purpose chatbot using deepseek-chat";
           mode = "primary";
-          model = "deepseek/deepseek-v4-flash";
+          model = "opencode-go/deepseek-v4-flash";
           temperature = 0.7;
           steps = 10;
           tools = {
@@ -97,7 +129,7 @@ in
           description = "Generates project documentation in markdown format without emojis";
           mode = "subagent";
           prompt = "You are a technical documentation generator. Generate clear, comprehensive documentation in markdown format.\n\nGuidelines:\n- Use standard markdown syntax only\n- Do NOT use emojis unless explicitly specified by the user\n- Use code blocks with appropriate language identifiers\n- Include examples where helpful\n- Keep explanations clear and concise\n- Use proper heading hierarchy\n- Focus on clarity and readability.";
-          model = "deepseek/deepseek-v4-flash";
+          model = "opencode-go/deepseek-v4-flash";
           temperature = 0.5;
           steps = 8;
           tools = {
@@ -110,11 +142,11 @@ in
         };
 
         build = {
-          model = "deepseek/deepseek-v4-flash";
+          model = "opencode-go/deepseek-v4-flash";
         };
 
         plan = {
-          model = "deepseek/deepseek-v4-flash";
+          model = "opencode-go/deepseek-v4-flash";
         };
       };
     };

@@ -10,6 +10,9 @@
   sops.secrets."deepseek_api_key" = {
     owner = config.users.users.jane.name;
   };
+  sops.secrets."opencode_api_key" = {
+    owner = config.users.users.jane.name;
+  };
   sops.secrets."ssh_key" = {
     owner = config.users.users.jane.name;
     path = "/home/jane/.ssh/id_rsa";
@@ -26,5 +29,6 @@
   environment.sessionVariables = {
     OPENROUTER_API_KEY = "$(cat /run/secrets/openrouter_api_key)";
     DEEPSEEK_API_KEY = "$(cat /run/secrets/deepseek_api_key)";
+    OPENCODE_API_KEY = "$(cat /run/secrets/opencode_api_key)";
   };
 }
