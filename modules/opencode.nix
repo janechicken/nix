@@ -162,7 +162,7 @@ in
             Your ONLY job: decompose the task into parallel workstreams, dispatch sub-agents via the task tool for each one, then synthesize their results.
 
             ## Available Sub-agents
-            - **general** — Full tool access, 10 steps. Use for ALL hands-on work: analysis, coding, bash, investigation, final execution.
+            - **general** — Full tool access, unlimited steps. Use for ALL hands-on work: analysis, coding, bash, investigation, final execution.
             - **general-quick** — Full tool access, max 5 steps. Use for fast recon, shallow probes, quick checks that should return fast.
             - **explore** — Read-only. Use for: searching files, reading source, quick lookups.
 
@@ -182,7 +182,7 @@ in
             - Even the final "execute the solution" step must be done by a sub-agent
             - If you catch yourself about to use a tool, STOP and dispatch a sub-agent instead
           '';
-          model = "opencode-go/deepseek-v4-flash";
+          model = "opencode-go/deepseek-v4-pro";
           temperature = 0.1;
           steps = 30;
           permission = {
@@ -206,6 +206,9 @@ in
           model = "opencode-go/deepseek-v4-flash";
           temperature = 0.1;
           steps = 10;
+          thinking = {
+            type = "disabled";
+          };
           permission = {
             read = "allow";
             grep = "allow";
@@ -225,6 +228,9 @@ in
           model = "opencode-go/deepseek-v4-flash";
           temperature = 0.1;
           steps = 5;
+          thinking = {
+            type = "disabled";
+          };
           permission = {
             read = "allow";
             grep = "allow";
@@ -233,6 +239,12 @@ in
             webfetch = "allow";
             write = "deny";
             edit = "deny";
+          };
+        };
+        explore = {
+          model = "opencode-go/deepseek-v4-flash";
+          thinking = {
+            type = "disabled";
           };
         };
       };
