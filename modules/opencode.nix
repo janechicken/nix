@@ -200,6 +200,25 @@ in
           };
         };
 
+        general = {
+          description = "Full-access sub-agent for deep work. 10 step limit.";
+          mode = "subagent";
+          model = "opencode-go/deepseek-v4-flash";
+          temperature = 0.1;
+          steps = 10;
+          permission = {
+            read = "allow";
+            grep = "allow";
+            glob = "allow";
+            write = "allow";
+            edit = "allow";
+            bash = "allow";
+            webfetch = "allow";
+            question = "allow";
+            skill = "allow";
+          };
+        };
+
         general-quick = {
           description = "Fast sub-agent for quick recon and shallow probes. Max 5 steps.";
           mode = "subagent";
