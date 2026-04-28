@@ -2,7 +2,7 @@
 
 let
   skillDir = "${inputs.ctf-skills}";
-  solveChallengeContent = builtins.readFile "${skillDir}/solve-challenge/SKILL.md";
+  solveChallengeContent = builtins.readFile ../skills/solve-challenge/SKILL.md;
   ctfWriteupContent = builtins.readFile "${skillDir}/ctf-writeup/SKILL.md";
 in
 {
@@ -101,12 +101,13 @@ in
           model = "opencode-go/deepseek-v4-flash";
           temperature = 0.2;
           steps = 15;
-          tools = {
-            read = true;
-            grep = true;
-            write = false;
-            edit = false;
-            bash = true;
+          permission = {
+            read = "allow";
+            grep = "allow";
+            glob = "allow";
+            write = "deny";
+            edit = "deny";
+            bash = "allow";
           };
         };
 
@@ -116,12 +117,13 @@ in
           model = "opencode-go/deepseek-v4-flash";
           temperature = 0.7;
           steps = 10;
-          tools = {
-            read = true;
-            grep = true;
-            write = false;
-            edit = false;
-            bash = false;
+          permission = {
+            read = "allow";
+            grep = "allow";
+            glob = "allow";
+            write = "deny";
+            edit = "deny";
+            bash = "deny";
           };
         };
 
@@ -132,12 +134,14 @@ in
           model = "opencode-go/deepseek-v4-flash";
           temperature = 0.5;
           steps = 8;
-          tools = {
-            read = true;
-            grep = true;
-            write = true;
-            edit = true;
-            bash = false;
+          permission = {
+            read = "allow";
+            grep = "allow";
+            glob = "allow";
+            write = "allow";
+            edit = "allow";
+            bash = "deny";
+            webfetch = "allow";
           };
         };
 
@@ -147,6 +151,60 @@ in
 
         plan = {
           model = "opencode-go/deepseek-v4-flash";
+        };
+
+        squad = {
+          description = "Decomposes tasks into parallel sub-agents for faster execution";
+          mode = "primary";
+          prompt = ''
+            CRITICAL: You MUST decompose EVERY task into parallel workstreams and dispatch sub-agents. Never work sequentially. Never do work yourself that a sub-agent could do.
+
+            ## Available Sub-agents
+            - **general** — Full tool access (read, write, edit, bash, grep, glob). Your main worker.
+            - **explore** — Read-only (grep, glob, read). For codebase exploration and search.
+            - **docs-generator** — Write/edit only, no bash. For documentation.
+
+            ## Default Behavior
+            For ANY task, immediately ask yourself: "What parts of this can run in parallel?" Then spawn sub-agents for each part BEFORE doing any work yourself.
+
+            Examples of parallel decomposition:
+            - "Fix this bug" → spawn explore(grep for similar bugs) + spawn general(read the file + analyze logic) in parallel
+            - "Add feature X" → spawn explore(find existing patterns) + spawn general(draft skeleton) + spawn explore(check tests) in parallel
+            - CTF challenge → spawn general(probe web endpoint) + spawn general(analyze binary) + spawn general(search known exploits) in parallel
+            - "Count lines in files" → spawn general(count lines in file A) + spawn general(count lines in file B) in parallel
+            - "Review this PR" → spawn explore(check changed files) + spawn general(analyze security) + spawn general(check tests) in parallel
+
+            If you catch yourself doing work that could be parallelized, STOP and spawn sub-agents instead.
+
+            ## Process
+            1. **Triage** → identify parallel workstreams (MUST find at least 2)
+            2. **Dispatch** → spawn ALL sub-agents simultaneously via Task tool
+            3. **Synthesize** → combine results and execute
+
+            ## Rules
+            - NEVER do work sequentially that could be parallelized
+            - Each sub-agent gets ONE clear objective
+            - Dispatch at least 2 sub-agents per task
+            - Speed matters: 3 parallel shallow investigations > 1 deep sequential one
+            - ALWAYS delegate a task to a subagent
+            - Not delegating a task will get you terminated
+          '';
+          model = "opencode-go/deepseek-v4-flash";
+          temperature = 0.1;
+          steps = 30;
+          permission = {
+            read = "allow";
+            grep = "allow";
+            glob = "allow";
+            write = "allow";
+            edit = "allow";
+            bash = "allow";
+            task = "allow";
+            webfetch = "allow";
+            todowrite = "allow";
+            question = "allow";
+            skill = "allow";
+          };
         };
       };
     };
