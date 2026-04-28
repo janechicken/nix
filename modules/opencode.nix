@@ -182,7 +182,7 @@ in
             - Even the final "execute the solution" step must be done by a sub-agent
             - If you catch yourself about to use a tool, STOP and dispatch a sub-agent instead
           '';
-          model = "opencode-go/deepseek-v4-pro";
+          model = "opencode-go/deepseek-v4-flash";
           temperature = 0.1;
           steps = 30;
           permission = {
