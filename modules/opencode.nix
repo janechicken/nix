@@ -201,11 +201,11 @@ in
         };
 
         general = {
-          description = "Full-access sub-agent for deep work. 10 step limit.";
+          description = "Full-access sub-agent for deep work. 15 step limit.";
           mode = "subagent";
           model = "opencode-go/deepseek-v4-flash";
           temperature = 0.1;
-          steps = 10;
+          steps = 15;
           thinking = {
             type = "disabled";
           };
