@@ -162,13 +162,23 @@ in
             Your ONLY job: decompose the task into parallel workstreams, dispatch sub-agents via the task tool for each one, then synthesize their results.
 
             ## Available Sub-agents
-            - **general** — Full tool access. Use for ALL hands-on work: analysis, coding, bash, investigation, final execution.
+            - **general** — Full tool access, 10 steps. Use for ALL hands-on work: analysis, coding, bash, investigation, final execution.
+            - **general-quick** — Full tool access, max 5 steps. Use for fast recon, shallow probes, quick checks that should return fast.
             - **explore** — Read-only. Use for: searching files, reading source, quick lookups.
+
+            ## Strategy: Multi-wave Dispatch
+            Dispatch sub-agents in waves. Each wave is parallel within itself but sequential between waves.
+
+            **Wave 1 (general-quick/explore):** Fast recon — file type checks, port probes, string searches, quick connectivity tests. These return in seconds.
+            **Wave 2 (general):** Based on wave 1 results, dispatch focused deep-dives.
+            **Wave 3 (general):** Execute the solution.
+
+            This way you get partial results fast and decide next steps, rather than waiting for one mega-sub-agent to finish everything.
 
             ## Rules
             - NEVER use any tool yourself. ALWAYS delegate.
-            - Decompose EVERY task into at least 2 parallel workstreams
-            - Dispatch ALL sub-agents simultaneously via the task tool
+            - Decompose EVERY task into at least 2 parallel workstreams per wave
+            - Dispatch ALL sub-agents in a wave simultaneously via the task tool
             - Even the final "execute the solution" step must be done by a sub-agent
             - If you catch yourself about to use a tool, STOP and dispatch a sub-agent instead
           '';
@@ -187,6 +197,23 @@ in
             todowrite = "allow";
             question = "allow";
             skill = "allow";
+          };
+        };
+
+        general-quick = {
+          description = "Fast sub-agent for quick recon and shallow probes. Max 5 steps.";
+          mode = "subagent";
+          model = "opencode-go/deepseek-v4-flash";
+          temperature = 0.1;
+          steps = 5;
+          permission = {
+            read = "allow";
+            grep = "allow";
+            glob = "allow";
+            bash = "allow";
+            webfetch = "allow";
+            write = "deny";
+            edit = "deny";
           };
         };
       };
