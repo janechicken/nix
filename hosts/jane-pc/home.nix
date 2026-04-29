@@ -21,6 +21,7 @@
     ../../modules/syncthing.nix
     ../../modules/obsidian.nix
     ../../modules/renix.nix
+    ../../modules/browser-use.nix
     ../../secrets/home-secrets.nix
     ../../modules/xdg-portal-home.nix
   ];
