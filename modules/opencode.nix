@@ -144,24 +144,6 @@ in
           };
         };
 
-        docs-generator = {
-          description = "Generates project documentation in markdown format without emojis";
-          mode = "subagent";
-          prompt = "You are a technical documentation generator. Generate clear, comprehensive documentation in markdown format.\n\nGuidelines:\n- Use standard markdown syntax only\n- Do NOT use emojis unless explicitly specified by the user\n- Use code blocks with appropriate language identifiers\n- Include examples where helpful\n- Keep explanations clear and concise\n- Use proper heading hierarchy\n- Focus on clarity and readability.";
-          model = "opencode-go/deepseek-v4-flash";
-          temperature = 0.5;
-          steps = 8;
-          permission = {
-            read = "allow";
-            grep = "allow";
-            glob = "allow";
-            write = "allow";
-            edit = "allow";
-            bash = "deny";
-            webfetch = "allow";
-          };
-        };
-
         build = {
           model = "opencode-go/deepseek-v4-flash";
         };
