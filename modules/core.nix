@@ -23,6 +23,7 @@
     appimage-run
     p7zip-rar
     qrrs
+    inputs.nixwrap.packages.${pkgs.system}.wrap
   ];
   boot.loader.grub.configurationLimit = 3;
 

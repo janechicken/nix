@@ -21,7 +21,8 @@
       url = "github:Mic92/sops-nix";
       inputs.nixpkgs.follows = "nixpkgs";
     };
-    renix.url = "github:ironfisto/renix?dir=main";
+     nixwrap.url = "github:rti/nixwrap";
+     renix.url = "github:ironfisto/renix?dir=main";
     ctf-skills = {
       url = "github:ljagiello/ctf-skills";
       flake = false;
@@ -29,7 +30,7 @@
   };
 
   outputs = inputs@{ self, nixpkgs, home-manager, firefox-addons, nixcord
-    , disko, nix-alien, sops-nix, ... }:
+    , disko, nix-alien, sops-nix, nixwrap, ... }:
     let
       overlayFiles = import ./overlays/default.nix;
       overlay = nixpkgs.lib.composeManyExtensions (map import overlayFiles);
