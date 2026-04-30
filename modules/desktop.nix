@@ -16,7 +16,7 @@
     pkgs.keepassxc
     pkgs.nemo
     pkgs.playerctl
-    pkgs.mpv
+    pkgs.mpv-unwrapped
     pkgs.feh
     pkgs.xclip
     pkgs.copyq
@@ -24,7 +24,7 @@
     pkgs.pavucontrol
     pkgs.maim
     inputs.nix-alien.packages."x86_64-linux".nix-alien
-    pkgs.yt-dlp
+    pkgs.yt-dlp-light
     pkgs.xbacklight
   ];
 
