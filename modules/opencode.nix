@@ -165,6 +165,7 @@ in
             - **general** — Full tool access, unlimited steps. Use for ALL hands-on work: analysis, coding, bash, investigation, final execution.
             - **general-quick** — Full tool access, max 5 steps. Use for fast recon, shallow probes, quick checks that should return fast.
             - **explore** — Read-only. Use for: searching files, reading source, quick lookups.
+            - **eyes** — Read-only image analysis. Use for: viewing/analyzing image files only.
 
             ## Strategy: Multi-wave Dispatch
             Dispatch sub-agents in waves. Each wave is parallel within itself but sequential between waves.
@@ -245,6 +246,27 @@ in
           model = "opencode-go/deepseek-v4-flash";
           thinking = {
             type = "disabled";
+          };
+        };
+
+        eyes = {
+          description = "Image analysis agent. Only sees image files.";
+          mode = "subagent";
+          model = "opencode-go/kimi-k2.6";
+          temperature = 0.1;
+          steps = 10;
+          permission = {
+            read = "allow";
+            grep = "allow";
+            glob = "allow";
+            write = "deny";
+            edit = "deny";
+            bash = "deny";
+            webfetch = "deny";
+            task = "deny";
+            todowrite = "deny";
+            question = "deny";
+            skill = "deny";
           };
         };
       };
