@@ -37,6 +37,23 @@ in
       theme = "gruvbox";
     };
     settings = {
+      mcp = {
+        browser-use = {
+          type = "local";
+          command = [
+            "uvx"
+            "--from"
+            "browser-use[cli]"
+            "browser-use"
+            "--mcp"
+          ];
+          enabled = true;
+          environment = {
+            BROWSER_USE_HEADLESS = "false";
+            PLAYWRIGHT_BROWSERS_PATH = "${pkgs.playwright-driver.browsers}";
+          };
+        };
+      };
 
       model = "opencode-go/deepseek-v4-flash";
 
