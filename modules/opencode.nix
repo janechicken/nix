@@ -128,22 +128,6 @@ in
           };
         };
 
-        chatbot = {
-          description = "General-purpose chatbot using deepseek-chat";
-          mode = "primary";
-          model = "opencode-go/deepseek-v4-flash";
-          temperature = 0.7;
-          steps = 10;
-          permission = {
-            read = "allow";
-            grep = "allow";
-            glob = "allow";
-            write = "deny";
-            edit = "deny";
-            bash = "deny";
-          };
-        };
-
         build = {
           model = "opencode-go/deepseek-v4-flash";
         };
