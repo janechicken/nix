@@ -1,84 +1,19 @@
-{ config, inputs, pkgs, lib, ... }: {
+{
+  config,
+  inputs,
+  pkgs,
+  lib,
+  ...
+}:
+{
   imports = [ inputs.nixcord.homeModules.nixcord ];
 
-  home.packages = [ pkgs.discover-overlay pkgs.arrpc ];
+  home.packages = [
+    pkgs.discover-overlay
+    pkgs.arrpc
+    (pkgs.discord.override {
+      withVencord = true;
+    })
+  ];
 
-  programs.nixcord = {
-    enable = true;
-
-    # Only use Vesktop standalone client, don't patch regular Discord
-    discord.enable = false;
-    vesktop.enable = true;
-
-    config.plugins = {
-      alwaysExpandRoles.enable = true;
-      alwaysTrust.enable = true;
-      betterFolders.enable = true;
-      betterRoleContext.enable = true;
-      betterSessions.enable = true;
-      betterUploadButton.enable = true;
-      # blurNsfw.enable = true;
-      callTimer.enable = true;
-      # ClearUrLs.enable = true;
-      clientTheme.enable = true;
-      clientTheme.color = "111111";
-      crashHandler.enable = true;
-      dearrow.enable = true;
-      disableCallIdle.enable = true;
-      experiments.enable = true;
-      fakeNitro.enable = true;
-      fixSpotifyEmbeds.enable = true;
-      forceOwnerCrown.enable = true;
-      friendInvites.enable = true;
-      friendsSince.enable = true;
-      gameActivityToggle.enable = true;
-      implicitRelationships.enable = true;
-      # InvisibleChat.enable = true;
-      memberCount.enable = true;
-      mentionAvatars.enable = true;
-      messageLogger.enable = true;
-      # moreCommands is Equicord-only; Vesktop uses Vencord so it's not available
-      # moreCommands.enable = true;
-      # moreKaomoji.enable = true;
-      # MutualGroupDMs.enable = true;
-      noBlockedMessages.enable = true;
-      noF1.enable = true;
-      noDevtoolsWarning.enable = false;
-      noOnboardingDelay.enable = true;
-      noPendingCount.enable = true;
-      # OnePingPerDm.enable = true;
-      openInApp.enable = true;
-      permissionsViewer.enable = true;
-      platformIndicators.enable = true;
-      relationshipNotifier.enable = true;
-      replyTimestamp.enable = true;
-      reverseImageSearch.enable = true;
-      roleColorEverywhere.enable = true;
-      serverListIndicators.enable = true;
-      shikiCodeblocks.enable = true;
-      showHiddenChannels.enable = false;
-      showHiddenThings.enable = true;
-      showMeYourName.enable = true;
-      silentTyping.enable = true;
-      sortFriendRequests.enable = true;
-      spotifyControls.enable = true;
-      spotifyCrack.enable = true;
-      spotifyShareCommands.enable = true;
-      streamerModeOnStream.enable = true;
-      translate.enable = true;
-      typingIndicator.enable = true;
-      typingTweaks.enable = true;
-      userVoiceShow.enable = true;
-      validReply.enable = true;
-      validUser.enable = true;
-      viewIcons.enable = true;
-      viewRaw.enable = true;
-      volumeBooster.enable = true;
-      volumeBooster.multiplier = 5.0;
-      whoReacted.enable = true;
-      voiceChatDoubleClick.enable = true;
-      webRichPresence.enable = true;
-      webScreenShareFixes.enable = true;
-    };
-  };
 }
