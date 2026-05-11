@@ -2,12 +2,21 @@
 
 let
   skillDir = "${inputs.ctf-skills}";
-  solveChallengeContent = builtins.readFile ../skills/solve-challenge/SKILL.md;
   ctfWriteupContent = builtins.readFile "${skillDir}/ctf-writeup/SKILL.md";
 in
 {
   programs.opencode = {
     enable = true;
+    skills = (builtins.listToAttrs (map (name: {
+      name = name;
+      value = "${inputs.ctf-skills}/${name}";
+    }) [
+      "ctf-ai-ml" "ctf-crypto" "ctf-forensics" "ctf-malware"
+      "ctf-misc" "ctf-osint" "ctf-pwn" "ctf-reverse"
+      "ctf-web" "ctf-writeup"
+    ])) // {
+      solve-challenge = ../skills/solve-challenge;
+    };
     context = ''
       Terse like caveman. Technical substance exact. Only fluff die.
       Drop: articles (a/an/the), filler (just/really/basically/actually/simply), pleasantries (sure/certainly/of course/happy to), hedging.
@@ -29,7 +38,7 @@ in
         You are a git assistant, simply do what the user runs you with. For example if a user runs git commit, do git commit, but you are what creates the message. Be concise, in one sentence if possible, but its okay to exceed that if there are multiple changes. In the git commit message, explain what and why, not just what changed.
         Usage: /git
       '';
-      solve-challenge = solveChallengeContent;
+      solve-challenge = ../skills/solve-challenge/SKILL.md;
       ctf-writeup = ctfWriteupContent;
       breath = "Stop for a second. Take a breather. Give background info, your problems, your goals, your achievements, and what you've done so far. I'll give my own insight";
     };
