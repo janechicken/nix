@@ -1,178 +1,89 @@
-# AGENTS.md - Agent Coding Guidelines for Nix Config
+# AGENTS.md
 
-This repository contains NixOS and Home Manager configurations using flakes.
+NixOS + Home Manager flake config. 2 hosts, x86_64-linux only.
 
-## Build Commands
+## Hosts
 
-### NixOS System Build
+| Host | Type | GPU | Special |
+|------|------|-----|---------|
+| `jane-pc` | desktop | Intel (modesetting) | FIDO2+LUKS, Awesome WM, gaming |
+| `jane-laptop` | laptop | NVIDIA (open) | FIDO2+LUKS, TLP, lid switch handling |
+
+Both share modules via `hosts/<name>/configuration.nix` (system) + `home.nix` (user).
+
+## Build & Verify
+
 ```bash
-# Build only (dry run)
+# Dry-run system build
 nh os build .
 
+# Dry-run home-manager build
+nh home build .
+
+# Evaluate without building
+nix eval .#nixosConfigurations.<host>.config.system.build.toplevel
 ```
 
-### Home Manager Build
+No switching — leave `nh os switch` / `nh home switch` to user. No test framework exists; build verification is the only check.
+
+## Format & Update
+
 ```bash
-# Switch home-manager configuration
-nh os buid .
-
+nix fmt                          # nixfmt all Nix files
+nix flake update                 # update all inputs
+nix flake update nixpkgs         # update single input
 ```
 
-### Linting/Formatting
-```bash
-# Format Nix files with nixfmt
-nix fmt
+## Architecture
 
-# Check Nix files with nil (language server)
-nil fmt
+- **flake.nix**: 2 nixosConfigurations + 2 homeConfigurations. Home-manager uses `pkgsWithOverlay` (overlay pre-applied). NixOS configs use plain `nixpkgs.legacyPackages`.
+- **overlays/**: `default.nix` lists overlay files to compose via `nixpkgs.lib.composeManyExtensions`. Currently: `browser-use.nix`.
+- **pkgs/**: Custom nixpkgs derivations (`pkgs/browser-use/` — 6 packages for browser-use MCP tool).
+- **Dotfiles**: `dotfiles/` (awesome, dunst, kitty, nvim, picom, rofi, zed). Linked via `home.file` in `modules/desktop.nix`.
+- **stateVersion**: 25.05 on all hosts.
+- **No CI** (no `.github/`).
 
-# Evaluate configuration (check for errors)
-nix eval .#nixosConfigurations.jane-pc.config.system.build.toplevel
-```
+## Directory Map
 
-### Updating
-```bash
-# Update flake inputs
-nix flake update
+| Path | Purpose |
+|------|---------|
+| `hosts/<name>/` | Per-host config: `configuration.nix`, `home.nix`, `hardware-configuration.nix` |
+| `modules/` | 42 shared modules (one file per concern, no subdirs) |
+| `overlays/` | nixpkgs overlay definitions (`default.nix` → `browser-use.nix`) |
+| `pkgs/` | Custom package derivations |
+| `secrets/` | sops-nix encrypted secrets (`secrets.yaml`, `sops-nix.nix`, `home-secrets.nix`) |
+| `dotfiles/` | Dotfile directories synced via home-manager |
+| `skills/` | Custom opencode skill (`solve-challenge`) |
 
-# Update a specific input
-nix flake update nixpkgs
-```
+## Secrets (sops-nix)
 
-## Code Style Guidelines
+- System age key: `/var/lib/sops-nix/keys.txt`
+- User age key: `~/.config/sops/age/keys.txt`
+- Encrypted secrets: `secrets/secrets.yaml` (`.sops.yaml` defines the sole age key)
+- Decrypted at `/run/secrets/` (tmpfs)
+- 4 active secrets: `openrouter_api_key`, `deepseek_api_key`, `opencode_api_key`, `ssh_key` (+ `ssh_pubkey`)
+- System secrets set as `environment.sessionVariables`; `gpg_key` secret is commented out
 
-### File Organization
-- **Modules**: Place in `modules/` directory, one file per concern
-- **Hosts**: Place in `hosts/<hostname>/` with `configuration.nix`, `home.nix`, `hardware-configuration.nix`
-- **Secrets**: Place in `secrets/` directory (never commit unencrypted secrets)
-- **Flakes**: Root `flake.nix` defines inputs and outputs
+## OpenCode (`modules/opencode.nix`)
 
-### Nix File Structure
+- **Agents**: `reviewer`, `squad` (dispatcher), `student`, `general`, `general-quick`, `explore`, `eyes`
+- **MCP**: browser-use via `uvx --from browser-use[cli] browser-use --mcp`
+- **Skills**: CTF skills from `ctf-skills` flake input + local `solve-challenge`
+- **Commands**: `/test` (build verification), `/git`, `/solve-challenge`, `/ctf-writeup`, `/breath`
+- **Theme**: gruvbox
+- **Global style**: terse caveman (set in `context` field)
 
-```nix
-{ config, lib, pkgs, inputs, ... }:
+## Conventions
 
-{
-  # Imports at top
-  imports = [
-    ./hardware-configuration.nix
-    ../../modules/core.nix
-  ];
+- **Files**: `kebab-case.nix`
+- **Imports**: `./file.nix` (same dir), `../../modules/<name>.nix` (from host configs)
+- **Indent**: 2 spaces
+- **User path**: Use `config.users.users.jane.homeDirectory`, never `/home/jane`
+- **for package lists**: `environment.systemPackages = with pkgs; [ ... ];`
 
-  # Options in alphabetical order within categories
-  # (or grouped logically by function)
+## Don'ts
 
-  # Services
-  services = {
-    foo.enable = true;
-  };
-
-  # Programs
-  programs = {
-    bar.enable = true;
-  };
-
-  # Environment
-  environment.systemPackages = with pkgs; [
-    package1
-    package2
-  ];
-
-  # Hardware
-  hardware.graphics.enable = true;
-
-  # Users
-  users.users.username = {
-    isNormalUser = true;
-    extraGroups = [ "wheel" "audio" ];
-  };
-
-  # System packages
-  environment.systemPackages = with pkgs; [ ];
-}
-```
-
-### Naming Conventions
-- **Files**: `kebab-case.nix` (e.g., `opencode.nix`, `home-manager.nix`)
-- **Modules**: Descriptive nouns, e.g., `git.nix`, `audio.nix`, `steam.nix`
-- **Hosts**: Lowercase hostname, e.g., `jane-pc`, `omen`
-- **Options**: Follow NixOS option naming (`services.<name>`, `programs.<name>`)
-
-### Import Paths
-- Use relative imports: `./file.nix` (same directory), `../../modules/core.nix` (parent)
-- Always use `../../` prefix for going up directories from host config
-- Secrets files use `./secrets.yaml` (relative to secrets directory)
-
-### Formatting
-- Use 2-space indentation
-- Trailing commas are encouraged (Nix is flexible here)
-- Align attribute sets for readability:
-  ```nix
-  boot = {
-    initrd.kernelModules = [ "i915" ];
-    loader.grub.enable = true;
-  };
-  ```
-- Use `lib.mkEnableOption` or `lib.mkIf` for conditional config
-- Prefer `with pkgs;` for package lists
-
-### Options and Types
-- Use proper option paths from NixOS options search
-- Specify types when defining custom options
-- Use `enable = true` pattern for boolean options
-
-### Secrets Management
-- **Never** commit unencrypted secrets
-- Use `sops-nix` for secrets (see `secrets/sops-nix.nix`)
-- Encrypted secrets go in `secrets/secrets.yaml`
-- Age keys: `~/.config/sops/age/keys.txt` (user), `/var/lib/sops-nix/key.txt` (system)
-- Use `/run/secrets/` for system secrets (tmpfs, available at boot)
-
-### Common Patterns
-
-#### With packages:
-```nix
-environment.systemPackages = with pkgs; [
-  package1
-  package2
-];
-```
-
-#### With lib:
-```nix
-# Conditional config
-lib.mkIf config.services.foo.enable {
-  # config here
-}
-
-# Enable option pattern
-services.bar.enable = lib.mkEnableOption "bar service";
-```
-
-#### With inputs (flake modules):
-```nix
-imports = [
-  inputs.sops-nix.nixosModules.sops
-];
-```
-
-### Error Handling
-- Run `nh os build .` and `nh home build .` first to catch errors
-- Check evaluation with `nix eval .#nixosConfigurations.<host>.config.<option>`
-- Use `nix logs` to debug failed builds
-
-### OpenCode Agents
-This project includes custom opencode agents (see `modules/opencode.nix`):
-- `@reviewer` - Reviews code for security, performance, and standards
-- `@docs-generator` - Generates markdown documentation (no emojis)
-
-### OpenCode Commands
-- `/test` - Runs tests for the Nix configuration (builds both NixOS and home-manager)
-- `/review` - Reviews git changes (built-in command)
-
-### Don'ts
-- Don't hardcode paths like `/home/jane` - use `config.users.users.jane.homeDirectory`
-- Don't commit encrypted secrets or age keys
-- Don't use `nix-env` for system packages (use NixOS options)
-- Don't mix NixOS and Home Manager secrets management (pick one approach)
-- Never run `nh home switch .` or `nh os switch .` yourself, leave it to the user to switch
+- No `nix-env` for system packages
+- No committing unencrypted secrets or age keys
+- No `nh os switch .` / `nh home switch .` — build only
+- No hardcoded `/home/jane` paths
