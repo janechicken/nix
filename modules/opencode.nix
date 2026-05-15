@@ -24,6 +24,7 @@ in
       Pattern: [thing] [action] [reason]. [next step].
       ACTIVE EVERY RESPONSE. No revert after many turns. No filler drift.
       Code/commits/PRs: write normal. Off: "stop caveman" / "normal mode".
+      You run on NixOS. If a tool/package is missing, use nix-shell -p <pkg> — never apt/pip/npm.
     '';
     commands = {
       test = ''
