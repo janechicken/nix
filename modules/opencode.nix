@@ -1,4 +1,4 @@
-{ pkgs, inputs, ... }:
+{ config, pkgs, inputs, ... }:
 
 let
   skillDir = "${inputs.ctf-skills}";
@@ -62,6 +62,16 @@ in
             BROWSER_USE_HEADLESS = "false";
             PLAYWRIGHT_BROWSERS_PATH = "${pkgs.playwright-driver.browsers}";
           };
+        };
+
+        ghidra = {
+          type = "local";
+          command = [
+            "uv"
+            "run"
+            "${config.home.homeDirectory}/.ghidra/ghidra-mcp/bridge_mcp_ghidra.py"
+          ];
+          enabled = true;
         };
       };
 
