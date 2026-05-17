@@ -20,6 +20,7 @@
     ../../modules/syncthing.nix
     ../../modules/obsidian.nix
     ../../modules/renix.nix
+    ../../modules/ghidra-mcp.nix
     ../../modules/browser-use.nix
     ../../secrets/home-secrets.nix
     ../../modules/xdg-portal-home.nix

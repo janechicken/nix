@@ -1,4 +1,4 @@
-{ config, pkgs, inputs, ... }:
+{ pkgs, inputs, ... }:
 
 let
   skillDir = "${inputs.ctf-skills}";
@@ -66,11 +66,7 @@ in
 
         ghidra = {
           type = "local";
-          command = [
-            "uv"
-            "run"
-            "${config.home.homeDirectory}/.ghidra/ghidra-mcp/bridge_mcp_ghidra.py"
-          ];
+          command = [ "${pkgs.ghidra-mcp}/bin/ghidra-mcp" ];
           enabled = true;
         };
       };
