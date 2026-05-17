@@ -15,10 +15,6 @@
         idPrefix = "local";
         filter.maxDepth = 1;
       };
-      cybersec = {
-        input = "cybersec-skills";
-        subdir = "skills";
-      };
     };
     skills = {
       enable = [
@@ -26,7 +22,7 @@
         "ctf-misc" "ctf-osint" "ctf-pwn" "ctf-reverse"
         "ctf-web" "ctf-writeup"
       ];
-      enableAll = [ "cybersec" ];
+      enableAll = [ ];
       explicit.solve-challenge = {
         from = "local";
       };
