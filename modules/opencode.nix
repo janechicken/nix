@@ -1,21 +1,13 @@
 { pkgs, inputs, ... }:
 
 let
-  skillDir = "${inputs.ctf-skills}";
-  ctfWriteupContent = builtins.readFile "${skillDir}/ctf-writeup/SKILL.md";
+  ctfWriteupContent = builtins.readFile "${inputs.ctf-skills}/ctf-writeup/SKILL.md";
 in
 {
   programs.opencode = {
     enable = true;
-    skills = (builtins.listToAttrs (map (name: {
-      name = name;
-      value = "${inputs.ctf-skills}/${name}";
-    }) [
-      "ctf-ai-ml" "ctf-crypto" "ctf-forensics" "ctf-malware"
-      "ctf-misc" "ctf-osint" "ctf-pwn" "ctf-reverse"
-      "ctf-web" "ctf-writeup"
-    ])) // {
-      solve-challenge = ../skills/solve-challenge;
+    skills = {
+      rust-skills = "${inputs.rust-skills}";
     };
     context = ''
       Terse like caveman. Technical substance exact. Only fluff die.
