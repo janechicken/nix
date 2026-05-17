@@ -18,14 +18,13 @@
       mkdir = "mkdir -p";
       spt = "spotify_player";
     };
-    initContent = ''
-       	  any-nix-shell zsh --info-right | source /dev/stdin
+    initExtra = ''
+       	  any-nix-shell zsh --info-right 2>/dev/null | source /dev/stdin
           export PS1=$'%{\e[255m%}%n%{\e[38;5;99m%}@%{\e[38;5;63m%}%M [%{\e[38;5;99m%}%~%{\e[38;5;63m%}]%{\e[37m%} $ %{\e[255m%}'
+          source ${pkgs.helix-driver}/share/helix-zsh/helix_zsh.zsh
+          clear
        	  fastfetch
        	  '';
     completionInit = "autoload -U compinit && compinit -u";
-    initExtra = ''
-      source ${pkgs.helix-driver}/share/helix-zsh/helix_zsh.zsh
-    '';
   };
 }

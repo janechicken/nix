@@ -45,6 +45,9 @@ rustPlatform.buildRustPackage {
   postInstall = ''
     mkdir -p $out/share/helix-zsh
     cp $src/helix_zsh.zsh $out/share/helix-zsh/
+    substituteInPlace $out/share/helix-zsh/helix_zsh.zsh \
+      --replace-fail "pbcopy" "xclip -selection clipboard" \
+      --replace-fail "coproc _hx_driver" "{ coproc _hx_driver; } 2>/dev/null"
   '';
 
   meta = with lib; {
