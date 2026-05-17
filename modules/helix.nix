@@ -26,6 +26,7 @@
       lldb
       prettierd
       vscode-langservers-extracted
+      helix-assist
     ];
     themes = {
       autumn-dark-custom =
@@ -255,6 +256,69 @@
           "variable.other.member" = my_brown;
           "warning" = my_yellow2;
         };
+    };
+    languages = {
+      language-server.helix-assist = {
+        command = "helix-assist";
+      };
+      language = [
+        {
+          name = "nix";
+          language-servers = [ "nixd" "helix-assist" ];
+        }
+        {
+          name = "python";
+          language-servers = [ "pyright" "helix-assist" ];
+        }
+        {
+          name = "typescript";
+          language-servers = [ "vtsls" "helix-assist" ];
+        }
+        {
+          name = "javascript";
+          language-servers = [ "vtsls" "helix-assist" ];
+        }
+        {
+          name = "tsx";
+          language-servers = [ "vtsls" "helix-assist" ];
+        }
+        {
+          name = "jsx";
+          language-servers = [ "vtsls" "helix-assist" ];
+        }
+        {
+          name = "lua";
+          language-servers = [ "lua-language-server" "helix-assist" ];
+        }
+        {
+          name = "c";
+          language-servers = [ "clangd" "helix-assist" ];
+        }
+        {
+          name = "cpp";
+          language-servers = [ "clangd" "helix-assist" ];
+        }
+        {
+          name = "rust";
+          language-servers = [ "rust-analyzer" "helix-assist" ];
+        }
+        {
+          name = "yaml";
+          language-servers = [ "yaml-language-server" "helix-assist" ];
+        }
+        {
+          name = "json";
+          language-servers = [ "vscode-json-language-server" "helix-assist" ];
+        }
+        {
+          name = "css";
+          language-servers = [ "vscode-css-language-server" "helix-assist" ];
+        }
+        {
+          name = "html";
+          language-servers = [ "vscode-html-language-server" "helix-assist" ];
+        }
+      ];
     };
     settings = {
       theme = "autumn-dark-custom";

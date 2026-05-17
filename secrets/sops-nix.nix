@@ -30,5 +30,9 @@
     OPENROUTER_API_KEY = "$(cat /run/secrets/openrouter_api_key)";
     DEEPSEEK_API_KEY = "$(cat /run/secrets/deepseek_api_key)";
     OPENCODE_API_KEY = "$(cat /run/secrets/opencode_api_key)";
+    OPENAI_API_KEY = "$(cat /run/secrets/opencode_api_key)";
+    OPENAI_MODEL = "deepseek-v4-flash";
+    OPENAI_MODEL_FOR_CHAT = "deepseek-v4-flash";
+    OPENAI_ENDPOINT = "https://opencode.ai/zen/go/v1/chat/completions";
   };
 }
