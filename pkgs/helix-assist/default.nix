@@ -98,7 +98,7 @@ buildGoModule rec {
             {Role: "user", Content: userPrompt},
           },
           Temperature: 0.2 + float64(i)*0.1,
-          MaxTokens:   2056,
+          MaxTokens:   256,
           N:           1,
           Stream:      false,
           Thinking:    &thinkingConfig{Type: "disabled"},
