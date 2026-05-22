@@ -15,7 +15,7 @@ buildGoModule rec {
 
   vendorHash = null;
 
-  # Patch to use Chat Completions API instead of Responses API
+  # Patches: Chat Completions API + fix insert text replacing instead of appending
   postPatch = ''
     cat > internal/providers/openai.go << 'PATCHEOF'
     package providers
@@ -204,6 +204,11 @@ buildGoModule rec {
       return respBody, nil
     }
     PATCHEOF
+
+    # Fix InsertText to use full hint, not prefix-trimmed version
+    sed -i 's/\thint = strings.TrimSpace(hint)/\tinsertText := strings.TrimSpace(hint)\n\thint = strings.TrimSpace(hint)/' internal/handlers/completions.go
+    sed -i 's/\t\tInsertText:          hint,/\t\tInsertText:          insertText,/' internal/handlers/completions.go
+    sed -i 's/\t\tDetail:              hint,/\t\tDetail:              insertText,/' internal/handlers/completions.go
   '';
 
   meta = with lib; {
