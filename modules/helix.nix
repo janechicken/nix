@@ -340,7 +340,7 @@
           ":buffer-close!"
           ":redraw"
         ];
-        C-x = "no_op";
+
         C-space = "completion";
         S-x = "extend_line_above";
       };
