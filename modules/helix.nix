@@ -24,7 +24,6 @@
       rustc
       yaml-language-server
       lldb
-      prettierd
       vscode-langservers-extracted
       helix-assist
     ];
@@ -76,11 +75,6 @@
               color = my_gray5;
             };
             bg = my_black;
-          };
-          "diagnostic.info" = {
-            underline = {
-              style = "line";
-            };
           };
           "diagnostic" = {
             underline = {
@@ -231,10 +225,6 @@
           "ui.virtual.inlay-hint" = {
             fg = my_gray4;
             bg = my_black;
-          }; # , modifiers = ["normal"] };
-          "ui.virtual.inlay-hint.parameter" = my_gray4;
-          "ui.virtual.inlay-hint.type" = {
-            fg = my_gray4;
             modifiers = [ "italic" ];
           };
           "ui.virtual.jump-label" = {
@@ -358,7 +348,7 @@
         mouse = true;
         clipboard-provider = "x-clip";
         file-picker.hidden = false;
-        end-of-line-diagnostics = "hint";
+        end-of-line-diagnostics = "disable";
         # line-number = "relative";
         true-color = true;
         color-modes = true;
@@ -394,7 +384,10 @@
         ];
         lsp = {
           display-messages = true;
-          display-inlay-hints = true;
+          display-inlay-hints = false;
+        };
+        inline-diagnostics = {
+          cursor-line = "hint";
         };
         statusline = {
           left = [
@@ -419,9 +412,6 @@
           mode.normal = "NORMAL";
           mode.insert = "INSERT";
           mode.select = "SELECT";
-        };
-        inline-diagnostics = {
-          cursor-line = "warning";
         };
       };
     };
