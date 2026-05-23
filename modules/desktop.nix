@@ -22,7 +22,7 @@
     pkgs.copyq
     pkgs.easyeffects
     pkgs.pavucontrol
-    pkgs.maim
+    pkgs.flameshot
     inputs.nix-alien.packages."x86_64-linux".nix-alien
     pkgs.yt-dlp-light
     pkgs.xbacklight
