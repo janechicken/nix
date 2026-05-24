@@ -119,6 +119,9 @@
       intel-media-driver
       libva-vdpau-driver
       libvdpau-va-gl
+      intel-compute-runtime
+      intel-level-zero-gpu
+      ocl-icd
     ];
     enable32Bit = true;
   };

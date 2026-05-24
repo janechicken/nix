@@ -6,7 +6,7 @@ NixOS + Home Manager flake config. 2 hosts, x86_64-linux only.
 
 | Host | Type | GPU | Special |
 |------|------|-----|---------|
-| `jane-pc` | desktop | Intel (modesetting) | FIDO2+LUKS, Awesome WM, gaming |
+| `jane-pc` | desktop | Intel Arc A750 | FIDO2+LUKS, Awesome WM, gaming, ComfyUI |
 | `jane-laptop` | laptop | NVIDIA (open) | FIDO2+LUKS, TLP, lid switch handling |
 
 Both share modules via `hosts/<name>/configuration.nix` (system) + `home.nix` (user).
@@ -48,7 +48,7 @@ nix flake update nixpkgs         # update single input
 | Path | Purpose |
 |------|---------|
 | `hosts/<name>/` | Per-host config: `configuration.nix`, `home.nix`, `hardware-configuration.nix` |
-| `modules/` | 42 shared modules (one file per concern, no subdirs) |
+| `modules/` | 43 shared modules (one file per concern, no subdirs) |
 | `overlays/` | nixpkgs overlay definitions (`default.nix` → `browser-use.nix`) |
 | `pkgs/` | Custom package derivations |
 | `secrets/` | sops-nix encrypted secrets (`secrets.yaml`, `sops-nix.nix`, `home-secrets.nix`) |
