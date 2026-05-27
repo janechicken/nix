@@ -15,6 +15,7 @@ let
     pi-subagents
     pi-mcp-adapter
     pi-permission-system
+    pi-goal
   ];
   remoteHomeFiles = builtins.listToAttrs (map (ext:
     lib.nameValuePair ".pi/agent/extensions-nix/${ext.pname}" {
@@ -43,7 +44,10 @@ in
             "*" = "allow";
             "/tmp/**" = "allow";
           };
-          external_directory = "ask";
+          external_directory = {
+            "*" = "ask";
+            "/tmp/**" = "allow";
+          };
           bash = {
             "rm -rf *" = "deny";
             "sudo *" = "ask";

@@ -18,6 +18,7 @@
     ../../modules/obsidian.nix
     ../../modules/renix.nix
     ../../modules/ghidra-mcp.nix
+    ../../modules/mcp.nix
     ../../secrets/home-secrets.nix
   ];
   # Home Manager needs a bit of information about you and the paths it should

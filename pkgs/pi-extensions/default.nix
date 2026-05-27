@@ -40,6 +40,13 @@ let
             sed -i 's|from "./|from "./src/|g' "$out/index.ts"
             sed -i 's|from "../|from "./|g' "$out/index.ts"
             rm "$out/src/index.ts"
+          elif [ -f "$out/extensions/index.ts" ]; then
+            cp "$out/extensions/index.ts" "$out/index.ts"
+            sed -i 's|from "./|from "./extensions/|g' "$out/index.ts"
+            sed -i 's|from "../|from "./|g' "$out/index.ts"
+            rm "$out/extensions/index.ts"
+            # Update package.json to point to the promoted root index.ts
+            sed -i 's|"\./extensions"|"\./index.ts"|g' "$out/package.json"
           fi
         fi
       '';
@@ -84,6 +91,16 @@ in {
     rev = "v2.8.0";
     srcHash = "sha256-eHz/uivSIZ8HOalSCZgyCyOWodQJq5GapAqpT2ryn1k=";
     outputHash = "sha256-uMAXBjjpAjN1uDEOlUoqMKWQ8NuQqAlAJX7ehxmP+Ew=";
+  };
+
+  pi-goal = mkPiExt {
+    name = "pi-goal";
+    version = "0.2.0";
+    owner = "zereraz";
+    repo = "pi-goal";
+    rev = "b7f908d813861d1743055ad6a42a400f5db17cf8";
+    srcHash = "sha256-P8Agjv8xWiozzW1eTOJ1/+adIR3lZtx2GhRT9zcDJ98=";
+    outputHash = "sha256-kg1Lgge59y5VVkxIRBRP9233xOfmqGW1paNLVgn01mU=";
   };
 
   # Add more:
