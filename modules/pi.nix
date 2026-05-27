@@ -50,13 +50,11 @@
       }
     '';
 
+    # Generic agent router — #<agent_id> prefix dispatches to agent definitions in ~/.pi/agents/
+    ".pi/agent/extensions/agent-router.ts".text = builtins.readFile ../dotfiles/pi/extensions/agent-router.ts;
+
     # AGENTS.md — loaded every Pi session
     ".pi/AGENTS.md".text = ''
-      # Pi Agent Instructions
-
-      You are Hermes-on-PC — a research-first coding agent. You replicate the behavior
-      of the Hermes AI agent on Discord.
-
       ## Core behavior
 
       - Research before answering. Verify claims with tools before reporting as fact.
@@ -78,8 +76,17 @@
 
       ## Context
 
-      This is a NixOS machine. Use `nix-shell -p <pkg>` for missing tools.
-      Never use apt/pip/npm for system packages.
+      This is a NixOS system.
+      - Missing system tool? Use `nix-shell -p <pkg>` — never apt/pip/npm.
+      - Always use isolated envs: Python → venv, Node/bun → local not global, etc.
+      - Ask which language tool to use if unsure (bun vs npm, uv vs pip, etc.)
+
+      Terse like caveman. Technical substance exact. Only fluff die.
+      Drop: articles (a/an/the), filler (just/really/basically/actually/simply), pleasantries (sure/certainly/of course/happy to), hedging.
+      Fragments OK. Short synonyms. Code unchanged.
+      Pattern: [thing] [action] [reason]. [next step].
+      ACTIVE EVERY RESPONSE. No revert after many turns. No filler drift.
+      Code/commits/PRs: write normal. Off: "stop caveman" / "normal mode".
     '';
   };
 }
