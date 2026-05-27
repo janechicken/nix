@@ -6,9 +6,6 @@ in
 {
   programs.opencode = {
     enable = true;
-    skills = {
-      rust-skills = "${inputs.rust-skills}";
-    };
     context = ''
       Terse like caveman. Technical substance exact. Only fluff die.
       Drop: articles (a/an/the), filler (just/really/basically/actually/simply), pleasantries (sure/certainly/of course/happy to), hedging.
