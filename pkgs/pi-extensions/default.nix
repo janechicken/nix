@@ -16,12 +16,20 @@ let
       inherit outputHash;
       buildPhase = ''
         NIX_SSL_CERT_FILE=${cacert}/etc/ssl/certs/ca-bundle.crt \
-        HOME=$TMPDIR yarn install --production --no-progress --non-interactive 2>&1
+        HOME=$TMPDIR yarn install --no-progress --non-interactive 2>&1
       '';
       installPhase = ''
         mkdir -p "$out"
         cp -r . "$out/"
         rm -rf "$out/.npm" "$out/.cache" 2>/dev/null || true
+        # Some extensions (e.g. pi-subagents) have their entry point in src/extension/
+        # Promote it to root with updated imports so Pi doesn't discover it as a nested extension.
+        if [ ! -f "$out/index.ts" ] && [ -f "$out/src/extension/index.ts" ]; then
+          cp "$out/src/extension/index.ts" "$out/index.ts"
+          sed -i 's|from "./|from "./src/extension/|g' "$out/index.ts"
+          sed -i 's|from "../|from "./src/|g' "$out/index.ts"
+          rm "$out/src/extension/index.ts"
+        fi
       '';
     };
 in {
@@ -32,7 +40,7 @@ in {
     repo = "pi-web-access";
     rev = "v0.10.7";
     srcHash = "sha256-D9no4SLigH/t3/WfirixMbTEjcEwZwJXld8j7pwBCew=";
-    outputHash = "sha256-K9sUHfWt9QgriMFzrH0zJ9kBHdTAc9180A+GLttltxY=";
+    outputHash = "sha256-ATfWD7DMSHGktoGrX7sEzwCvmXbgNQRrSetEHcwxRVg=";
   };
 
   pi-subagents = mkPiExt {
@@ -41,8 +49,8 @@ in {
     owner = "nicobailon";
     repo = "pi-subagents";
     rev = "v0.25.0";
-    srcHash = "sha256-eHz/uivSIZ8HOalSCZgyCyOWodQJq5GapAqpT2ryn1k=";
-    outputHash = "sha256-NNmk95R20EJSeYsNEWe2qByATe52SFlw/e+/AAZt2To=";
+    srcHash = "sha256-MLQ7/+xEd2xTI37rMfWaYP7I724MWN+pgXhv78OxjL8=";
+    outputHash = "sha256-MzavGbgfLjqMrc7ENju+4g3Wbla5vZKxaiJzm/ZBx3o=";
   };
 
   pi-mcp-adapter = mkPiExt {
@@ -52,7 +60,7 @@ in {
     repo = "pi-mcp-adapter";
     rev = "v2.8.0";
     srcHash = "sha256-eHz/uivSIZ8HOalSCZgyCyOWodQJq5GapAqpT2ryn1k=";
-    outputHash = "sha256-NNmk95R20EJSeYsNEWe2qByATe52SFlw/e+/AAZt2To=";
+    outputHash = "sha256-uMAXBjjpAjN1uDEOlUoqMKWQ8NuQqAlAJX7ehxmP+Ew=";
   };
 
   # Add more:
