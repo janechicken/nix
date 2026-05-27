@@ -236,16 +236,14 @@ export default async function (pi: ExtensionAPI) {
         }
       }
 
-      // Write operation detection — covers bash redirects, python/perl/node inline writes
+      // Write operation detection — covers actual file-modifying commands
       if (perms.bash.blockWrite) {
-        const hasRedirect = /[0-9&]?>/.test(cmd);
         const hasWriteCmd = /\b(cp|mv|rm|dd|install|tee|truncate|fallocate|mkfs|touch|chmod|chown|ln)\b/.test(cmd);
-        const hasSedInplace = /\bsed\b/.test(cmd) && /-i/.test(cmd);
-        const hasPythonFileWrite = /\b(python3?)\s+-c\s+['\"].*(?:open\(.*['\"]w['\"]|\.write\(|subprocess)/.test(cmd);
-        const hasPerlFileWrite = /\bperl\s+-[^ ]*e\s+['\"].*(?:open\s*\(.*['\"]>[>]?['\"]|print\s+\w+)/.test(cmd);
-        const hasNodeFileWrite = /\bnode\s+-[^ ]*\s+['\"].*require\(['\"]fs['\"]\)/.test(cmd);
+        const hasSedInplace = /\bsed\b\s+-i/.test(cmd);
+        const hasPythonFileWrite = /\b(python3?)\s+-c\s+['\"].*(?:open\(.*['\"]w['\"]|\.write\()/.test(cmd);
+        const hasPerlFileWrite = /\bperl\s+-[^ ]*e\s+['\"].*(?:open\s*\(.*['\"]>[>]?['\"])/.test(cmd);
 
-        if (hasRedirect || hasWriteCmd || hasSedInplace || hasPythonFileWrite || hasPerlFileWrite || hasNodeFileWrite) {
+        if (hasWriteCmd || hasSedInplace || hasPythonFileWrite || hasPerlFileWrite) {
           return {
             block: true,
             reason: "Write operations not allowed in #" + activeAgent.id + " mode.",

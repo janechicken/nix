@@ -1,5 +1,15 @@
-{ pkgs, inputs, ... }:
+{ pkgs, inputs, lib, ... }:
 
+let
+  extDir = ../dotfiles/pi/extensions;
+  extFiles = builtins.readDir extDir;
+  extHomeFiles = lib.mapAttrs' (name: _:
+    lib.nameValuePair ".pi/agent/extensions/${name}" {
+      source = "${toString extDir}/${name}";
+    }
+  ) extFiles;
+
+in
 {
   # Pi agent - terminal coding harness from pi.dev
   # Package from nixpkgs (pi-coding-agent).
@@ -29,29 +39,9 @@
       };
     };
 
-    # Tool-use enforcement extension
-    # Injects system prompt requiring tool usage on every response
-    ".pi/agent/extensions/tool-use-enforcement.ts".text = ''
-      import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
-
-      export default function (pi: ExtensionAPI) {
-        pi.on("before_agent_start", (event) => {
-          return {
-            systemPrompt:
-              event.systemPrompt +
-              "\n\n## Tool Use Required\n" +
-              "You MUST use tool calls in every response. Text-only responses without tool " +
-              "calls are not allowed unless the output is a short confirmation (<40 chars) or " +
-              "contains code blocks (```). Research questions, analysis, and planning all " +
-              "require tool calls to verify claims, read files, and gather evidence.\n",
-          };
-        });
-      }
-    '';
-
     # Plan mode agent — #plan prefix for read-only research/planning
-    # Uses OpenCode-style enforcement: edit/write tools hidden from model,
-    # <system-reminder> format, absolute constraint language.
+    # Uses blocklist approach: most bash commands allowed except obviously dangerous ones.
+    # File writes are caught by blockWrite in agent-router.ts.
     ".pi/agents/plan.json".text = builtins.toJSON {
       id = "plan";
       prompt = ''
@@ -76,46 +66,29 @@
           "ls"
         ];
         bash = {
-          allow = [
-            "cat"
-            "ls"
-            "grep"
-            "find"
-            "rg"
-            "head"
-            "tail"
-            "file"
-            "which"
-            "stat"
-            "du"
-            "df"
-            "type"
-            "pwd"
-            "tree"
-            "wc"
-            "sort"
-            "uniq"
-            "diff"
-            "id"
-            "uname"
-            "hostname"
-            "whoami"
-            "date"
-            "nix-instantiate"
-            "nix eval"
-            "nix flake"
-            "nix-store"
-            "nh os build"
-            "nh home build"
+          block = [
+            "^sudo\\b"
+            "^su\\b"
+            "^kill\\b"
+            "^pkill\\b"
+            "^reboot\\b"
+            "^shutdown\\b"
+            "^halt\\b"
+            "^poweroff\\b"
+            "^fdisk\\b"
+            "^parted\\b"
+            "^mount\\b"
+            "^umount\\b"
+            "^systemctl\\b"
+            "^passwd\\b"
+            "^chroot\\b"
+            "^user(add|mod|del)\\b"
+            "^group(add|mod|del)\\b"
           ];
           blockWrite = true;
         };
       };
     };
-
-    # Generic agent router — #<agent_id> prefix dispatches to agent definitions in ~/.pi/agents/
-    ".pi/agent/extensions/agent-router.ts".text =
-      builtins.readFile ../dotfiles/pi/extensions/agent-router.ts;
 
     # AGENTS.md — loaded every Pi session
     ".pi/AGENTS.md".text = ''
@@ -144,5 +117,5 @@
       - Always use isolated envs: Python → venv, Node/bun → local not global.
       - Ask which language tool to use if unsure (bun vs npm, uv vs pip, etc.).
     '';
-  };
+  } // extHomeFiles;
 }
