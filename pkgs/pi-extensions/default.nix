@@ -1,4 +1,4 @@
-{ fetchFromGitHub, stdenv, nodejs, yarn, pnpm, cacert, lib }:
+{ fetchFromGitHub, fetchurl, stdenv, nodejs, yarn, pnpm, cacert, lib }:
 
 let
   mkPiExt = { name, version, owner, repo, rev, srcHash, outputHash, pkgManager ? "yarn" }:
@@ -48,6 +48,42 @@ let
             # Update package.json to point to the promoted root index.ts
             sed -i 's|"\./extensions"|"\./index.ts"|g' "$out/package.json"
           fi
+        fi
+      '';
+    };
+
+  mkNpmPiExt = { name, version, tarballUrl, tarballHash, outputHash }:
+    stdenv.mkDerivation {
+      pname = name;
+      inherit version;
+      src = fetchurl {
+        url = tarballUrl;
+        hash = tarballHash;
+      };
+      nativeBuildInputs = [ nodejs yarn cacert ];
+      dontFixup = true;
+      outputHashMode = "recursive";
+      outputHashAlgo = "sha256";
+      inherit outputHash;
+      sourceRoot = "package";
+      buildPhase = ''
+        NIX_SSL_CERT_FILE=${cacert}/etc/ssl/certs/ca-bundle.crt \
+        HOME=$TMPDIR yarn install --prod --no-progress --non-interactive --ignore-engines 2>&1
+      '';
+      installPhase = ''
+        mkdir -p "$out"
+        cp -r . "$out/"
+        rm -rf "$out/.npm" "$out/.cache" "$out/node_modules/.cache" 2>/dev/null || true
+        # Strip generated lockfile for deterministic output
+        rm -f "$out/yarn.lock" 2>/dev/null || true
+        # Promote nested dist/ entry point to root so Pi doesn't discover
+        # the dist/ directory as a separate extension.
+        if [ ! -f "$out/index.js" ] && [ -f "$out/dist/index.js" ]; then
+          cp "$out/dist/index.js" "$out/index.js"
+          cp "$out/dist/index.d.ts" "$out/index.d.ts" 2>/dev/null || true
+          sed -i "s|from './|from './dist/|g" "$out/index.js"
+          sed -i "s|from '../|from './|g" "$out/index.js"
+          sed -i 's|"\./dist/index\.js"|"./index.js"|g' "$out/package.json"
         fi
       '';
     };
@@ -101,6 +137,14 @@ in {
     rev = "b7f908d813861d1743055ad6a42a400f5db17cf8";
     srcHash = "sha256-P8Agjv8xWiozzW1eTOJ1/+adIR3lZtx2GhRT9zcDJ98=";
     outputHash = "sha256-kg1Lgge59y5VVkxIRBRP9233xOfmqGW1paNLVgn01mU=";
+  };
+
+  pi-lsp = mkNpmPiExt {
+    name = "pi-lsp";
+    version = "0.0.33";
+    tarballUrl = "https://registry.npmjs.org/@spences10/pi-lsp/-/pi-lsp-0.0.33.tgz";
+    tarballHash = "sha512-gKGLlr5JSYC3xBHhzNJGgqCFU/34LsDWlN+Wiw7lJSienB9sydWxa5MkIW7ioV3ZK0aOoN7S+HueoNEYCSMZWA==";
+    outputHash = "sha256-2dwCTDp9jXkg0aa2RiEL86JHPgqkwEnhsCnH3u7Pswo=";
   };
 
   # Add more:

@@ -16,6 +16,7 @@ let
     pi-mcp-adapter
     pi-permission-system
     pi-goal
+    pi-lsp
   ];
   remoteHomeFiles = builtins.listToAttrs (map (ext:
     lib.nameValuePair ".pi/agent/extensions-nix/${ext.pname}" {
