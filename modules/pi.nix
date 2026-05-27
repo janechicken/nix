@@ -11,40 +11,20 @@
 
   home.file = {
     # Pi global settings
-    ".pi/agent/settings.json".text = builtins.toJSON {
-      defaultProvider = "opencode-go";
-      defaultModel = "deepseek-v4-flash";
-      theme = "dark";
-      compaction = {
-        enabled = true;
-        reserveTokens = 16384;
-        keepRecentTokens = 20000;
-      };
-      retry = {
-        enabled = true;
-        maxRetries = 3;
-      };
-    };
-
-    # Custom provider: opencode-go backend
-    # Only id is required per model — everything else has sensible defaults.
-    ".pi/agent/models.json".text = builtins.toJSON {
-      providers = {
-        "opencode-go" = {
-          baseUrl = "https://opencode.ai/zen/go/v1";
-          api = "openai-completions";
-          compat = {
-            supportsDeveloperRole = false;
-          };
-          models = [
-            { id = "deepseek-v4-flash"; }
-            { id = "deepseek-v4-pro"; }
-            { id = "kimi-k2.6"; input = [ "text" "image" ]; }
-            { id = "glm-5"; }
-            { id = "glm-5.1"; }
-            { id = "minimax-m2.7"; }
-            { id = "qwen3.6-plus"; }
-          ];
+    ".pi/agent/settings.json" = {
+      force = true;
+      text = builtins.toJSON {
+        defaultProvider = "opencode-go";
+        defaultModel = "deepseek-v4-flash";
+        theme = "dark";
+        compaction = {
+          enabled = true;
+          reserveTokens = 16384;
+          keepRecentTokens = 20000;
+        };
+        retry = {
+          enabled = true;
+          maxRetries = 3;
         };
       };
     };
