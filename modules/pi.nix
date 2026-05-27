@@ -33,6 +33,20 @@ in
   ];
 
   home.file = {
+    # Permission system config — allow /tmp, ask for other external dirs
+    ".pi/agent/extensions/pi-permission-system/config.json" = {
+      force = true;
+      text = builtins.toJSON {
+        permission = {
+          "*" = "allow";
+          path = {
+            "*" = "allow";
+            "/tmp/**" = "allow";
+          };
+          external_directory = "ask";
+        };
+      };
+    };
     # Pi global settings
     ".pi/agent/settings.json" = {
       force = true;
