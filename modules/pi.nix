@@ -12,7 +12,8 @@ let
   # Remote Pi extensions (Nix-built npm packages)
   remoteExts = with pkgs.pi-extensions; [
     pi-web-access
-    # add more here
+    pi-subagents
+    pi-mcp-adapter
   ];
   remoteHomeFiles = builtins.listToAttrs (map (ext:
     lib.nameValuePair ".pi/agent/extensions-nix/${ext.pname}" {
@@ -38,6 +39,7 @@ in
         defaultProvider = "opencode-go";
         defaultModel = "deepseek-v4-flash";
         theme = "dark";
+        hideThinkingBlock = true;
         compaction = {
           enabled = true;
           reserveTokens = 16384;
@@ -53,8 +55,6 @@ in
     };
 
     # Plan mode agent — #plan prefix for read-only research/planning
-    # Uses blocklist approach: most bash commands allowed except obviously dangerous ones.
-    # File writes are caught by blockWrite in agent-router.ts.
     ".pi/agents/plan.json".text = builtins.toJSON {
       id = "plan";
       prompt = ''
@@ -77,6 +77,10 @@ in
           "grep"
           "find"
           "ls"
+          "web_search"
+          "fetch_content"
+          "code_search"
+          "get_search_content"
         ];
         bash = {
           block = [
