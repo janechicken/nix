@@ -14,6 +14,7 @@ let
     pi-web-access
     pi-subagents
     pi-mcp-adapter
+    pi-permission-system
   ];
   remoteHomeFiles = builtins.listToAttrs (map (ext:
     lib.nameValuePair ".pi/agent/extensions-nix/${ext.pname}" {

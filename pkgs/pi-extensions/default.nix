@@ -1,7 +1,13 @@
-{ fetchFromGitHub, stdenv, nodejs, yarn, cacert, lib }:
+{ fetchFromGitHub, stdenv, nodejs, yarn, pnpm, cacert, lib }:
 
 let
-  mkPiExt = { name, version, owner, repo, rev, srcHash, outputHash }:
+  mkPiExt = { name, version, owner, repo, rev, srcHash, outputHash, pkgManager ? "yarn" }:
+    let
+      pm = if pkgManager == "pnpm" then pnpm else yarn;
+      installCmd = if pkgManager == "pnpm"
+        then "pnpm install --no-frozen-lockfile --no-optional"
+        else "yarn install --no-progress --non-interactive";
+    in
     stdenv.mkDerivation {
       pname = name;
       inherit version;
@@ -9,26 +15,32 @@ let
         inherit owner repo rev;
         hash = srcHash;
       };
-      nativeBuildInputs = [ nodejs yarn cacert ];
+      nativeBuildInputs = [ nodejs pm cacert ];
       dontFixup = true;
       outputHashMode = "recursive";
       outputHashAlgo = "sha256";
       inherit outputHash;
       buildPhase = ''
         NIX_SSL_CERT_FILE=${cacert}/etc/ssl/certs/ca-bundle.crt \
-        HOME=$TMPDIR yarn install --no-progress --non-interactive 2>&1
+        HOME=$TMPDIR ${installCmd} 2>&1
       '';
       installPhase = ''
         mkdir -p "$out"
         cp -r . "$out/"
         rm -rf "$out/.npm" "$out/.cache" 2>/dev/null || true
-        # Some extensions (e.g. pi-subagents) have their entry point in src/extension/
-        # Promote it to root with updated imports so Pi doesn't discover it as a nested extension.
-        if [ ! -f "$out/index.ts" ] && [ -f "$out/src/extension/index.ts" ]; then
-          cp "$out/src/extension/index.ts" "$out/index.ts"
-          sed -i 's|from "./|from "./src/extension/|g' "$out/index.ts"
-          sed -i 's|from "../|from "./src/|g' "$out/index.ts"
-          rm "$out/src/extension/index.ts"
+        # Promote nested entry point to root so Pi doesn't discover it as a separate extension.
+        if [ ! -f "$out/index.ts" ]; then
+          if [ -f "$out/src/extension/index.ts" ]; then
+            cp "$out/src/extension/index.ts" "$out/index.ts"
+            sed -i 's|from "./|from "./src/extension/|g' "$out/index.ts"
+            sed -i 's|from "../|from "./src/|g' "$out/index.ts"
+            rm "$out/src/extension/index.ts"
+          elif [ -f "$out/src/index.ts" ]; then
+            cp "$out/src/index.ts" "$out/index.ts"
+            sed -i 's|from "./|from "./src/|g' "$out/index.ts"
+            sed -i 's|from "../|from "./|g' "$out/index.ts"
+            rm "$out/src/index.ts"
+          fi
         fi
       '';
     };
@@ -51,6 +63,17 @@ in {
     rev = "v0.25.0";
     srcHash = "sha256-MLQ7/+xEd2xTI37rMfWaYP7I724MWN+pgXhv78OxjL8=";
     outputHash = "sha256-MzavGbgfLjqMrc7ENju+4g3Wbla5vZKxaiJzm/ZBx3o=";
+  };
+
+  pi-permission-system = mkPiExt {
+    name = "pi-permission-system";
+    version = "5.18.1";
+    owner = "gotgenes";
+    repo = "pi-permission-system";
+    rev = "f1d2f619b8656f88584ff1d1c0f45936ad6b25bc";
+    srcHash = "sha256-vzQMv0JgN62OmtzZltgNN2LnHu9zon6JZTBxYnRNE6w=";
+    pkgManager = "pnpm";
+    outputHash = "sha256-A7mI+d/Dbva5cxf4INJfIsNJh/kZxUJMtjs3f/xYX7E=";
   };
 
   pi-mcp-adapter = mkPiExt {
