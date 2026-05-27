@@ -9,6 +9,17 @@ let
     }
   ) extFiles;
 
+  # Remote Pi extensions (Nix-built npm packages)
+  remoteExts = with pkgs.pi-extensions; [
+    pi-web-access
+    # add more here
+  ];
+  remoteHomeFiles = builtins.listToAttrs (map (ext:
+    lib.nameValuePair ".pi/agent/extensions-nix/${ext.pname}" {
+      source = "${ext}";
+    }
+  ) remoteExts);
+
 in
 {
   # Pi agent - terminal coding harness from pi.dev
@@ -36,6 +47,8 @@ in
           enabled = true;
           maxRetries = 3;
         };
+        # Extensions from Nix derivations (separate dir to avoid conflicts)
+        extensions = [ "~/.pi/agent/extensions-nix" ];
       };
     };
 
@@ -117,5 +130,5 @@ in
       - Always use isolated envs: Python → venv, Node/bun → local not global.
       - Ask which language tool to use if unsure (bun vs npm, uv vs pip, etc.).
     '';
-  } // extHomeFiles;
+  } // extHomeFiles // remoteHomeFiles;
 }
