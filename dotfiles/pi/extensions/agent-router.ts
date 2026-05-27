@@ -4,22 +4,37 @@
  * Discovers agent definitions from ~/.pi/agents/ and ./.pi/agents/
  * (.ts and .json files exporting { id, prompt, permissions? }).
  *
- * Usage: `#<agent_id> <message>` — injects agent prompt, restricts tools.
- *        Non-# message resets to normal mode.
+ * Implements OpenCode-style plan mode enforcement:
+ * - Hides edit/write tools from the model via setActiveTools()
+ * - Injects <system-reminder> blocks into messages via context event
+ * - Blocks tool calls at runtime as defense-in-depth
+ * - Wraps plan prompts in <system-reminder> tags
+ *
+ * Usage: `#<agent_id> <message>` — switches to agent mode (sticky).
+ *        All subsequent messages stay in that agent mode.
+ *        `#back` or `#default` returns to normal mode.
+ *        Footer shows `#<agent_id>` when an agent is active.
  */
 
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import fs from "node:fs";
 import path from "node:path";
 
+/** OpenCode's edit tool aliases — all map to the "edit" permission key */
+const EDIT_TOOLS = ["edit", "write", "apply_patch"];
+
 interface AgentPermissions {
   /** Tool allowlist. Agent can only use these tools. */
   tools?: string[];
+  /** Tools to hide from the model entirely (like OpenCode's permission deny). */
+  hiddenTools?: string[];
   bash?: {
     /** Bash command prefixes to allow (cat, ls, grep, ...). */
     allow?: string[];
     /** Regex patterns to block (rm, dd, sudo, ...). */
     block?: string[];
+    /** If true, block all write operations (redirects, cp, mv, rm, sed -i, etc.). */
+    blockWrite?: boolean;
   };
 }
 
@@ -71,55 +86,128 @@ export default function (pi: ExtensionAPI) {
   }
 
   let activeAgent: AgentDefinition | null = null;
+  let originalTools: string[] | null = null;
 
-  pi.on("input", (event) => {
+  pi.on("input", (event, ctx) => {
     const match = event.text.match(/^#(\w+)(?:\s+(.*))?$/s);
     if (match) {
       const agentId = match[1];
       const rest = (match[2] ?? "").trim();
+
+      // Built-in reset commands: #back / #default exit agent mode
+      if (agentId === "back" || agentId === "default") {
+        if (activeAgent) {
+          // Restore original tool set
+          if (originalTools) {
+            pi.setActiveTools(originalTools);
+            originalTools = null;
+          }
+          activeAgent = null;
+          ctx.ui.setStatus("agent", undefined);
+          return { action: "transform", text: "Returned to normal mode." };
+        }
+        return { action: "continue" };
+      }
+
       const agent = agents.get(agentId);
       if (agent) {
         activeAgent = agent;
-        return { action: "transform", text: rest || "What should I do?" };
-      }
-    }
+        ctx.ui.setStatus("agent", ctx.ui.theme.fg("accent", `#${agentId}`));
 
-    if (activeAgent && !event.text.startsWith("#")) {
-      activeAgent = null;
+        // --- OpenCode-style tool hiding ---
+        // Save current tools before modifying
+        if (originalTools === null) {
+          originalTools = pi.getActiveTools();
+        }
+
+        const perms = agent.permissions;
+        if (perms) {
+          let activeTools: string[];
+
+          const allowlist = perms.tools;
+          const hidden = perms.hiddenTools ?? [];
+
+          if (allowlist) {
+            activeTools = [...allowlist];
+          } else {
+            activeTools = originalTools.filter(
+              (t) => !hidden.includes(t) && !EDIT_TOOLS.includes(t),
+            );
+          }
+
+          pi.setActiveTools(activeTools);
+        }
+
+        return {
+          action: "transform",
+          text: rest || "What should I do?",
+        };
+      }
     }
 
     return { action: "continue" };
   });
 
+  // --- Inject <system-reminder> blocks before each LLM call ---
+  // Mirrors OpenCode's insertReminders() in session/prompt.ts
+  pi.on("context", (event) => {
+    if (!activeAgent) return;
+
+    const lastUserMsg = event.messages.findLast((m) => m.role === "user");
+    if (!lastUserMsg) return;
+
+    const prompt = activeAgent.prompt;
+    if (!prompt) return;
+
+    const reminder = `<system-reminder>\n${prompt.replace(/<\/?system-reminder>/g, "").trim()}\n</system-reminder>`;
+
+    const content = lastUserMsg.content;
+    if (typeof content === "string") {
+      lastUserMsg.content = content + "\n\n" + reminder;
+    } else if (Array.isArray(content)) {
+      content.push({ type: "text", text: reminder });
+    }
+  });
+
+  // --- OpenCode-style system prompt injection (fallback) ---
   pi.on("before_agent_start", (event) => {
-    if (activeAgent) {
+    if (activeAgent && activeAgent.prompt) {
       return {
-        systemPrompt: event.systemPrompt + "\n\n" + activeAgent.prompt,
+        systemPrompt:
+          event.systemPrompt +
+          "\n\n" +
+          activeAgent.prompt,
       };
     }
   });
 
+  // --- Runtime tool_call blocker (defense-in-depth) ---
   pi.on("tool_call", (event) => {
     if (!activeAgent) return;
     const perms = activeAgent.permissions;
     if (!perms) return;
 
-    const allowedTools = perms.tools ?? Object.keys(perms).filter(k => k !== "tools");
-    if (!allowedTools.includes(event.toolName)) {
-      return {
-        block: true,
-        reason:
-          'Tool "' +
-          event.toolName +
-          '" not allowed in #' +
-          activeAgent.id +
-          " mode. Allowed: " +
-          allowedTools.join(", "),
-      };
+    const allowedTools = perms.tools ?? [];
+
+    // OpenCode pattern: deny tools not in allowlist
+    if (allowedTools.length > 0) {
+      if (!allowedTools.includes(event.toolName)) {
+        return {
+          block: true,
+          reason:
+            'Tool "' +
+            event.toolName +
+            '" not allowed in #' +
+            activeAgent.id +
+            " mode. Allowed: " +
+            allowedTools.join(", "),
+        };
+      }
     }
 
     if (event.toolName === "bash" && perms.bash) {
       const cmd = event.input.command as string;
+
       if (perms.bash.allow?.length) {
         const ok = perms.bash.allow.some((p) => cmd.trim().startsWith(p));
         if (!ok) {
@@ -133,12 +221,30 @@ export default function (pi: ExtensionAPI) {
           };
         }
       }
+
       if (perms.bash.block?.length) {
         const blocked = perms.bash.block.some((p) => new RegExp(p, "i").test(cmd));
         if (blocked) {
           return {
             block: true,
             reason: "Bash command blocked in #" + activeAgent.id + " mode.",
+          };
+        }
+      }
+
+      // Write operation detection — covers bash redirects, python/perl/node inline writes
+      if (perms.bash.blockWrite) {
+        const hasRedirect = /[0-9&]?>/.test(cmd);
+        const hasWriteCmd = /\b(cp|mv|rm|dd|install|tee|truncate|fallocate|mkfs|touch|chmod|chown|ln)\b/.test(cmd);
+        const hasSedInplace = /\bsed\b/.test(cmd) && /-i/.test(cmd);
+        const hasPythonFileWrite = /\b(python3?)\s+-c\s+['\"].*(?:open\(.*['\"]w['\"]|\.write\(|subprocess)/.test(cmd);
+        const hasPerlFileWrite = /\bperl\s+-[^ ]*e\s+['\"].*(?:open\s*\(.*['\"]>[>]?['\"]|print\s+\w+)/.test(cmd);
+        const hasNodeFileWrite = /\bnode\s+-[^ ]*\s+['\"].*require\(['\"]fs['\"]\)/.test(cmd);
+
+        if (hasRedirect || hasWriteCmd || hasSedInplace || hasPythonFileWrite || hasPerlFileWrite || hasNodeFileWrite) {
+          return {
+            block: true,
+            reason: "Write operations not allowed in #" + activeAgent.id + " mode.",
           };
         }
       }

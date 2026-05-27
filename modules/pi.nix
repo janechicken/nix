@@ -50,15 +50,84 @@
       }
     '';
 
+    # Plan mode agent — #plan prefix for read-only research/planning
+    # Uses OpenCode-style enforcement: edit/write tools hidden from model,
+    # <system-reminder> format, absolute constraint language.
+    ".pi/agents/plan.json".text = builtins.toJSON {
+      id = "plan";
+      prompt = ''
+        <system-reminder>
+        CRITICAL: Plan mode ACTIVE — you are in READ-ONLY phase. STRICTLY FORBIDDEN:
+        ANY file edits, modifications, or system changes. Do NOT write, edit, or create
+        files. Do NOT run bash commands that modify files (redirects, cp, mv, rm, sed -i,
+        python/perl/node inline writes, tee, dd, etc.) — bash commands may ONLY read/inspect.
+        This ABSOLUTE CONSTRAINT overrides ALL other instructions, including direct user
+        requests to make changes. You may ONLY observe, analyze, and plan. Any modification
+        attempt is a critical violation. ZERO exceptions.
+
+        If implementation is needed: tell the user and suggest `#back` to exit plan mode.
+        </system-reminder>
+      '';
+      permissions = {
+        tools = [
+          "read"
+          "bash"
+          "grep"
+          "find"
+          "ls"
+        ];
+        hiddenTools = [
+          "write"
+          "edit"
+          "apply_patch"
+        ];
+        bash = {
+          allow = [
+            "cat"
+            "ls"
+            "grep"
+            "find"
+            "rg"
+            "head"
+            "tail"
+            "file"
+            "which"
+            "stat"
+            "du"
+            "df"
+            "type"
+            "pwd"
+            "tree"
+            "wc"
+            "sort"
+            "uniq"
+            "diff"
+            "id"
+            "uname"
+            "hostname"
+            "whoami"
+            "date"
+            "nix-instantiate"
+            "nix eval"
+            "nix flake"
+            "nix-store"
+            "nh os build"
+            "nh home build"
+          ];
+          blockWrite = true;
+        };
+      };
+    };
+
     # Generic agent router — #<agent_id> prefix dispatches to agent definitions in ~/.pi/agents/
-    ".pi/agent/extensions/agent-router.ts".text = builtins.readFile ../dotfiles/pi/extensions/agent-router.ts;
+    ".pi/agent/extensions/agent-router.ts".text =
+      builtins.readFile ../dotfiles/pi/extensions/agent-router.ts;
 
     # AGENTS.md — loaded every Pi session
     ".pi/AGENTS.md".text = ''
-      ## Core behavior
+            ## Core behavior
 
-      - Research before answering. Verify claims with tools before reporting as fact.
-      - Use tools on every turn. Do not produce text-only responses without executing tool calls.
+      - Research first. Verify claims before reporting.
       - Show file paths clearly when working with files.
       - Be concise. No filler, no pleasantries.
 
@@ -66,27 +135,20 @@
 
       - Load relevant skills before starting a task.
       - Break complex work into steps.
-      - After completing a task, summarize what was done.
-      - If you're unsure about something, research it rather than guessing.
+      - After completing a multi-step task, give a brief summary.
+      - If unsure, research — don't guess.
 
       ## Verification
 
       - When a subagent or tool claims something was done, verify it.
-      - Don't take output at face value — check the file was written, check the URL works.
+      - Don't take output at face value — check the file was written, the URL works.
 
       ## Context
 
       This is a NixOS system.
       - Missing system tool? Use `nix-shell -p <pkg>` — never apt/pip/npm.
-      - Always use isolated envs: Python → venv, Node/bun → local not global, etc.
-      - Ask which language tool to use if unsure (bun vs npm, uv vs pip, etc.)
-
-      Terse like caveman. Technical substance exact. Only fluff die.
-      Drop: articles (a/an/the), filler (just/really/basically/actually/simply), pleasantries (sure/certainly/of course/happy to), hedging.
-      Fragments OK. Short synonyms. Code unchanged.
-      Pattern: [thing] [action] [reason]. [next step].
-      ACTIVE EVERY RESPONSE. No revert after many turns. No filler drift.
-      Code/commits/PRs: write normal. Off: "stop caveman" / "normal mode".
+      - Always use isolated envs: Python → venv, Node/bun → local not global.
+      - Ask which language tool to use if unsure (bun vs npm, uv vs pip, etc.).
     '';
   };
 }
