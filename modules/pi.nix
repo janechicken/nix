@@ -44,6 +44,10 @@ in
             "/tmp/**" = "allow";
           };
           external_directory = "ask";
+          bash = {
+            "rm -rf *" = "deny";
+            "sudo *" = "ask";
+          };
         };
       };
     };
