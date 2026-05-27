@@ -44,7 +44,7 @@ interface AgentDefinition {
   permissions?: AgentPermissions;
 }
 
-function loadAgents(dir: string): AgentDefinition[] {
+async function loadAgents(dir: string): Promise<AgentDefinition[]> {
   const agents: AgentDefinition[] = [];
   if (!fs.existsSync(dir)) return agents;
 
@@ -58,8 +58,8 @@ function loadAgents(dir: string): AgentDefinition[] {
       if (ext === ".json") {
         data = JSON.parse(fs.readFileSync(fullPath, "utf-8"));
       } else if (ext === ".ts") {
-        data = require(fullPath);
-        data = data.default ?? data;
+        const mod = await import(fullPath);
+        data = mod.default ?? mod;
       } else {
         continue;
       }
@@ -71,7 +71,7 @@ function loadAgents(dir: string): AgentDefinition[] {
   return agents;
 }
 
-export default function (pi: ExtensionAPI) {
+export default async function (pi: ExtensionAPI) {
   const homeDir = process.env.HOME ?? "/home/jane";
   const scanDirs = [
     path.join(homeDir, ".pi", "agents"),
@@ -80,7 +80,7 @@ export default function (pi: ExtensionAPI) {
 
   const agents = new Map<string, AgentDefinition>();
   for (const dir of scanDirs) {
-    for (const agent of loadAgents(dir)) {
+    for (const agent of await loadAgents(dir)) {
       if (!agents.has(agent.id)) agents.set(agent.id, agent);
     }
   }
@@ -167,6 +167,10 @@ export default function (pi: ExtensionAPI) {
     } else if (Array.isArray(content)) {
       content.push({ type: "text", text: reminder });
     }
+
+    // CRITICAL: Runner does structuredClone(messages) and only picks up
+    // mutations from the return value. In-place mutation is lost.
+    return { messages: event.messages };
   });
 
   // --- OpenCode-style system prompt injection (fallback) ---
