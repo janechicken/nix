@@ -89,6 +89,7 @@ in {
       - **reviewer** — review diffs/plans for correctness, tests, complexity (use after implementing)
       - **oracle** — second opinion, debugging help, challenge assumptions (use when stuck)
       - **researcher** — investigate code/architecture questions
+      - **eyes** — image analysis only. Uses kimi-k2.6 (vision-capable). Delegate ALL image/viewing tasks here — screenshots, diagrams, UI mockups, error screens, photos. Never try to view images yourself.
       - **delegate** — general-purpose fallback
 
       **Delegation patterns (just do them):**
@@ -234,6 +235,11 @@ in {
           bashMode = "yellow";
         };
       };
+    };
+    # Eyes subagent — kimi-k2.6 vision agent for image analysis
+    ".pi/agent/agents/eyes.md" = {
+      force = true;
+      source = ../dotfiles/pi/agents/eyes.md;
     };
   } // remoteHomeFiles;
 }
