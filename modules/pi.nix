@@ -16,7 +16,8 @@ let
     pi-mcp-adapter
     pi-permission-system
     pi-goal
-    pi-lsp
+    pi-lens
+    pi-bar
     pi-llm-wiki
     pi-hermes-memory
     piolium
