@@ -75,7 +75,38 @@ export default async function (pi: ExtensionAPI) {
   }
 
   let activeAgent: AgentDefinition | null = null;
-  let originalTools: string[] | null = null;
+  let fullTools: string[] | null = null;
+  let defaultAgent: AgentDefinition | null = null;
+
+  // Cache the default agent after discovery
+  const defaultDef = agents.get("default");
+  if (defaultDef) defaultAgent = defaultDef;
+
+  /**
+   * Apply an agent's tool restrictions against the full tool set.
+   * - permissions.tools → exact allowlist
+   * - permissions.hiddenTools → full set minus hidden + EDIT_TOOLS
+   * - no permissions → full set (unrestricted)
+   */
+  function applyAgentTools(agent: AgentDefinition | null) {
+    if (!agent) return;
+    const perms = agent.permissions;
+    if (perms) {
+      if (perms.tools) {
+        pi.setActiveTools(perms.tools);
+        return;
+      } else if (perms.hiddenTools && fullTools) {
+        pi.setActiveTools(
+          fullTools.filter(
+            (t) => !perms.hiddenTools!.includes(t) && !EDIT_TOOLS.includes(t),
+          ),
+        );
+        return;
+      }
+    }
+    // No explicit permissions — full access
+    if (fullTools) pi.setActiveTools(fullTools);
+  }
 
   // --- Permission system integration ---
   // Lazily resolve the service so agent-router works even if
@@ -97,6 +128,17 @@ export default async function (pi: ExtensionAPI) {
     }
   }
 
+  // --- Auto-activate default agent on startup ---
+  // Restrict normal-mode tools to whatever the "default" agent definition declares.
+  pi.on("session_start", () => {
+    if (!defaultAgent) return;
+    if (fullTools === null) {
+      fullTools = pi.getAllTools().map(t => t.name);
+    }
+    activeAgent = defaultAgent;
+    applyAgentTools(defaultAgent);
+  });
+
   // --- Agent routing ---
   pi.on("input", (event, ctx) => {
     const match = event.text.match(/^#(\w+)(?:\s+(.*))?$/s);
@@ -104,20 +146,17 @@ export default async function (pi: ExtensionAPI) {
       const agentId = match[1];
       const rest = (match[2] ?? "").trim();
 
-      // Built-in reset commands: #back / #default exit agent mode
+      // Built-in reset commands: #back / #default return to default agent
       if (agentId === "back" || agentId === "default") {
-        if (activeAgent) {
-          if (originalTools) {
-            pi.setActiveTools(originalTools);
-            originalTools = null;
-          }
-          activeAgent = null;
-          ctx.ui.setStatus("agent", undefined);
+        if (activeAgent && defaultAgent) {
+          activeAgent = defaultAgent;
+          ctx.ui.setStatus("agent", ctx.ui.theme.fg("muted", "#default"));
+          applyAgentTools(defaultAgent);
           return {
             action: "transform",
             text: rest
-              ? `Returned to normal mode. ${rest}`
-              : "Returned to normal mode.",
+              ? `Returned to default (read-only + subagent) mode. ${rest}`
+              : "Returned to default (read-only + subagent) mode.",
           };
         }
         return { action: "continue" };
@@ -128,23 +167,12 @@ export default async function (pi: ExtensionAPI) {
         activeAgent = agent;
         ctx.ui.setStatus("agent", ctx.ui.theme.fg("accent", `#${agentId}`));
 
-        // Apply per-agent tool restrictions
-        if (originalTools === null) {
-          originalTools = pi.getActiveTools();
+        // Capture full tool set once if not already done
+        if (fullTools === null) {
+          fullTools = pi.getAllTools().map(t => t.name);
         }
 
-        const perms = agent.permissions;
-        if (perms) {
-          if (perms.tools) {
-            pi.setActiveTools(perms.tools);
-          } else if (perms.hiddenTools) {
-            pi.setActiveTools(
-              originalTools.filter(
-                (t) => !perms.hiddenTools!.includes(t) && !EDIT_TOOLS.includes(t),
-              ),
-            );
-          }
-        }
+        applyAgentTools(agent);
 
         return {
           action: "transform",
