@@ -216,9 +216,38 @@ in rec {
     version = "0.0.33";
     tarballUrl = "https://registry.npmjs.org/@spences10/pi-lsp/-/pi-lsp-0.0.33.tgz";
     tarballHash = "sha512-gKGLlr5JSYC3xBHhzNJGgqCFU/34LsDWlN+Wiw7lJSienB9sydWxa5MkIW7ioV3ZK0aOoN7S+HueoNEYCSMZWA==";
-    outputHash = "sha256-2dwCTDp9jXkg0aa2RiEL86JHPgqkwEnhsCnH3u7Pswo=";
+    outputHash = "sha256-a5YicKQvRNbMJ6m41C8qgQyNjII5ZsAVvPba/evaK8Q=";
   };
 
-  # Add more:
-  # pi-foo = mkPiExt { name = "pi-foo"; version = "1.0.0"; owner = "..."; repo = "..."; rev = "v1.0.0"; srcHash = lib.fakeHash; outputHash = lib.fakeHash; };
+  pi-hermes-memory = mkNpmPiExt {
+    name = "pi-hermes-memory";
+    version = "0.7.13";
+    tarballUrl = "https://registry.npmjs.org/pi-hermes-memory/-/pi-hermes-memory-0.7.13.tgz";
+    tarballHash = "sha256-B9A1rjiUZRuZh+cyPe3cwchzc6Av72pEjFvzrawAr+E=";
+    outputHash = "sha256-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=";
+  };
+
+  piolium = mkNpmPiExt {
+    name = "piolium";
+    version = "0.0.8";
+    tarballUrl = "https://registry.npmjs.org/@vigolium/piolium/-/piolium-0.0.8.tgz";
+    tarballHash = "sha256-Gu5IHVDJDgMKiCKkeAoW6pgRM6BEDuqFKNfnvKwJeps=";
+    outputHash = "sha256-y53djTt9IeZGZe4v9j3G4FVDe/QMXmp7pIPbNyZg3Vc=";
+  };
+
+  pi-markdown-preview = mkNpmPiExt {
+    name = "pi-markdown-preview";
+    version = "0.9.9";
+    tarballUrl = "https://registry.npmjs.org/pi-markdown-preview/-/pi-markdown-preview-0.9.9.tgz";
+    tarballHash = "sha256-y1TwhNvgDL6kF+oP+AmtjwNczkjMw69Xtajuie3mlkc=";
+    outputHash = "sha256-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=";
+  };
+
+  pi-intercom = mkNpmPiExt {
+    name = "pi-intercom";
+    version = "0.6.0";
+    tarballUrl = "https://registry.npmjs.org/pi-intercom/-/pi-intercom-0.6.0.tgz";
+    tarballHash = "sha256-dsDVKEZhqsQ3JIu2x6Moef6GMpa9FctTN1GyfK/ESBg=";
+    outputHash = "sha256-nwt6JjcMaMCZMP1WYuT5aZU6WqeUyIwuQdtOPJRQyTc=";
+  };
 }
