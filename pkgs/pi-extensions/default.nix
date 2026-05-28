@@ -219,14 +219,6 @@ in rec {
     outputHash = "sha256-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=";
   };
 
-  pi-bar = mkNpmPiExt {
-    name = "pi-bar";
-    version = "0.3.38";
-    tarballUrl = "https://registry.npmjs.org/pi-bar/-/pi-bar-0.3.38.tgz";
-    tarballHash = "sha256-WX7ry6SmY2yU1eSoG2TZ/+MZ0G9oDvSrtgohFLMe+hc=";
-    outputHash = "sha256-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=";
-  };
-
   pi-llm-wiki = mkNpmPiExt {
     name = "pi-llm-wiki";
     version = "0.7.3";

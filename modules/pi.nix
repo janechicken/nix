@@ -17,7 +17,6 @@ let
     pi-permission-system
     pi-goal
     pi-lens
-    pi-bar
     pi-llm-wiki
     pi-hermes-memory
     piolium
