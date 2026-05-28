@@ -1,0 +1,20 @@
+name: CI
+on:
+  push:
+    branches: [main, upgrade-pi-prompts]
+  pull_request:
+    branches: [main]
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: DeterminateSystems/nix-installer-action@v16
+      - uses: DeterminateSystems/magic-nix-cache-action@v8
+
+      - name: Check flake evaluation
+        run: nix flake check --all-systems -L
+
+      - name: Build home-manager activation package
+        run: nix build .#homeConfigurations."jane@jane-pc".activationPackage -L
