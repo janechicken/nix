@@ -1,0 +1,45 @@
+name: CI
+on:
+  push:
+    branches: [main, upgrade-pi-prompts]
+  pull_request:
+    branches: [main]
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: DeterminateSystems/nix-installer-action@v16
+      - uses: DeterminateSystems/magic-nix-cache-action@v8
+
+      - name: Flake eval check
+        run: nix flake check --all-systems -L
+
+  build-home:
+    needs: check
+    strategy:
+      matrix:
+        host: [jane-pc, jane-laptop]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: DeterminateSystems/nix-installer-action@v16
+      - uses: DeterminateSystems/magic-nix-cache-action@v8
+
+      - name: Build home-manager (${{ matrix.host }})
+        run: nix build .#homeConfigurations."jane@${{ matrix.host }}".activationPackage -L
+
+  build-system:
+    needs: check
+    strategy:
+      matrix:
+        host: [jane-pc, jane-laptop]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: DeterminateSystems/nix-installer-action@v16
+      - uses: DeterminateSystems/magic-nix-cache-action@v8
+
+      - name: Build NixOS (${{ matrix.host }})
+        run: nix build .#nixosConfigurations.${{ matrix.host }}.config.system.build.toplevel -L
