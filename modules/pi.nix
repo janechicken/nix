@@ -15,7 +15,6 @@ let
     pi-mcp-adapter
     pi-permission-system
     pi-goal
-    pi-lsp
     pi-intercom
   ];
   remoteHomeFiles = builtins.listToAttrs (map (ext:
