@@ -17,6 +17,7 @@ let
     pi-permission-system
     pi-goal
     pi-lsp
+    pi-llm-wiki
   ];
   remoteHomeFiles = builtins.listToAttrs (map (ext:
     lib.nameValuePair ".pi/agent/extensions-nix/${ext.pname}" {

@@ -219,6 +219,11 @@ in rec {
     outputHash = "sha256-2dwCTDp9jXkg0aa2RiEL86JHPgqkwEnhsCnH3u7Pswo=";
   };
 
-  # Add more:
-  # pi-foo = mkPiExt { name = "pi-foo"; version = "1.0.0"; owner = "..."; repo = "..."; rev = "v1.0.0"; srcHash = lib.fakeHash; outputHash = lib.fakeHash; };
+  pi-llm-wiki = mkNpmPiExt {
+    name = "pi-llm-wiki";
+    version = "0.7.3";
+    tarballUrl = "https://registry.npmjs.org/@zosmaai/pi-llm-wiki/-/pi-llm-wiki-0.7.3.tgz";
+    tarballHash = "sha256-ce572da6c859f1d3be2e3d0d0b783fca621d8c65e1d119276f6a5e5abacf8cbc";
+    outputHash = "sha256-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=";
+  };
 }
