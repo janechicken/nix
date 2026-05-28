@@ -257,5 +257,13 @@ in {
       force = true;
       source = ../dotfiles/pi/agents/default.ts;
     };
+    # pi-web-access config — disable the interactive curator UI
+    # Without this, every web_search opens a browser curator that needs manual approval.
+    ".pi/web-search.json" = {
+      force = true;
+      text = builtins.toJSON {
+        workflow = "none";
+      };
+    };
   } // remoteHomeFiles;
 }
