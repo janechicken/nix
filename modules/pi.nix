@@ -17,6 +17,7 @@ let
     pi-goal
     pi-intercom
     pi-hermes-memory
+    pi-markdown-preview
   ];
   remoteHomeFiles = builtins.listToAttrs (map (ext:
     lib.nameValuePair ".pi/agent/extensions-nix/${ext.pname}" {

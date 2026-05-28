@@ -246,20 +246,12 @@ in rec {
     outputHash = "sha256-vGGDWJ7xDhyGp+M5Zeie3VX4+N91oBCaoM5n6O+nZnU=";
   };
 
-  piolium = mkNpmPiExt {
-    name = "piolium";
-    version = "0.0.8";
-    tarballUrl = "https://registry.npmjs.org/@vigolium/piolium/-/piolium-0.0.8.tgz";
-    tarballHash = "sha256-Gu5IHVDJDgMKiCKkeAoW6pgRM6BEDuqFKNfnvKwJeps=";
-    outputHash = "";
-  };
-
   pi-markdown-preview = mkNpmPiExt {
     name = "pi-markdown-preview";
     version = "0.9.9";
     tarballUrl = "https://registry.npmjs.org/pi-markdown-preview/-/pi-markdown-preview-0.9.9.tgz";
     tarballHash = "sha256-y1TwhNvgDL6kF+oP+AmtjwNczkjMw69Xtajuie3mlkc=";
-    outputHash = "";
+    outputHash = "sha256-0ulgk83qWY1AmVDFJqKiH/xXIaTwJ1iKTbGH5kqvjSk=";
   };
 
   pi-intercom = mkNpmPiExt {
