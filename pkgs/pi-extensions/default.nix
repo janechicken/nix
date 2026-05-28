@@ -240,7 +240,7 @@ in rec {
     version = "0.9.9";
     tarballUrl = "https://registry.npmjs.org/pi-markdown-preview/-/pi-markdown-preview-0.9.9.tgz";
     tarballHash = "sha256-y1TwhNvgDL6kF+oP+AmtjwNczkjMw69Xtajuie3mlkc=";
-    outputHash = "sha256-5L00fxL0pyAp+XGb1milBC6e1w9SQCA9LCJx0I5g8Ek=";
+    outputHash = "sha256-0ulgk83qWY1AmVDFJqKiH/xXIaTwJ1iKTbGH5kqvjSk=";
   };
 
   pi-intercom = mkNpmPiExt {
