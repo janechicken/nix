@@ -13,8 +13,33 @@ jobs:
       - uses: DeterminateSystems/nix-installer-action@v16
       - uses: DeterminateSystems/magic-nix-cache-action@v8
 
-      - name: Check flake
+      - name: Flake eval check
         run: nix flake check --all-systems -L
 
-      - name: Build home-manager
-        run: nix build .#homeConfigurations."jane@jane-pc".activationPackage -L
+  build-home:
+    needs: check
+    strategy:
+      matrix:
+        host: [jane-pc, jane-laptop]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: DeterminateSystems/nix-installer-action@v16
+      - uses: DeterminateSystems/magic-nix-cache-action@v8
+
+      - name: Build home-manager (${{ matrix.host }})
+        run: nix build .#homeConfigurations."jane@${{ matrix.host }}".activationPackage -L
+
+  build-system:
+    needs: check
+    strategy:
+      matrix:
+        host: [jane-pc, jane-laptop]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: DeterminateSystems/nix-installer-action@v16
+      - uses: DeterminateSystems/magic-nix-cache-action@v8
+
+      - name: Build NixOS (${{ matrix.host }})
+        run: nix build .#nixosConfigurations.${{ matrix.host }}.config.system.build.toplevel -L
