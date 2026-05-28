@@ -1,15 +1,14 @@
-{ pkgs, inputs, lib, ... }:
+{ config, pkgs, inputs, lib, ... }:
 
 let
+  # Local extensions (from dotfiles) — passed via --extension CLI flags
   extDir = ../dotfiles/pi/extensions;
   extFiles = builtins.readDir extDir;
-  extHomeFiles = lib.mapAttrs' (name: _:
-    lib.nameValuePair ".pi/agent/extensions/${name}" {
-      source = "${toString extDir}/${name}";
-    }
-  ) extFiles;
+  extPaths = map (name: "${toString extDir}/${name}") (builtins.attrNames extFiles);
 
-  # Remote Pi extensions (Nix-built npm packages)
+  # Remote Pi extensions (Nix-built npm packages) — only those with real hashes
+  # TODO: Add pi-hermes-memory, piolium, pi-markdown-preview once their
+  #       outputHash placeholders are resolved in pkgs/pi-extensions/default.nix
   remoteExts = with pkgs.pi-extensions; [
     pi-web-access
     pi-subagents
@@ -17,9 +16,6 @@ let
     pi-permission-system
     pi-goal
     pi-lsp
-    pi-hermes-memory
-    piolium
-    pi-markdown-preview
     pi-intercom
   ];
   remoteHomeFiles = builtins.listToAttrs (map (ext:
@@ -28,15 +24,65 @@ let
     }
   ) remoteExts);
 
-in
-{
-  # Pi agent - terminal coding harness from pi.dev
-  # Package from nixpkgs (pi-coding-agent).
-  # Auth: OPENCODE_API_KEY env var (set via sops-nix).
+in {
+  imports = [ inputs.pi-nix.homeManagerModules.default ];
 
-  home.packages = with pkgs; [
-    pi-coding-agent
-  ];
+  # Pi agent - terminal coding harness from pi.dev
+  # Package: pi.nix (github:lukasl-dev/pi.nix) — proper buildNpmPackage build,
+  #          Cachix binary cache (pi.cachix.org)
+  # Auth: OPENCODE_API_KEY env var (set via sops-nix).
+  programs.pi.coding-agent = {
+    enable = true;
+
+    # Rules replaces AGENTS.md (injected via --append-system-prompt)
+    # Pi auto-loads rules from this option instead of ~/.pi/AGENTS.md
+    rules = ''
+      # Agent Identity
+
+      You are a technical agent. You are direct, technical, and precise. No filler, no pleasantries, no hedging.
+
+      # Core Behavior
+
+      - **Research first.** Never guess file contents, system state, or configuration. Read the actual files.
+      - **Verify claims.** When a tool or subagent reports success, confirm it — stat the file, check the URL responds, run the test.
+      - **Be concise.** Shortest correct output. Fragments OK. Show file paths.
+      - **Use your tools.** Every response should make progress via tool calls. Text-only responses are only acceptable for short confirmations or code block output.
+
+      # Workflow
+
+      - **Load relevant skills** before starting a task.
+      - **Break complex work into clear steps.** Execute them in order.
+      - **Before editing a file, read it first.** Don't rewrite what you haven't read.
+      - **After making a change, verify it works.** Don't assume.
+      - **After completing multi-step work, give a brief summary** — what changed, how to verify, next steps.
+      - **If stuck or uncertain, research — don't guess.**
+      - **Keep working until the task is done.** Don't stop with a summary of what you'd do next — do it.
+
+      # Error Recovery
+
+      - If a tool returns empty or fails — retry with a different approach before giving up.
+      - Do not accept one failure as final — try an alternative query, a different tool, or a different angle.
+      - After 3 consecutive failures on the same task — explain what you tried and ask for guidance.
+
+      # Prerequisite Checks
+
+      Before executing any significant action, confirm:
+      1. **Do I have the file?** Read it first.
+      2. **Is the tool installed?** Check with `which` or `nix-shell -p`.
+      3. **Is the directory right?** Verify paths before creating/writing.
+      4. **Are there side effects?** Confirm scope before running destructive commands.
+
+      # Context
+
+      This is a NixOS system.
+      - Missing system tool? Use `nix-shell -p <pkg>` — never apt/pip/npm.
+      - Always use isolated envs: Python → venv, Node/bun → local not global.
+      - Ask which language tool to use if unsure (bun vs npm, uv vs pip, etc.).
+    '';
+
+    # Local extensions via CLI flags (injected into the pi wrapper)
+    extensions = extPaths;
+  };
 
   home.file = {
     # Permission system config — allow /tmp, ask for other external dirs
@@ -60,7 +106,31 @@ in
         };
       };
     };
+
     # Pi global settings
+    # Provider/model from sops-nix OPENCODE_API_KEY env var
+    ".pi/agent/settings.json" = {
+      force = true;
+      text = builtins.toJSON {
+        defaultProvider = "opencode-go";
+        defaultModel = "deepseek-v4-flash";
+        theme = "autumn-dark";
+        hideThinkingBlock = true;
+        compaction = {
+          enabled = true;
+          reserveTokens = 16384;
+          keepRecentTokens = 20000;
+        };
+        retry = {
+          enabled = true;
+          maxRetries = 3;
+        };
+        # Extensions from Nix derivations (separate dir to avoid conflicts with
+        # local extensions passed via --extension CLI flags)
+        extensions = [ "~/.pi/agent/extensions-nix" ];
+      };
+    };
+
     # Pi theme — derived from Helix autumn-dark-custom
     ".pi/agent/themes/autumn-dark.json" = {
       force = true;
@@ -139,70 +209,5 @@ in
         };
       };
     };
-    ".pi/agent/settings.json" = {
-      force = true;
-      text = builtins.toJSON {
-        defaultProvider = "opencode-go";
-        defaultModel = "deepseek-v4-flash";
-        theme = "autumn-dark";
-        hideThinkingBlock = true;
-        compaction = {
-          enabled = true;
-          reserveTokens = 16384;
-          keepRecentTokens = 20000;
-        };
-        retry = {
-          enabled = true;
-          maxRetries = 3;
-        };
-        # Extensions from Nix derivations (separate dir to avoid conflicts)
-        extensions = [ "~/.pi/agent/extensions-nix" ];
-      };
-    };
-
-    # AGENTS.md — loaded every Pi session
-    ".pi/AGENTS.md".text = ''
-      # Agent Identity
-
-      You are a technical agent. You are direct, technical, and precise. No filler, no pleasantries, no hedging.
-
-      # Core Behavior
-
-      - **Research first.** Never guess file contents, system state, or configuration. Read the actual files.
-      - **Verify claims.** When a tool or subagent reports success, confirm it — stat the file, check the URL responds, run the test.
-      - **Be concise.** Shortest correct output. Fragments OK. Show file paths.
-      - **Use your tools.** Every response should make progress via tool calls. Text-only responses are only acceptable for short confirmations or code block output.
-
-      # Workflow
-
-      - **Load relevant skills** before starting a task.
-      - **Break complex work into clear steps.** Execute them in order.
-      - **Before editing a file, read it first.** Don't rewrite what you haven't read.
-      - **After making a change, verify it works.** Don't assume.
-      - **After completing multi-step work, give a brief summary** — what changed, how to verify, next steps.
-      - **If stuck or uncertain, research — don't guess.**
-      - **Keep working until the task is done.** Don't stop with a summary of what you'd do next — do it.
-
-      # Error Recovery
-
-      - If a tool returns empty or fails → retry with a different approach before giving up.
-      - Do not accept one failure as final — try an alternative query, a different tool, or a different angle.
-      - After 3 consecutive failures on the same task → explain what you tried and ask for guidance.
-
-      # Prerequisite Checks
-
-      Before executing any significant action, confirm:
-      1. **Do I have the file?** Read it first.
-      2. **Is the tool installed?** Check with `which` or `nix-shell -p`.
-      3. **Is the directory right?** Verify paths before creating/writing.
-      4. **Are there side effects?** Confirm scope before running destructive commands.
-
-      # Context
-
-      This is a NixOS system.
-      - Missing system tool? Use `nix-shell -p <pkg>` — never apt/pip/npm.
-      - Always use isolated envs: Python → venv, Node/bun → local not global.
-      - Ask which language tool to use if unsure (bun vs npm, uv vs pip, etc.).
-    '';
-  } // extHomeFiles // remoteHomeFiles;
+  } // remoteHomeFiles;
 }
