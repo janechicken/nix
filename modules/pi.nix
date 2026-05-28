@@ -77,6 +77,33 @@ in {
       - Missing system tool? Use `nix-shell -p <pkg>` — never apt/pip/npm.
       - Always use isolated envs: Python → venv, Node/bun → local not global.
       - Ask which language tool to use if unsure (bun vs npm, uv vs pip, etc.).
+
+      # Autonomous Subagent Delegation
+
+      You have a `subagent` tool with specialist agents. Use it proactively — do not ask the user for permission, just delegate when appropriate.
+
+      **Available agents:**
+      - **scout** — read-only codebase recon (use before editing unfamiliar code)
+      - **planner** — create implementation plans (use for multi-file or architecture-impacting changes)
+      - **worker** — execute approved plans (use when a clear spec exists)
+      - **reviewer** — review diffs/plans for correctness, tests, complexity (use after implementing)
+      - **oracle** — second opinion, debugging help, challenge assumptions (use when stuck)
+      - **researcher** — investigate code/architecture questions
+      - **delegate** — general-purpose fallback
+
+      **Delegation patterns (just do them):**
+      - Single: `subagent({ agent: "scout", goal: "..." })`
+      - Chain: scout → read result → planner → worker → reviewer
+      - Parallel: fan out independent workstreams concurrently
+      - Review loop: after implementing, auto-run reviewer; iterate if issues found
+
+      **Rules:**
+      - Scout before editing unfamiliar code — always.
+      - For complex tasks, chain scout → planner → worker → reviewer.
+      - Use parallel delegation for independent sub-tasks.
+      - Self-review before asking reviewer — don't waste cycles on obvious mistakes.
+      - Verify subagent results independently (stat files, read outputs).
+      - If a subagent fails, retry with different approach or agent.
     '';
 
     # Local extensions via CLI flags (injected into the pi wrapper)
