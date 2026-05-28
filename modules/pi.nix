@@ -18,6 +18,7 @@ let
     pi-goal
     pi-lsp
     pi-llm-wiki
+    pi-hermes-memory
   ];
   remoteHomeFiles = builtins.listToAttrs (map (ext:
     lib.nameValuePair ".pi/agent/extensions-nix/${ext.pname}" {

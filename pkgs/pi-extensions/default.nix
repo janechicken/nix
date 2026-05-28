@@ -226,4 +226,12 @@ in rec {
     tarballHash = "sha256-ce572da6c859f1d3be2e3d0d0b783fca621d8c65e1d119276f6a5e5abacf8cbc";
     outputHash = "sha256-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=";
   };
+
+  pi-hermes-memory = mkNpmPiExt {
+    name = "pi-hermes-memory";
+    version = "0.7.13";
+    tarballUrl = "https://registry.npmjs.org/pi-hermes-memory/-/pi-hermes-memory-0.7.13.tgz";
+    tarballHash = "sha256-B9A1rjiUZRuZh+cyPe3cwchzc6Av72pEjFvzrawAr+E=";
+    outputHash = "sha256-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=";
+  };
 }
