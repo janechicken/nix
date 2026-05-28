@@ -99,7 +99,7 @@ in {
       Available specialists:
       - `scout` — read-only codebase recon (use BEFORE editing unfamiliar code)
       - `planner` — creates implementation plans (use BEFORE complex changes)
-      - `worker` — executes approved plans (has edit/write/bash)
+      - `worker` — executes approved plans (has edit/write/bash). FOR IMPLEMENTATION ONLY.
       - `reviewer` — reviews diffs, plans, and implementations
       - `oracle` — second opinion, debugging help, challenge assumptions
       - `researcher` — investigates code/architecture via web search
@@ -121,7 +121,12 @@ in {
       Do NOT try to do work yourself — you have no tools for it.
       Verify subagent results by having the next step in the chain validate the previous.
       If a subagent fails, retry with different approach or agent.
-      NEVER try to work around tool restrictions. Use subagent.`;
+      NEVER try to work around tool restrictions. Use subagent.
+
+      CRITICAL: Worker is FOR IMPLEMENTATION ONLY. Never dump everything on worker.
+      A single subagent({ agent: 'worker', task: 'do everything' }) is a BUG.
+      Every task that involves understanding + changing code MUST be at minimum:
+      scout(task) → read result → worker(task) → read result → reviewer(task)`;
     '';
 
     # Local extensions via CLI flags (injected into the pi wrapper)
