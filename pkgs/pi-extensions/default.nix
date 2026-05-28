@@ -1,6 +1,99 @@
-{ fetchFromGitHub, fetchurl, stdenv, nodejs, yarn, pnpm, cacert, lib }:
+{ fetchFromGitHub, fetchurl, stdenv, nodejs, yarn, pnpm, jq, cacert, lib }:
 
 let
+  # ---------------------------------------------------------------------------
+  # Shared entry-point promotion: reads pi.extensions[0] from package.json and
+  # promotes any nested file/directory to root, rewriting imports so they
+  # still resolve.  This means the Pi builder never needs to be updated when a
+  # new extension uses a different directory layout.
+  # ---------------------------------------------------------------------------
+  promoteEntryPoint = ''
+    promote_entry_point() {
+      local out="$1"
+
+      local entry
+      entry=$(jq -r '.pi.extensions[0] // ""' "$out/package.json" 2>/dev/null)
+
+      # Nothing to do — no manifest entry, or already at root
+      case "$entry" in
+        ""|null|"./index.ts"|"./index.js") return 0 ;;
+      esac
+
+      # Strip leading ./
+      local rel="${entry#./}"
+
+      # Still at root (entry was "index.ts" without ./prefix)
+      case "$rel" in
+        index.ts|index.js) return 0 ;;
+      esac
+
+      # If the entry is a directory, find index.ts or index.js inside
+      if [ -d "$out/$rel" ]; then
+        for f in index.ts index.js; do
+          if [ -f "$out/$rel/$f" ]; then
+            rel="$rel/$f"
+            break
+          fi
+        done
+      fi
+
+      [ -f "$out/$rel" ] || return 0
+
+      local subdir
+      subdir=$(dirname "$rel")
+      local ext="${rel##*.}"
+      local filename="index.$ext"
+
+      # Read the canonical entry point from package.json, not our guess
+      # (handles the case where the manifest points at a directory)
+      local manifest_target
+      manifest_target=$(jq -r '.pi.extensions[0] // ""' "$out/package.json")
+      local pkg_rel="${manifest_target#./}"
+
+      # Copy to root
+      cp "$out/$rel" "$out/$filename"
+
+      # Rewrite relative imports so they still resolve after promotion:
+      #   ./foo      →  ./$subdir/foo
+      sed -i \
+        -e "s|from '\\./|from '$subdir/|g" \
+        -e 's|from "\./|from "'$subdir'/|g' \
+        -e "s|require('\\./|require('$subdir/|g" \
+        -e 's|require("\./|require("'$subdir'/|g' \
+        "$out/$filename"
+
+      #   ../foo     →  ./$parent/foo  (or ./foo if parent is root)
+      local parent
+      parent=$(dirname "$subdir")
+      if [ "$parent" = "." ]; then
+        sed -i \
+          -e "s|from '\\.\\./|from './|g" \
+          -e 's|from "\.\./|from "./|g' \
+          -e "s|require('\\.\\./|require('./|g" \
+          -e 's|require("\.\./|require("./|g' \
+          "$out/$filename"
+      else
+        sed -i \
+          -e "s|from '\\.\\./|from '$parent/|g" \
+          -e 's|from "\.\./|from "'$parent'/|g' \
+          -e "s|require('\\.\\./|require('$parent/|g" \
+          -e 's|require("\.\./|require("'$parent'/|g' \
+          "$out/$filename"
+      fi
+
+      # Remove the nested copy so Pi doesn't discover it separately
+      rm -f "$out/$rel"
+
+      # Update package.json to point at the now-root entry point
+      sed -i 's|"'"$rel"'"|"./'"$filename"'"|g' "$out/package.json"
+    }
+  '';
+
+in {
+
+  # -----------------------------------------------------------------------
+  # Build an extension from a GitHub repo (yarn or pnpm).
+  # -----------------------------------------------------------------------
   mkPiExt = { name, version, owner, repo, rev, srcHash, outputHash, pkgManager ? "yarn" }:
     let
       pm = if pkgManager == "pnpm" then pnpm else yarn;
@@ -15,7 +108,7 @@ let
         inherit owner repo rev;
         hash = srcHash;
       };
-      nativeBuildInputs = [ nodejs pm cacert ];
+      nativeBuildInputs = [ nodejs pm jq cacert ];
       dontFixup = true;
       outputHashMode = "recursive";
       outputHashAlgo = "sha256";
@@ -27,31 +120,15 @@ let
       installPhase = ''
         mkdir -p "$out"
         cp -r . "$out/"
-        rm -rf "$out/.npm" "$out/.cache" 2>/dev/null || true
-        # Promote nested entry point to root so Pi doesn't discover it as a separate extension.
-        if [ ! -f "$out/index.ts" ]; then
-          if [ -f "$out/src/extension/index.ts" ]; then
-            cp "$out/src/extension/index.ts" "$out/index.ts"
-            sed -i 's|from "./|from "./src/extension/|g' "$out/index.ts"
-            sed -i 's|from "../|from "./src/|g' "$out/index.ts"
-            rm "$out/src/extension/index.ts"
-          elif [ -f "$out/src/index.ts" ]; then
-            cp "$out/src/index.ts" "$out/index.ts"
-            sed -i 's|from "./|from "./src/|g' "$out/index.ts"
-            sed -i 's|from "../|from "./|g' "$out/index.ts"
-            rm "$out/src/index.ts"
-          elif [ -f "$out/extensions/index.ts" ]; then
-            cp "$out/extensions/index.ts" "$out/index.ts"
-            sed -i 's|from "./|from "./extensions/|g' "$out/index.ts"
-            sed -i 's|from "../|from "./|g' "$out/index.ts"
-            rm "$out/extensions/index.ts"
-            # Update package.json to point to the promoted root index.ts
-            sed -i 's|"\./extensions"|"\./index.ts"|g' "$out/package.json"
-          fi
-        fi
+        rm -rf "$out/.npm" "$out/.cache" "$out/node_modules/.cache" 2>/dev/null || true
+        ${promoteEntryPoint}
+        promote_entry_point "$out"
       '';
     };
 
+  # -----------------------------------------------------------------------
+  # Build an extension from an npm tarball.
+  # -----------------------------------------------------------------------
   mkNpmPiExt = { name, version, tarballUrl, tarballHash, outputHash }:
     stdenv.mkDerivation {
       pname = name;
@@ -60,7 +137,7 @@ let
         url = tarballUrl;
         hash = tarballHash;
       };
-      nativeBuildInputs = [ nodejs yarn cacert ];
+      nativeBuildInputs = [ nodejs yarn jq cacert ];
       dontFixup = true;
       outputHashMode = "recursive";
       outputHashAlgo = "sha256";
@@ -74,20 +151,15 @@ let
         mkdir -p "$out"
         cp -r . "$out/"
         rm -rf "$out/.npm" "$out/.cache" "$out/node_modules/.cache" 2>/dev/null || true
-        # Strip generated lockfile for deterministic output
         rm -f "$out/yarn.lock" 2>/dev/null || true
-        # Promote nested dist/ entry point to root so Pi doesn't discover
-        # the dist/ directory as a separate extension.
-        if [ ! -f "$out/index.js" ] && [ -f "$out/dist/index.js" ]; then
-          cp "$out/dist/index.js" "$out/index.js"
-          cp "$out/dist/index.d.ts" "$out/index.d.ts" 2>/dev/null || true
-          sed -i "s|from './|from './dist/|g" "$out/index.js"
-          sed -i "s|from '../|from './|g" "$out/index.js"
-          sed -i 's|"\./dist/index\.js"|"./index.js"|g' "$out/package.json"
-        fi
+        ${promoteEntryPoint}
+        promote_entry_point "$out"
       '';
     };
-in {
+
+  # -----------------------------------------------------------------------
+  # Installed extensions — add new ones here, never touch the builders above.
+  # -----------------------------------------------------------------------
   pi-web-access = mkPiExt {
     name = "pi-web-access";
     version = "0.10.7";
