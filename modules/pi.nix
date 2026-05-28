@@ -62,12 +62,90 @@ in
       };
     };
     # Pi global settings
+    # Pi theme — derived from Helix autumn-dark-custom
+    ".pi/agent/themes/autumn-dark.json" = {
+      force = true;
+      text = builtins.toJSON {
+        $schema = "https://raw.githubusercontent.com/earendil-works/pi/main/packages/coding-agent/src/modes/interactive/theme/theme-schema.json";
+        name = "autumn-dark";
+        vars = {
+          red = "#F05E48";
+          green = "#99be70";
+          yellow = "#FAD566";
+          yellow2 = "#ffff9f";
+          turquoise = "#86c1b9";
+          turquoise2 = "#72a59e";
+          text = "#F3F2CC";
+          comment = "#626C66";
+          bg0 = "#090909";
+          bg1 = "#0e0e0e";
+          bg2 = "#1a1a1a";
+          bg3 = "#404040";
+          brown = "#cfba8b";
+          fg6 = "#aaaaaa";
+          fg7 = "#c4c4c4";
+        };
+        colors = {
+          accent = "red";
+          border = "red";
+          borderAccent = "turquoise";
+          borderMuted = "comment";
+          success = "green";
+          error = "red";
+          warning = "yellow2";
+          muted = "comment";
+          dim = "#626C66";
+          text = "text";
+          thinkingText = "comment";
+          selectedBg = "bg3";
+          userMessageBg = "bg2";
+          userMessageText = "";
+          customMessageBg = "bg2";
+          customMessageText = "";
+          customMessageLabel = "yellow";
+          toolPendingBg = "bg2";
+          toolSuccessBg = "#1a2a1a";
+          toolErrorBg = "#2a1a1a";
+          toolTitle = "yellow";
+          toolOutput = "";
+          mdHeading = "yellow";
+          mdLink = "turquoise";
+          mdLinkUrl = "turquoise2";
+          mdCode = "green";
+          mdCodeBlock = "";
+          mdCodeBlockBorder = "bg3";
+          mdQuote = "brown";
+          mdQuoteBorder = "brown";
+          mdHr = "comment";
+          mdListBullet = "turquoise";
+          toolDiffAdded = "green";
+          toolDiffRemoved = "red";
+          toolDiffContext = "comment";
+          syntaxComment = "comment";
+          syntaxKeyword = "red";
+          syntaxFunction = "yellow";
+          syntaxVariable = "text";
+          syntaxString = "green";
+          syntaxNumber = "turquoise";
+          syntaxType = "text";
+          syntaxOperator = "text";
+          syntaxPunctuation = "text";
+          thinkingOff = "comment";
+          thinkingMinimal = "turquoise";
+          thinkingLow = "green";
+          thinkingMedium = "yellow";
+          thinkingHigh = "red";
+          thinkingXhigh = "#ff0000";
+          bashMode = "yellow";
+        };
+      };
+    };
     ".pi/agent/settings.json" = {
       force = true;
       text = builtins.toJSON {
         defaultProvider = "opencode-go";
         defaultModel = "deepseek-v4-flash";
-        theme = "dark";
+        theme = "autumn-dark";
         hideThinkingBlock = true;
         compaction = {
           enabled = true;
