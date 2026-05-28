@@ -1,4 +1,4 @@
-{ fetchFromGitHub, fetchurl, stdenv, nodejs, yarn, pnpm, jq, cacert, lib, python3 }:
+{ fetchFromGitHub, fetchurl, stdenv, nodejs, yarn, pnpm, jq, cacert, lib, python3, node-gyp, pkg-config, patchelf, nukeReferences }:
 
 let
   # ---------------------------------------------------------------------------
@@ -56,10 +56,10 @@ let
       # Rewrite relative imports so they still resolve after promotion:
       #   ./foo      →  ./$subdir/foo
       sed -i \
-        -e "s|from '\\./|from '$subdir/|g" \
-        -e 's|from "\./|from "'$subdir'/|g' \
-        -e "s|require('\\./|require('$subdir/|g" \
-        -e 's|require("\./|require("'$subdir'/|g' \
+        -e "s|from '\\./|from './$subdir/|g" \
+        -e 's|from "\./|from "./'$subdir'/|g' \
+        -e "s|require('\\./|require('./$subdir/|g" \
+        -e 's|require("\./|require("./'$subdir'/|g' \
         "$out/$filename"
 
       #   ../foo     →  ./$parent/foo  (or ./foo if parent is root)
@@ -74,10 +74,10 @@ let
           "$out/$filename"
       else
         sed -i \
-          -e "s|from '\\.\\./|from '$parent/|g" \
-          -e 's|from "\.\./|from "'$parent'/|g' \
-          -e "s|require('\\.\\./|require('$parent/|g" \
-          -e 's|require("\.\./|require("'$parent'/|g' \
+          -e "s|from '\\.\\./|from './$parent/|g" \
+          -e 's|from "\.\./|from "./'$parent'/|g' \
+          -e "s|require('\\.\\./|require('./$parent/|g" \
+          -e 's|require("\.\./|require("./'$parent'/|g' \
           "$out/$filename"
       fi
 
@@ -109,6 +109,10 @@ in rec {
         hash = srcHash;
       };
       nativeBuildInputs = [ nodejs pm jq cacert python3 ];
+      env = {
+        # Prevent node-gyp from rebuilding native addons in FOD builds.
+        npm_config_build_from_source = "false";
+      };
       dontFixup = true;
       outputHashMode = "recursive";
       outputHashAlgo = "sha256";
@@ -137,13 +141,16 @@ in rec {
         url = tarballUrl;
         hash = tarballHash;
       };
-      nativeBuildInputs = [ nodejs yarn jq cacert python3 ];
+      nativeBuildInputs = [ nodejs yarn jq cacert python3 node-gyp pkg-config patchelf nukeReferences ];
       dontFixup = true;
       outputHashMode = "recursive";
       outputHashAlgo = "sha256";
       inherit outputHash;
       sourceRoot = "package";
       buildPhase = ''
+        # node_modules/.bin is added to PATH so lifecycle scripts (prebuild-install,
+        # node-gyp) are found during yarn install.
+        export PATH="$PWD/node_modules/.bin:$PATH"
         NIX_SSL_CERT_FILE=${cacert}/etc/ssl/certs/ca-bundle.crt \
         HOME=$TMPDIR yarn install --prod --no-progress --non-interactive --ignore-engines 2>&1
       '';
@@ -152,6 +159,18 @@ in rec {
         cp -r . "$out/"
         rm -rf "$out/.npm" "$out/.cache" "$out/node_modules/.cache" 2>/dev/null || true
         rm -f "$out/yarn.lock" 2>/dev/null || true
+        # FODs must not reference store paths. Strip debug info and RPATH
+        # from compiled native addons (better-sqlite3 and similar) to remove
+        # embedded references to python3, gcc, etc.
+        find "$out" -type f -name "*.node" -exec patchelf --remove-rpath {} \; 2>/dev/null || true
+        find "$out" -type f -name "*.so" -exec patchelf --remove-rpath {} \; 2>/dev/null || true
+        find "$out" -type f -name "*.node" -exec strip --strip-unneeded {} \; 2>/dev/null || true
+        find "$out" -type f -name "*.so" -exec strip --strip-unneeded {} \; 2>/dev/null || true
+        # Remove any remaining textual store path references
+        find "$out" -type f -exec nuke-refs {} \; 2>/dev/null || true
+        # Clean up intermediate build artifacts from native addon builds
+        find "$out" -type d -name ".deps" -prune -exec rm -rf {} \; 2>/dev/null || true
+        find "$out" -name "*.o" -o -name "*.obj" -o -name "*.d" | xargs rm -f 2>/dev/null || true
         ${promoteEntryPoint}
         promote_entry_point "$out"
       '';
@@ -224,7 +243,7 @@ in rec {
     version = "0.7.13";
     tarballUrl = "https://registry.npmjs.org/pi-hermes-memory/-/pi-hermes-memory-0.7.13.tgz";
     tarballHash = "sha256-B9A1rjiUZRuZh+cyPe3cwchzc6Av72pEjFvzrawAr+E=";
-    outputHash = "sha256-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=";
+    outputHash = "sha256-vGGDWJ7xDhyGp+M5Zeie3VX4+N91oBCaoM5n6O+nZnU=";
   };
 
   piolium = mkNpmPiExt {
@@ -232,7 +251,7 @@ in rec {
     version = "0.0.8";
     tarballUrl = "https://registry.npmjs.org/@vigolium/piolium/-/piolium-0.0.8.tgz";
     tarballHash = "sha256-Gu5IHVDJDgMKiCKkeAoW6pgRM6BEDuqFKNfnvKwJeps=";
-    outputHash = "sha256-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=";
+    outputHash = "";
   };
 
   pi-markdown-preview = mkNpmPiExt {
@@ -240,7 +259,7 @@ in rec {
     version = "0.9.9";
     tarballUrl = "https://registry.npmjs.org/pi-markdown-preview/-/pi-markdown-preview-0.9.9.tgz";
     tarballHash = "sha256-y1TwhNvgDL6kF+oP+AmtjwNczkjMw69Xtajuie3mlkc=";
-    outputHash = "sha256-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=";
+    outputHash = "";
   };
 
   pi-intercom = mkNpmPiExt {

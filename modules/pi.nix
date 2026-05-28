@@ -16,6 +16,7 @@ let
     pi-permission-system
     pi-goal
     pi-intercom
+    pi-hermes-memory
   ];
   remoteHomeFiles = builtins.listToAttrs (map (ext:
     lib.nameValuePair ".pi/agent/extensions-nix/${ext.pname}" {
