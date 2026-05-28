@@ -19,6 +19,8 @@ let
     pi-lsp
     pi-llm-wiki
     pi-hermes-memory
+    piolium
+    pi-markdown-preview
   ];
   remoteHomeFiles = builtins.listToAttrs (map (ext:
     lib.nameValuePair ".pi/agent/extensions-nix/${ext.pname}" {
