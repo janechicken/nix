@@ -1,4 +1,4 @@
-{ fetchFromGitHub, fetchurl, stdenv, nodejs, yarn, pnpm, jq, cacert, lib }:
+{ fetchFromGitHub, fetchurl, stdenv, nodejs, yarn, pnpm, jq, cacert, lib, python3 }:
 
 let
   # ---------------------------------------------------------------------------
@@ -108,7 +108,7 @@ in rec {
         inherit owner repo rev;
         hash = srcHash;
       };
-      nativeBuildInputs = [ nodejs pm jq cacert ];
+      nativeBuildInputs = [ nodejs pm jq cacert python3 ];
       dontFixup = true;
       outputHashMode = "recursive";
       outputHashAlgo = "sha256";
@@ -137,7 +137,7 @@ in rec {
         url = tarballUrl;
         hash = tarballHash;
       };
-      nativeBuildInputs = [ nodejs yarn jq cacert ];
+      nativeBuildInputs = [ nodejs yarn jq cacert python3 ];
       dontFixup = true;
       outputHashMode = "recursive";
       outputHashAlgo = "sha256";
@@ -216,7 +216,7 @@ in rec {
     version = "0.0.33";
     tarballUrl = "https://registry.npmjs.org/@spences10/pi-lsp/-/pi-lsp-0.0.33.tgz";
     tarballHash = "sha512-gKGLlr5JSYC3xBHhzNJGgqCFU/34LsDWlN+Wiw7lJSienB9sydWxa5MkIW7ioV3ZK0aOoN7S+HueoNEYCSMZWA==";
-    outputHash = "sha256-a5YicKQvRNbMJ6m41C8qgQyNjII5ZsAVvPba/evaK8Q=";
+    outputHash = "sha256-3bRhGHMYoBlRbuDj6OOlCNRXrUg3gsoi3CXcVvV9O3E=";
   };
 
   pi-hermes-memory = mkNpmPiExt {
@@ -224,7 +224,7 @@ in rec {
     version = "0.7.13";
     tarballUrl = "https://registry.npmjs.org/pi-hermes-memory/-/pi-hermes-memory-0.7.13.tgz";
     tarballHash = "sha256-B9A1rjiUZRuZh+cyPe3cwchzc6Av72pEjFvzrawAr+E=";
-    outputHash = "sha256-RHl0KXE+EEz2JA+X8kuhnWMBIQJ2JoofiSjFPQC7lbM=";
+    outputHash = "sha256-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=";
   };
 
   piolium = mkNpmPiExt {
@@ -232,7 +232,7 @@ in rec {
     version = "0.0.8";
     tarballUrl = "https://registry.npmjs.org/@vigolium/piolium/-/piolium-0.0.8.tgz";
     tarballHash = "sha256-Gu5IHVDJDgMKiCKkeAoW6pgRM6BEDuqFKNfnvKwJeps=";
-    outputHash = "sha256-y53djTt9IeZGZe4v9j3G4FVDe/QMXmp7pIPbNyZg3Vc=";
+    outputHash = "sha256-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=";
   };
 
   pi-markdown-preview = mkNpmPiExt {
@@ -240,7 +240,7 @@ in rec {
     version = "0.9.9";
     tarballUrl = "https://registry.npmjs.org/pi-markdown-preview/-/pi-markdown-preview-0.9.9.tgz";
     tarballHash = "sha256-y1TwhNvgDL6kF+oP+AmtjwNczkjMw69Xtajuie3mlkc=";
-    outputHash = "sha256-0ulgk83qWY1AmVDFJqKiH/xXIaTwJ1iKTbGH5kqvjSk=";
+    outputHash = "sha256-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=";
   };
 
   pi-intercom = mkNpmPiExt {

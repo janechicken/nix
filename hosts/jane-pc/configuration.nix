@@ -72,6 +72,10 @@
   };
 
   nix.settings.experimental-features = [ "nix-command" "flakes" ];
+  nix.settings.extra-substituters = [ "https://pi.cachix.org" ];
+  nix.settings.extra-trusted-public-keys = [
+    "pi.cachix.org-1:lGeoGJaZ5ZDabuRzkcD5EBTNnDM4HJ1vqeOxlWk1Flk="
+  ];
 
   networking.hostName = "jane-pc"; # Define your hostname.
   # Pick only one of the below networking options.

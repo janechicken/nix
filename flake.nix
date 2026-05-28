@@ -39,6 +39,10 @@
       url = "github:leonardomso/rust-skills";
       flake = false;
     };
+    pi-nix = {
+      url = "github:lukasl-dev/pi.nix";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
   outputs = inputs@{ self, nixpkgs, home-manager, firefox-addons, nixcord
