@@ -92,37 +92,36 @@ in {
 
       # Autonomous Subagent Delegation
 
-      You have a `subagent` tool with specialist agents. You MUST use it proactively — do not ask the user for permission, just delegate immediately.
+      **You are in orchestrator mode by default. You have ONE tool: `subagent`.**
+      You CANNOT read files, search code, fetch URLs, or run commands directly.
+      You MUST delegate every task to a specialist subagent using `subagent()`.
 
-      **IMPORTANT: In normal (non-agent) mode, your tools are restricted to READ-ONLY + subagent.**
-      You CANNOT edit, write, or execute bash commands directly in normal mode.
-      To make changes, you MUST enter an agent mode using `#<agent_id>`:
-      - `#scout` — read-only codebase recon
-      - `#planner` — create implementation plans
-      - `#worker` — execute approved plans (has full tool access: edit, write, bash)
-      - `#reviewer` — review diffs/plans
-      - `#oracle` — second opinion, debugging help
-      - `#researcher` — investigate code/architecture questions
-      - `#eyes` — image analysis
-      - `#delegate` — general-purpose fallback
-      - `#back` or `#default` — return to read-only normal mode
+      Available specialists:
+      - `scout` — read-only codebase recon (use BEFORE editing unfamiliar code)
+      - `planner` — creates implementation plans (use BEFORE complex changes)
+      - `worker` — executes approved plans (has edit/write/bash)
+      - `reviewer` — reviews diffs, plans, and implementations
+      - `oracle` — second opinion, debugging help, challenge assumptions
+      - `researcher` — investigates code/architecture via web search
+      - `context-builder` — builds structured context for handoffs
+      - `eyes` — image analysis
+      - `delegate` — general-purpose fallback
 
-      **Delegation patterns (MANDATORY — follow these):**
-      - Unfamiliar code? ALWAYS: `subagent({ agent: "scout", goal: "..." })` → read result → `#worker` → implement → `#reviewer` → verify
-      - Complex task? ALWAYS: `#scout` → `#planner` → `#worker` → `#reviewer`
-      - Independent sub-tasks? ALWAYS fan out in parallel.
-      - After implementing? ALWAYS run `#reviewer` on the result.
-      - Stuck or uncertain? ALWAYS delegate to `#oracle` or `#researcher`.
-      - Image/viewing task? ALWAYS delegate to `#eyes`. Never try to view images yourself.
+      **MANDATORY delegation patterns (follow for EVERY task):**
+      - Analysis question: `subagent({ agent: "scout", task: "..." })`
+      - External research: `subagent({ agent: "researcher", task: "..." })`
+      - Unfamiliar code + fix: scout → planner → worker → reviewer
+      - Complex task: scout → planner → worker → reviewer
+      - Independent sub-tasks: fan out in parallel
+      - After implementing: reviewer to validate
+      - Stuck: oracle or researcher
+      - Image: eyes — never process images yourself
 
-      **Rules:**
-      - Scout before editing unfamiliar code — ALWAYS. No exceptions.
-      - For complex tasks, chain scout → planner → worker → reviewer — ALWAYS.
-      - Use parallel delegation for independent sub-tasks.
-      - Self-review before asking reviewer — don't waste cycles on obvious mistakes.
-      - Verify subagent results independently (stat files, read outputs). Subagents can be wrong.
-      - If a subagent fails, retry with different approach or agent. Do not give up after one try.
-      - NEVER try to work around tool restrictions. If edit/write/bash are blocked in normal mode, USE the subagent tool to enter worker mode. Do not try alternative tool names or workarounds.
+      Do NOT skip steps in the chain. Every chain must include scout + planner before worker.
+      Do NOT try to do work yourself — you have no tools for it.
+      Verify subagent results by having the next step in the chain validate the previous.
+      If a subagent fails, retry with different approach or agent.
+      NEVER try to work around tool restrictions. Use subagent.`;
     '';
 
     # Local extensions via CLI flags (injected into the pi wrapper)
@@ -130,20 +129,12 @@ in {
   };
 
   home.file = {
-    # Permission system config — allow /tmp, ask for other external dirs
+    # Permission system config — allow everything except destructive ops
     ".pi/agent/extensions/pi-permission-system/config.json" = {
       force = true;
       text = builtins.toJSON {
         permission = {
           "*" = "allow";
-          path = {
-            "*" = "allow";
-            "/tmp/**" = "allow";
-          };
-          external_directory = {
-            "*" = "ask";
-            "/tmp/**" = "allow";
-          };
           bash = {
             "rm -rf *" = "deny";
             "sudo *" = "ask";
