@@ -224,7 +224,7 @@ in rec {
     version = "0.7.13";
     tarballUrl = "https://registry.npmjs.org/pi-hermes-memory/-/pi-hermes-memory-0.7.13.tgz";
     tarballHash = "sha256-B9A1rjiUZRuZh+cyPe3cwchzc6Av72pEjFvzrawAr+E=";
-    outputHash = "sha256-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=";
+    outputHash = "sha256-RHl0KXE+EEz2JA+X8kuhnWMBIQJ2JoofiSjFPQC7lbM=";
   };
 
   piolium = mkNpmPiExt {
@@ -240,7 +240,7 @@ in rec {
     version = "0.9.9";
     tarballUrl = "https://registry.npmjs.org/pi-markdown-preview/-/pi-markdown-preview-0.9.9.tgz";
     tarballHash = "sha256-y1TwhNvgDL6kF+oP+AmtjwNczkjMw69Xtajuie3mlkc=";
-    outputHash = "sha256-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=";
+    outputHash = "sha256-5L00fxL0pyAp+XGb1milBC6e1w9SQCA9LCJx0I5g8Ek=";
   };
 
   pi-intercom = mkNpmPiExt {
