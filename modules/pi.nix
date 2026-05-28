@@ -66,7 +66,7 @@ in
     ".pi/agent/themes/autumn-dark.json" = {
       force = true;
       text = builtins.toJSON {
-        $schema = "https://raw.githubusercontent.com/earendil-works/pi/main/packages/coding-agent/src/modes/interactive/theme/theme-schema.json";
+        "$schema" = "https://raw.githubusercontent.com/earendil-works/pi/main/packages/coding-agent/src/modes/interactive/theme/theme-schema.json";
         name = "autumn-dark";
         vars = {
           red = "#F05E48";

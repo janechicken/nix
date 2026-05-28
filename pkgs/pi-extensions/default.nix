@@ -223,7 +223,7 @@ in rec {
     name = "pi-llm-wiki";
     version = "0.7.3";
     tarballUrl = "https://registry.npmjs.org/@zosmaai/pi-llm-wiki/-/pi-llm-wiki-0.7.3.tgz";
-    tarballHash = "sha256-ce572da6c859f1d3be2e3d0d0b783fca621d8c65e1d119276f6a5e5abacf8cbc";
+    tarballHash = "sha256-zlctpshZ8dO+Lj0NC3g/ymIdjGXh0Rknb2peWrrPjLw=";
     outputHash = "sha256-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=";
   };
 
@@ -240,7 +240,7 @@ in rec {
     version = "0.0.8";
     tarballUrl = "https://registry.npmjs.org/@vigolium/piolium/-/piolium-0.0.8.tgz";
     tarballHash = "sha256-Gu5IHVDJDgMKiCKkeAoW6pgRM6BEDuqFKNfnvKwJeps=";
-    outputHash = "sha256-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=";
+    outputHash = "sha256-y53djTt9IeZGZe4v9j3G4FVDe/QMXmp7pIPbNyZg3Vc=";
   };
 
   pi-markdown-preview = mkNpmPiExt {
@@ -256,6 +256,6 @@ in rec {
     version = "0.6.0";
     tarballUrl = "https://registry.npmjs.org/pi-intercom/-/pi-intercom-0.6.0.tgz";
     tarballHash = "sha256-dsDVKEZhqsQ3JIu2x6Moef6GMpa9FctTN1GyfK/ESBg=";
-    outputHash = "sha256-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=";
+    outputHash = "sha256-nwt6JjcMaMCZMP1WYuT5aZU6WqeUyIwuQdtOPJRQyTc=";
   };
 }
