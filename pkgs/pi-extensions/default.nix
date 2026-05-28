@@ -20,7 +20,7 @@ let
       esac
 
       # Strip leading ./
-      local rel="${entry#./}"
+      local rel="''${entry#./}"
 
       # Still at root (entry was "index.ts" without ./prefix)
       case "$rel" in
@@ -41,14 +41,14 @@ let
 
       local subdir
       subdir=$(dirname "$rel")
-      local ext="${rel##*.}"
+      local ext="''${rel##*.}"
       local filename="index.$ext"
 
       # Read the canonical entry point from package.json, not our guess
       # (handles the case where the manifest points at a directory)
       local manifest_target
       manifest_target=$(jq -r '.pi.extensions[0] // ""' "$out/package.json")
-      local pkg_rel="${manifest_target#./}"
+      local pkg_rel="''${manifest_target#./}"
 
       # Copy to root
       cp "$out/$rel" "$out/$filename"
@@ -89,7 +89,7 @@ let
     }
   '';
 
-in {
+in rec {
 
   # -----------------------------------------------------------------------
   # Build an extension from a GitHub repo (yarn or pnpm).
