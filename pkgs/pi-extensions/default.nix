@@ -235,7 +235,7 @@ in rec {
     version = "0.0.33";
     tarballUrl = "https://registry.npmjs.org/@spences10/pi-lsp/-/pi-lsp-0.0.33.tgz";
     tarballHash = "sha512-gKGLlr5JSYC3xBHhzNJGgqCFU/34LsDWlN+Wiw7lJSienB9sydWxa5MkIW7ioV3ZK0aOoN7S+HueoNEYCSMZWA==";
-    outputHash = "sha256-3bRhGHMYoBlRbuDj6OOlCNRXrUg3gsoi3CXcVvV9O3E=";
+    outputHash = "sha256-zrE1Wx5i89FQQFw5j7TIspsjxLKL75L/dq2S9NwUXp0=";
   };
 
   pi-hermes-memory = mkNpmPiExt {
