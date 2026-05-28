@@ -16,8 +16,7 @@ let
     pi-mcp-adapter
     pi-permission-system
     pi-goal
-    pi-lens
-    pi-llm-wiki
+    pi-lsp
     pi-hermes-memory
     piolium
     pi-markdown-preview

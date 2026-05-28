@@ -211,20 +211,12 @@ in rec {
     outputHash = "sha256-kg1Lgge59y5VVkxIRBRP9233xOfmqGW1paNLVgn01mU=";
   };
 
-  pi-lens = mkNpmPiExt {
-    name = "pi-lens";
-    version = "3.8.46";
-    tarballUrl = "https://registry.npmjs.org/pi-lens/-/pi-lens-3.8.46.tgz";
-    tarballHash = "sha256-6xsRGSUooJqt0ntMotni0eHctrWs4pkZI7hl/jSuDeo=";
-    outputHash = "sha256-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=";
-  };
-
-  pi-llm-wiki = mkNpmPiExt {
-    name = "pi-llm-wiki";
-    version = "0.7.3";
-    tarballUrl = "https://registry.npmjs.org/@zosmaai/pi-llm-wiki/-/pi-llm-wiki-0.7.3.tgz";
-    tarballHash = "sha256-zlctpshZ8dO+Lj0NC3g/ymIdjGXh0Rknb2peWrrPjLw=";
-    outputHash = "sha256-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=";
+  pi-lsp = mkNpmPiExt {
+    name = "pi-lsp";
+    version = "0.0.33";
+    tarballUrl = "https://registry.npmjs.org/@spences10/pi-lsp/-/pi-lsp-0.0.33.tgz";
+    tarballHash = "sha512-gKGLlr5JSYC3xBHhzNJGgqCFU/34LsDWlN+Wiw7lJSienB9sydWxa5MkIW7ioV3ZK0aOoN7S+HueoNEYCSMZWA==";
+    outputHash = "sha256-2dwCTDp9jXkg0aa2RiEL86JHPgqkwEnhsCnH3u7Pswo=";
   };
 
   pi-hermes-memory = mkNpmPiExt {
