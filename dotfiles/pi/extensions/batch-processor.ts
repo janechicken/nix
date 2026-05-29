@@ -30,8 +30,8 @@ import * as fs from "node:fs";
 import * as path from "node:path";
 
 const INDEX_PATH = path.join(
-  process.env.HOME || "/home/jane",
-  ".pi", "batch", "index.md"
+  process.cwd(),
+  "batch", "index.md"
 );
 
 export default function (pi: ExtensionAPI) {
