@@ -31,7 +31,7 @@ import * as path from "node:path";
 
 const INDEX_PATH = path.join(
   process.cwd(),
-  "batch", "index.md"
+  "index.md"
 );
 
 export default function (pi: ExtensionAPI) {
