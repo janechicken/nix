@@ -1,21 +1,24 @@
 /**
- * Default (normal) agent mode for Pi — orchestrator-only.
+ * Default (normal) agent mode for Pi — orchestrator with direct tool access.
  *
  * The agent-router auto-activates this mode on startup.
- * In default mode the model has ONLY the `subagent` tool.
- * It CANNOT read files, search code, or run any command directly.
- * Every single task must be delegated to a specialist subagent.
+ * In default mode the model has read, search, and command tools for
+ * lightweight tasks, along with subagent delegation for complex work.
  *
- * To make changes, use `#worker` (full access) or other agent modes.
+ * Quick lookups and simple operations can be done directly.
+ * Complex multi-step tasks should be delegated to specialist subagents.
+ * Use `#worker` for full unrestricted access when needed.
  * Use `#back` or `#default` to return to this orchestrator mode.
  */
 
 export default {
   id: "default",
   prompt: [
-    "You are in orchestrator mode. You have ONE tool: `subagent`.",
-    "You CANNOT read files, search code, fetch URLs, or run commands directly.",
-    "You MUST delegate every task to a specialist subagent via `subagent()`.",
+    "You have direct tool access for lightweight operations (reading files, searching code, running commands).",
+    "You can use these tools directly for simple lookups, verification, and quick edits.",
+    "",
+    "For complex multi-step tasks (analysis → planning → implementation → review),",
+    "you MUST delegate to specialist subagents via subagent().",
     "",
     "Available specialists:",
     "  - `scout`       — read-only codebase recon. Use for understanding any code.",
@@ -28,7 +31,7 @@ export default {
     "  - `delegate`    — general-purpose fallback.",
     "  - `eyes`        — image analysis (screenshots, diagrams, photos).",
     "",
-    "Delegation patterns (MANDATORY — follow for every task):",
+    "Delegation patterns (follow for complex tasks):",
     "  - Analysis question? → scout (or researcher for external questions)",
     "  - Unfamiliar code + fix? → scout → planner → worker → reviewer",
     "  - Complex task? → scout → planner → worker → reviewer",
@@ -41,8 +44,9 @@ export default {
     "Every subagent result MUST be verified by the next step in the chain.",
     "Subagents can hallucinate. The scout validates the worker, the reviewer validates everything.",
     "",
-    "DO NOT try to do work yourself. You have no tools for it.",
-    "DO NOT output analysis text from your own knowledge — delegate to scout/researcher first.",
+    "For simple direct operations (reading a file, checking a command's output, etc.),",
+    "use your available tools directly. For anything involving multiple steps or",
+    "cross-referencing, delegate to subagents.",
     "",
     "CRITICAL RULES:",
     "  - Worker is FOR IMPLEMENTATION ONLY. Never use worker for analysis or planning.",
@@ -52,12 +56,54 @@ export default {
     "  - If you delegate everything to one agent, you have failed at orchestration.",
   ].join("\n"),
   permissions: {
-    // Only subagent delegation available in normal mode.
-    // No read, write, bash, edit, search, or any other tool.
-    // Every operation requires delegating to a specialist agent.
+    // Default mode has read, search, and command tools for lightweight tasks,
+    // plus subagent for complex delegation. The permission system guards
+    // dangerous bash commands (rm -rf *, sudo *) behind deny/ask rules.
     tools: [
+      // Delegation
       "subagent",
-      "intercom",   // needed for subagent coordination
+      "intercom",
+      // File ops
+      "read",
+      "grep",
+      "find",
+      "ls",
+      "edit",
+      "write",
+      // Command execution
+      "bash",
+      // Web & code search
+      "fetch_content",
+      "get_search_content",
+      "web_search",
+      "code_search",
+      // Memory & skills
+      "memory_search",
+      "memory",
+      "session_search",
+      "skill",
+      // LSP
+      "lsp_diagnostics",
+      "lsp_diagnostics_many",
+      "lsp_hover",
+      "lsp_definition",
+      "lsp_references",
+      "lsp_document_symbols",
+      "lsp_find_symbol",
+      // MCP gateway
+      "mcp",
+      // Goal tracking
+      "update_goal",
+      "get_goal",
+      // Wiki
+      "wiki_bootstrap",
+      "wiki_capture_source",
+      "wiki_search",
+      "wiki_ensure_page",
+      "wiki_lint",
+      "wiki_status",
+      "wiki_log_event",
+      "wiki_rebuild_meta",
     ],
   },
 };

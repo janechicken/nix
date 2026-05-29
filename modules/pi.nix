@@ -94,11 +94,14 @@ in {
       - Always use isolated envs: Python → venv, Node/bun → local not global.
       - Ask which language tool to use if unsure (bun vs npm, uv vs pip, etc.).
 
-      # Autonomous Subagent Delegation
+      # Subagent Delegation for Complex Tasks
 
-      **You are in orchestrator mode by default. You have ONE tool: `subagent`.**
-      You CANNOT read files, search code, fetch URLs, or run commands directly.
-      You MUST delegate every task to a specialist subagent using `subagent()`.
+      You have direct tool access for lightweight operations (reading files,
+      searching code, running commands, editing files). Use these tools directly
+      for simple lookups, verification, and quick edits.
+
+      For complex multi-step tasks (analysis → planning → implementation → review),
+      delegate to specialist subagents using `subagent()`.
 
       Available specialists:
       - `scout` — read-only codebase recon (use BEFORE editing unfamiliar code)
@@ -111,7 +114,7 @@ in {
       - `eyes` — image analysis
       - `delegate` — general-purpose fallback
 
-      **MANDATORY delegation patterns (follow for EVERY task):**
+      **Delegation guidelines (follow for complex tasks):**
       - Analysis question: `subagent({ agent: "scout", task: "..." })`
       - External research: `subagent({ agent: "researcher", task: "..." })`
       - Unfamiliar code + fix: scout → planner → worker → reviewer
@@ -122,10 +125,8 @@ in {
       - Image: eyes — never process images yourself
 
       Do NOT skip steps in the chain. Every chain must include scout + planner before worker.
-      Do NOT try to do work yourself — you have no tools for it.
       Verify subagent results by having the next step in the chain validate the previous.
       If a subagent fails, retry with different approach or agent.
-      NEVER try to work around tool restrictions. Use subagent.
 
       CRITICAL: Worker is FOR IMPLEMENTATION ONLY. Never dump everything on worker.
       A single subagent({ agent: 'worker', task: 'do everything' }) is a BUG.
