@@ -84,6 +84,13 @@ let
       # Remove the nested copy so Pi doesn't discover it separately
       rm -f "$out/$rel"
 
+      # Relocate resources/ from the promoted subdirectory to root, so bundled
+      # assets like skills remain discoverable at the expected paths.
+      if [ -d "$out/$subdir/resources" ]; then
+        cp -r "$out/$subdir/resources" "$out/"
+        rm -rf "$out/$subdir/resources"
+      fi
+
       # Update package.json to point at the now-root entry point
       sed -i 's|"'"$rel"'"|"./'"$filename"'"|g' "$out/package.json"
     }
@@ -252,6 +259,14 @@ in rec {
     tarballUrl = "https://registry.npmjs.org/pi-markdown-preview/-/pi-markdown-preview-0.9.9.tgz";
     tarballHash = "sha256-y1TwhNvgDL6kF+oP+AmtjwNczkjMw69Xtajuie3mlkc=";
     outputHash = "sha256-0ulgk83qWY1AmVDFJqKiH/xXIaTwJ1iKTbGH5kqvjSk=";
+  };
+
+  pi-llm-wiki = mkNpmPiExt {
+    name = "pi-llm-wiki";
+    version = "0.1.0";
+    tarballUrl = "https://registry.npmjs.org/pi-llm-wiki/-/pi-llm-wiki-0.1.0.tgz";
+    tarballHash = "sha256-8jx9eJ73l0SigXecP+zWKEt6nmjBpbCwgWYwJ+Q9D/o=";
+    outputHash = "sha256-R9SP4bzHj6CeCoJj1hX7RjlP9o7Sb39B3x2JlPIGj8g=";
   };
 
   pi-intercom = mkNpmPiExt {
