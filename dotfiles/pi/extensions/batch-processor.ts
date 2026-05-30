@@ -7,13 +7,13 @@ const INDEX_PATH = path.join(process.cwd(), "index.md");
 
 export default function (pi: ExtensionAPI) {
   pi.registerCommand("batch", {
-    description: "Batch process challenges — scrape, index, list, act",
+    description: "Batch process items — scrape, index, list, act",
     getArgumentCompletions: (prefix: string): AutocompleteItem[] | null => {
       const subcommands = [
-        { value: "scrape ", label: "scrape <url> [prompt] — Scrape challenges from a URL" },
-        { value: "index ", label: "index <dir> [prompt] — Index challenges from a local directory" },
-        { value: "list", label: "list — List indexed challenges" },
-        { value: "act", label: "act — Process all indexed challenges" },
+        { value: "scrape ", label: "scrape <url> [prompt] — Scrape items from a URL" },
+        { value: "index ", label: "index <dir> [prompt] — Index items from a local directory" },
+        { value: "list", label: "list — List indexed items" },
+        { value: "act", label: "act — Process all indexed items" },
       ];
       const filtered = subcommands.filter((s) => s.value.startsWith(prefix));
       return filtered.length > 0 ? filtered : null;
@@ -33,16 +33,16 @@ export default function (pi: ExtensionAPI) {
         case "scrape": {
           const spaceIdx = subargs.indexOf(" ");
           const url = spaceIdx === -1 ? subargs : subargs.slice(0, spaceIdx);
-          const prompt = spaceIdx === -1 ? "solve each challenge" : subargs.slice(spaceIdx + 1).trim();
+          const prompt = spaceIdx === -1 ? "process each item" : subargs.slice(spaceIdx + 1).trim();
           if (!url) {
             ctx.ui.notify("Usage: /batch scrape <url> [prompt]", "error");
             return;
           }
           text = [
-            `Scrape challenges from ${url}, then create an index markdown file at ${INDEX_PATH}.`,
+            `Scrape items from ${url}, then create an index markdown file at ${INDEX_PATH}.`,
             ``,
             `1. Access the page using available tools (fetch_content, MCP, or browser).`,
-            `2. For EACH challenge found, write an item section.`,
+            `2. For EACH item found, write an item section.`,
             `3. The index file format:`,
             ``,
             "```markdown",
@@ -50,18 +50,18 @@ export default function (pi: ExtensionAPI) {
             `Source: ${url}`,
             `Goal: ${prompt}`,
             "",
-            "## Item 1: <challenge name>",
+            "## Item 1: <item name>",
             "- Category: <category>",
             "- Difficulty: <difficulty>",
             "- Files: <relevant files or URLs>",
             "- Description: <brief description>",
-            "- Task: <expanded task for this specific challenge>",
+            "- Task: <expanded task for this specific item>",
             "```",
             ``,
-            `4. For the Task field, do NOT copy the goal verbatim. Read the challenge,`,
+            `4. For the Task field, do NOT copy the goal verbatim. Read the item,`,
             `   understand what it requires, and write a concrete, actionable task that`,
             `   expands on the prompt. Include specific techniques, tools, or approaches`,
-            `   relevant to that challenge type.`,
+            `   relevant to that item.`,
             ``,
             `5. Save to ${INDEX_PATH} and report the item count.`,
           ].join("\n");
@@ -70,7 +70,7 @@ export default function (pi: ExtensionAPI) {
         case "index": {
           const spaceIdx = subargs.indexOf(" ");
           const dir = spaceIdx === -1 ? subargs : subargs.slice(0, spaceIdx);
-          const prompt = spaceIdx === -1 ? "solve each challenge" : subargs.slice(spaceIdx + 1).trim();
+          const prompt = spaceIdx === -1 ? "process each item" : subargs.slice(spaceIdx + 1).trim();
           if (!dir) {
             ctx.ui.notify("Usage: /batch index <dir> [prompt]", "error");
             return;
@@ -82,8 +82,8 @@ export default function (pi: ExtensionAPI) {
           text = [
             `Index files in ${dir} into a batch markdown file at ${INDEX_PATH}.`,
             ``,
-            `1. Read the files in ${dir} and understand each challenge.`,
-            `2. For EACH challenge found, write an item section.`,
+            `1. Read the files in ${dir} and understand each item.`,
+            `2. For EACH item found, write an item section.`,
             `3. The index file format:`,
             ``,
             "```markdown",
@@ -91,17 +91,17 @@ export default function (pi: ExtensionAPI) {
             `Source: ${dir}`,
             `Goal: ${prompt}`,
             "",
-            "## Item 1: <challenge name>",
+            "## Item 1: <item name>",
             "- Category: <category if detectable>",
             "- Difficulty: <if detectable>",
             "- Files: <relevant file paths>",
             "- Description: <brief description>",
-            "- Task: <expanded task specific to this challenge>",
+            "- Task: <expanded task specific to this item>",
             "```",
             ``,
             `4. For the Task field, do NOT copy the goal verbatim. Read and understand`,
             `   each file, then write a concrete, actionable task. Include specific`,
-            `   techniques, tools, or approaches relevant to that challenge.`,
+            `   techniques, tools, or approaches relevant to that item.`,
             ``,
             `5. Save to ${INDEX_PATH} and report the item count.`,
           ].join("\n");
