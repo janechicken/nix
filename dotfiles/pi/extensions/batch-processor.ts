@@ -138,44 +138,13 @@ export default function (pi: ExtensionAPI) {
             return;
           }
           const content = fs.readFileSync(INDEX_PATH, "utf-8");
-          const sections = content.split(/\n(?=## Item \d+: )/);
-          const items: Array<{ name: string; task: string }> = [];
-
-          for (const section of sections) {
-            if (!section.startsWith("## Item")) continue;
-            const nameMatch = section.match(/## Item \d+: (.+)/);
-            const taskMatch = section.match(/- Task: (.+)/s);
-            if (nameMatch) {
-              items.push({
-                name: nameMatch[1].trim(),
-                task: taskMatch?.[1]?.trim() || "",
-              });
-            }
-          }
-
-          if (items.length === 0) {
-            ctx.ui.notify("No parseable items in the index file.", "error");
-            return;
-          }
-
-          const goalLine = content.match(/Goal: .+/)?.[0] || "";
-
-          const taskList = items.map((item, i) => {
-            return `  ${i + 1}. ${item.name}
-     scout: Read files and understand "${item.name}". ${item.task ? `Task: ${item.task}` : ""}
-     planner: Based on scout output, create a step-by-step plan.
-     worker: Execute the plan. Solve it. Verify.
-     reviewer: Validate correctness and completeness.`;
-          }).join("\n\n");
 
           text = [
-            `Loaded ${items.length} items from ${INDEX_PATH}.`,
-            goalLine,
+            `Read ${INDEX_PATH} and process ALL items in it in parallel.`,
             ``,
-            `Process ALL items in parallel. For EACH item, chain:`,
-            `  scout → planner → worker → reviewer`,
+            `For EACH item, chain: scout → planner → worker → reviewer.`,
             ``,
-            `Use subagent with a parallel chain:`,
+            `Use subagent with a parallel chain, one task per item:`,
             `  subagent({`,
             `    tasks: [`,
             `      { chain: [{agent:"scout",task:"..."},{agent:"planner",task:"{previous}"},{agent:"worker",task:"{previous}"},{agent:"reviewer",task:"{previous}"}] },`,
@@ -184,8 +153,9 @@ export default function (pi: ExtensionAPI) {
             `    concurrency: 3`,
             `  })`,
             ``,
-            `Items:`,
-            taskList,
+            `Index content:`,
+            ``,
+            content,
             ``,
             `Track success/fail per item. Retry failed items once with oracle before giving up.`,
             `Report which items succeeded and which need manual review.`,
