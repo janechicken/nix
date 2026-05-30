@@ -140,14 +140,15 @@ export default function (pi: ExtensionAPI) {
           const content = fs.readFileSync(INDEX_PATH, "utf-8");
 
           text = [
-            `Read ${INDEX_PATH} and process ALL items in it in parallel.`,
+            `Read ${INDEX_PATH} and process ALL items in parallel.`,
             ``,
-            `For EACH item, chain: scout → planner → worker → reviewer.`,
+            `For EACH item, use ONE agent with full tool access to solve it.`,
+            `No chain, no separate scout/planner/reviewer — just one capable agent per item.`,
             ``,
-            `Use subagent with a parallel chain, one task per item:`,
+            `Use subagent with parallel tasks, one task per item:`,
             `  subagent({`,
             `    tasks: [`,
-            `      { chain: [{agent:"scout",task:"..."},{agent:"planner",task:"{previous}"},{agent:"worker",task:"{previous}"},{agent:"reviewer",task:"{previous}"}] },`,
+            `      { agent: "general", task: "Solve this: [item name]. [task description]" },`,
             `      ...one per item...,`,
             `    ],`,
             `    concurrency: 3`,
@@ -157,7 +158,7 @@ export default function (pi: ExtensionAPI) {
             ``,
             content,
             ``,
-            `Track success/fail per item. Retry failed items once with oracle before giving up.`,
+            `Track success/fail per item. Retry failed items once before giving up.`,
             `Report which items succeeded and which need manual review.`,
           ].join("\n");
           break;
