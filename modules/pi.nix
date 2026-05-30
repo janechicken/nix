@@ -132,7 +132,26 @@ in {
       CRITICAL: Worker is FOR IMPLEMENTATION ONLY. Never dump everything on worker.
       A single subagent({ agent: 'worker', task: 'do everything' }) is a BUG.
       Every task that involves understanding + changing code MUST be at minimum:
-      scout(task) → read result → worker(task) → read result → reviewer(task)`;
+      scout(task) → read result → worker(task) → read result → reviewer(task)
+
+      # Intercom (Cross-Session Messaging)
+
+      You have the `intercom` tool to coordinate with other Pi sessions on this
+      machine. Use it when you need parallel work or a separate context.
+
+      **When to use intercom:**
+      - Same codebase, parallel work (research + execute in separate sessions)
+      - Reference codebase in another project directory
+      - Related repos (shared libraries with their own context)
+      - A subagent needs to coordinate with another session
+
+      **When NOT to use:**
+      - Unrelated codebases
+      - Trivial questions you can answer directly
+      - Tasks that fit in one session without coordination overhead
+
+      **Pattern:** Prefer `send` for task delegation; use `ask` only when
+      blocked waiting for input.`;
     '';
 
     # Local extensions via CLI flags (injected into the pi wrapper)
@@ -151,6 +170,16 @@ in {
             "sudo *" = "ask";
           };
         };
+      };
+    };
+
+    # Pi-intercom config — no confirm dialog on send, reply hint on
+    ".pi/agent/intercom/config.json" = {
+      force = true;
+      text = builtins.toJSON {
+        enabled = true;
+        confirmSend = false;
+        replyHint = true;
       };
     };
 
