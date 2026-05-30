@@ -1,65 +1,108 @@
 /**
- * Default (normal) agent mode for Pi — pure orchestrator, no direct tools.
+ * Default (normal) agent mode for Pi — orchestrator with full tool access.
  *
  * The agent-router auto-activates this mode on startup.
- * The model has ONLY subagent + intercom — zero direct file, search, bash,
- * or execution tools. EVERY interaction with the codebase or external world
- * MUST go through a specialist subagent (scout, researcher, worker, etc.).
+ * You have full tools (read, grep, bash, edit, web_search, etc.) and can
+ * use them directly for straightforward work. For reasoning-heavy or
+ * complex multi-step tasks, delegate to specialist subagents.
  *
- * This guarantees the model delegates research/understanding tasks to
- * subagents instead of trying to do everything directly.
- * Use `#worker` for full unrestricted access when needed.
+ * Use `#worker` for focused implementation mode when needed.
  * Use `#back` or `#default` to return to this orchestrator mode.
  */
 
 export default {
   id: "default",
   prompt: [
-    "You are the orchestrator. You have NO direct file, search, or execution tools.",
-    "Every single task — reading code, searching the web, editing files, running commands —",
-    "MUST be delegated to a specialist subagent via subagent().",
+    "You have direct tool access for lightweight operations (reading files, searching code, running commands).",
+    "Use your tools directly for simple work. For heavier tasks, delegate to subagents.",
     "",
-    "Available specialists:",
-    "  - `scout`       — read-only codebase recon. Use for ANY code understanding.",
+    "Available specialists via subagent():",
+    "  - `scout`       — read-only codebase recon. Use for understanding unfamiliar code.",
     "  - `planner`     — creates implementation plans with file paths and acceptance criteria.",
-    "  - `worker`      — executes approved plans (has edit/write/bash access). FOR IMPLEMENTATION ONLY.",
+    "  - `worker`      — executes approved plans (full edit/write/bash). FOR IMPLEMENTATION ONLY.",
     "  - `reviewer`    — reviews diffs, plans, and implementations for correctness.",
     "  - `oracle`      — second opinion, debugging help, challenge assumptions.",
-    "  - `researcher`  — investigates code/architecture questions via web search.",
+    "  - `researcher`  — external research via web search.",
     "  - `context-builder` — builds structured context for handoffs between agents.",
     "  - `delegate`    — general-purpose fallback.",
-    "  - `eyes`        — image analysis (screenshots, diagrams, photos).",
+    "  - `eyes`        — image analysis.",
     "",
-    "Delegation patterns (follow for ALL tasks):",
-    "  - Understanding code? → scout",
-    "  - External question? → researcher",
-    "  - Fix something? → scout → planner → worker → review",
+    "# Delegation Decision Rules",
+    "",
+    "Delegate to subagent() WHEN:",
+    "  - Reasoning-heavy subtask (debugging root cause, code review, research synthesis)",
+    "  - Task would flood your context with intermediate data",
+    "  - Need to understand unfamiliar code → scout",
+    "  - Need external research (protocols, docs, APIs) → researcher",
+    "  - Parallel independent workstreams → tasks: []",
+    "  - Multi-step change across 3+ files → scout → planner → worker → reviewer",
+    "  - Touching critical infra (auth, config, secrets) → scout → planner → worker → reviewer",
+    "",
+    "Work directly WHEN:",
+    "  - Single tool call (grep, read a known file, quick ls)",
+    "  - Mechanical multi-step with no reasoning needed (batch rename, format files)",
+    "  - You already have the relevant context in memory",
+    "  - Trivial one-line fix you fully understand",
+    "",
+    "Chain patterns:",
+    "  - Fix something unfamiliar? → scout → planner → worker → review",
     "  - Complex task? → scout → planner → worker → review",
-    "  - Independent items? → Fan out in parallel via tasks: []",
+    "  - Independent items? → fan out in parallel via tasks: []",
     "  - Stuck? → oracle or researcher",
     "  - Image? → eyes — never view images yourself",
     "",
-    "The chain MUST include all steps. Do NOT skip planner or review.",
-    "Every subagent result MUST be verified by the next step in the chain.",
-    "Subagents can hallucinate. The scout validates the worker, the reviewer validates everything.",
-    "",
-    "CRITICAL: You have NO tools yourself. You CANNOT read files, search the web,",
-    "or run commands directly. Every interaction with the codebase or external",
-    "world requires a subagent call.",
-    "",
-    "  - A single subagent({ agent: 'worker', task: 'do everything' }) call is a BUG.",
-    "  - Every task that involves both understanding and changing code MUST be at least:",
-    "    scout(task) → planner(task) → worker(task) → reviewer(task)",
-    "  - If you delegate everything to one agent, you have failed at orchestration.",
+    "A single subagent({ agent: 'worker', task: 'do everything' }) call is a BUG.",
+    "If you delegate everything to one agent without using scout/planner/reviewer,",
+    "you have failed at orchestration.",
   ].join("\n"),
   permissions: {
-    // ONLY subagent + intercom — no direct tools whatsoever.
-    // Forces the model to delegate every task to a specialist subagent.
+    // Full tools — the model decides when to delegate based on concrete
+    // triggers in the prompt, not through tool restriction.
     tools: [
-      // Delegation ONLY — no direct file, search, bash, edit, or tool tools.
-      // The model MUST use subagents for every interaction with the codebase.
+      // Delegation
       "subagent",
       "intercom",
+      // File ops
+      "read",
+      "grep",
+      "find",
+      "ls",
+      "edit",
+      "write",
+      // Command execution
+      "bash",
+      // Web & code search
+      "fetch_content",
+      "get_search_content",
+      "web_search",
+      "code_search",
+      // Memory & skills
+      "memory_search",
+      "memory",
+      "session_search",
+      "skill",
+      // LSP
+      "lsp_diagnostics",
+      "lsp_diagnostics_many",
+      "lsp_hover",
+      "lsp_definition",
+      "lsp_references",
+      "lsp_document_symbols",
+      "lsp_find_symbol",
+      // MCP gateway
+      "mcp",
+      // Goal tracking
+      "update_goal",
+      "get_goal",
+      // Wiki
+      "wiki_bootstrap",
+      "wiki_capture_source",
+      "wiki_search",
+      "wiki_ensure_page",
+      "wiki_lint",
+      "wiki_status",
+      "wiki_log_event",
+      "wiki_rebuild_meta",
     ],
   },
 };
