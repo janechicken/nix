@@ -140,7 +140,7 @@ in rec {
   # -----------------------------------------------------------------------
   # Build an extension from an npm tarball.
   # -----------------------------------------------------------------------
-  mkNpmPiExt = { name, version, tarballUrl, tarballHash, outputHash }:
+  mkNpmPiExt = { name, version, tarballUrl, tarballHash, outputHash, extraInstallCommands ? "" }:
     stdenv.mkDerivation {
       pname = name;
       inherit version;
@@ -180,6 +180,7 @@ in rec {
         find "$out" -name "*.o" -o -name "*.obj" -o -name "*.d" | xargs rm -f 2>/dev/null || true
         ${promoteEntryPoint}
         promote_entry_point "$out"
+        ${extraInstallCommands}
       '';
     };
 
@@ -275,5 +276,16 @@ in rec {
     tarballUrl = "https://registry.npmjs.org/pi-intercom/-/pi-intercom-0.6.0.tgz";
     tarballHash = "sha256-dsDVKEZhqsQ3JIu2x6Moef6GMpa9FctTN1GyfK/ESBg=";
     outputHash = "sha256-nwt6JjcMaMCZMP1WYuT5aZU6WqeUyIwuQdtOPJRQyTc=";
+  };
+
+  pi-timestamps = mkNpmPiExt {
+    name = "pi-timestamps";
+    version = "0.1.0";
+    tarballUrl = "https://registry.npmjs.org/pi-timestamps/-/pi-timestamps-0.1.0.tgz";
+    tarballHash = "sha256-ZKKKEBvLSij2vHJ9zJa4CwUkQYjYUMXh3hiPhl7sKlI=";
+    outputHash = "sha256-s6KGE5IUrN+oHss5wLTr73hZW1atnbIJ/TPCyHKIKdg=";
+    extraInstallCommands = ''
+      echo 'export { default } from "./timestamps.ts";' > "$out/extensions/index.ts"
+    '';
   };
 }

@@ -20,6 +20,7 @@ let
     pi-markdown-preview
     pi-lsp
     pi-llm-wiki
+    pi-timestamps
   ];
   remoteHomeFiles = builtins.listToAttrs (map (ext:
     lib.nameValuePair ".pi/agent/extensions-nix/${ext.pname}" {
