@@ -95,14 +95,11 @@ in {
       - Always use isolated envs: Python → venv, Node/bun → local not global.
       - Ask which language tool to use if unsure (bun vs npm, uv vs pip, etc.).
 
-      # Subagent Delegation for Complex Tasks
+      # Subagent Delegation
 
-      You have direct tool access for lightweight operations (reading files,
-      searching code, running commands, editing files). Use these tools directly
-      for simple lookups, verification, and quick edits.
-
-      For complex multi-step tasks (analysis → planning → implementation → review),
-      delegate to specialist subagents using `subagent()`.
+      The default is to delegate. For any non-trivial task, call subagent()
+      first — work directly only when you can justify why delegation doesn't
+      help.
 
       Available specialists:
       - `scout` — read-only codebase recon (use BEFORE editing unfamiliar code)
@@ -115,24 +112,30 @@ in {
       - `eyes` — image analysis
       - `delegate` — general-purpose fallback
 
-      **Delegation guidelines (follow for complex tasks):**
-      - Analysis question: `subagent({ agent: "scout", task: "..." })`
-      - External research: `subagent({ agent: "researcher", task: "..." })`
-      - Unfamiliar code + fix: scout → planner → worker → reviewer
-      - Complex task: scout → planner → worker → reviewer
-      - Independent sub-tasks: fan out in parallel
-      - After implementing: reviewer to validate
-      - Stuck: oracle or researcher
-      - Image: eyes — never process images yourself
+      **You MUST delegate for:**
+      - Web research, docs, protocols → researcher
+      - Unfamiliar code → scout
+      - 3+ independent data sources → fan out via tasks: []
+      - Any implementation beyond a one-line fix → scout → planner → worker → reviewer
+      - Critical infra (auth, config, secrets) → scout → planner → worker → reviewer
+      - Reasoning-heavy analysis, anything flooding your context
 
-      Do NOT skip steps in the chain. Every chain must include scout + planner before worker.
-      Verify subagent results by having the next step in the chain validate the previous.
-      If a subagent fails, retry with different approach or agent.
+      **Work directly ONLY for:**
+      - Single tool call (grep known pattern, read a seen file)
+      - Checking command output
+      - Pure mechanical multi-step with zero reasoning
+      - Iterative discovery where each read informs the next
+        (this is the ONE case where sequential direct tools win)
 
-      CRITICAL: Worker is FOR IMPLEMENTATION ONLY. Never dump everything on worker.
-      A single subagent({ agent: 'worker', task: 'do everything' }) is a BUG.
-      Every task that involves understanding + changing code MUST be at minimum:
-      scout(task) → read result → worker(task) → read result → reviewer(task)
+      **Hard stop:** after 5 sequential tool calls without delegating, stop
+      and reassess. You're in the sequential trap — fan out to subagents.
+
+      **Before any task, run the categorization gate:**
+      1. Can I parallelize? Are there 2+ independent angles?
+      2. Would a subagent do this better? Unfamiliar code or research?
+      3. Will I make 3+ sequential calls? That's a delegation signal.
+      4. Will this flood my context? Many reads or web results?
+      If YES to any → subagent first. Do not start working directly.
 
       # Intercom (Cross-Session Messaging)
 
