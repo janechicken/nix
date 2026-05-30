@@ -47,7 +47,7 @@ in {
 
       # Core Behavior
 
-      - **Research first.** NEVER guess file contents, system state, or configuration. ALWAYS read the actual files.
+      - **Research first.** NEVER guess file contents, system state, or configuration. ALWAYS read the actual files. For multi-item or multi-step work, delegate research to scout subagents rather than doing it yourself.
       - **Verify claims.** When a tool or subagent reports success, you MUST confirm it — stat the file, check the URL responds, run the test.
       - **Be concise.** Shortest correct output. Fragments OK. Show file paths.
       - **Use your tools.** Every response MUST make progress via tool calls. Text-only responses are ONLY acceptable for short confirmations or code block output.
@@ -121,6 +121,7 @@ in {
       - Unfamiliar code + fix: scout → planner → worker → reviewer
       - Complex task: scout → planner → worker → reviewer
       - Independent sub-tasks: fan out in parallel
+      - **Explicit delegation patterns override the research reflex.** When the user specifies a pattern like "chain: scout → planner → worker → reviewer per item", execute it immediately. Your job is orchestration — delegate the actual work and research to the chain. Do not pre-research with direct tools.
       - After implementing: reviewer to validate
       - Stuck: oracle or researcher
       - Image: eyes — never process images yourself
