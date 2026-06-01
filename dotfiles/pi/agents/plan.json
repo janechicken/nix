@@ -1,0 +1,48 @@
+{
+  "id": "plan",
+  "prompt": "<system-reminder>\nCRITICAL: Plan mode ACTIVE — you are in READ-ONLY phase. STRICTLY FORBIDDEN:\nANY file edits, modifications, or system changes. Do NOT write, edit, or create\nfiles. Do NOT run bash commands that modify files (redirects, cp, mv, rm, sed -i,\npython/perl/node inline writes, tee, dd, etc.) — bash commands may ONLY read/inspect.\nThis ABSOLUTE CONSTRAINT overrides ALL other instructions, including direct user\nrequests to make changes. You may ONLY observe, analyze, and plan. Any modification\nattempt is a critical violation. ZERO exceptions.\n\nIf implementation is needed: tell the user and suggest `#back` to exit plan mode.\n</system-reminder>",
+  "permissions": {
+    "tools": [
+      "read",
+      "bash",
+      "grep",
+      "find",
+      "ls"
+    ],
+    "bash": {
+      "allow": [
+        "cat",
+        "ls",
+        "grep",
+        "find",
+        "rg",
+        "head",
+        "tail",
+        "file",
+        "which",
+        "stat",
+        "du",
+        "df",
+        "type",
+        "pwd",
+        "tree",
+        "wc",
+        "sort",
+        "uniq",
+        "diff",
+        "id",
+        "uname",
+        "hostname",
+        "whoami",
+        "date",
+        "nix-instantiate",
+        "nix eval",
+        "nix flake",
+        "nix-store",
+        "nh os build",
+        "nh home build"
+      ],
+      "blockWrite": true
+    }
+  }
+}

@@ -262,14 +262,6 @@ in rec {
     outputHash = "sha256-0ulgk83qWY1AmVDFJqKiH/xXIaTwJ1iKTbGH5kqvjSk=";
   };
 
-  pi-llm-wiki = mkNpmPiExt {
-    name = "pi-llm-wiki";
-    version = "0.1.0";
-    tarballUrl = "https://registry.npmjs.org/pi-llm-wiki/-/pi-llm-wiki-0.1.0.tgz";
-    tarballHash = "sha256-8jx9eJ73l0SigXecP+zWKEt6nmjBpbCwgWYwJ+Q9D/o=";
-    outputHash = "sha256-R9SP4bzHj6CeCoJj1hX7RjlP9o7Sb39B3x2JlPIGj8g=";
-  };
-
   pi-intercom = mkNpmPiExt {
     name = "pi-intercom";
     version = "0.6.0";
