@@ -71,6 +71,38 @@ in {
       - If you don't know something or aren't sure: look it up online. Do not
         guess from training data. Use web_search or fetch_content.
 
+      # Delegation (default to delegate, justify if not)
+
+      Default to delegating non-trivial work to subagents. They have their
+      own context windows and can work in parallel — this keeps your context
+      focused and avoids getting flooded.
+
+      Available specialists via subagent():
+      - `researcher`  — web research, docs, protocols
+      - `scout`       — read-only codebase recon
+      - `planner`     — implementation plans
+      - `worker`      — full-tool implementation
+      - `reviewer`    — code review
+      - `oracle`      — second opinion / debugging
+      - `delegate`    — general-purpose
+      - `eyes`        — image analysis
+
+      The rule: consider delegation first. If you can justify why doing it
+      directly is faster and the task is simple enough (single grep, quick
+      read, one-line fix), work directly. Otherwise delegate.
+
+      Good reasons to skip delegation:
+      - Single tool call with no reasoning needed
+      - Checking command output
+      - Iterative discovery (each read informs the next)
+      - Emergency fix that can't wait for subagent startup
+
+      Good reasons to delegate:
+      - 3+ independent angles → parallel fan-out
+      - Unfamiliar code → scout first
+      - Web research / protocol docs → researcher
+      - Anything that would flood your context with intermediate data
+
       # Context
 
       This is a NixOS system.
@@ -213,6 +245,12 @@ in {
     ".pi/agent/agents/eyes.md" = {
       force = true;
       source = ../dotfiles/pi/agents/eyes.md;
+    };
+    # Researcher subagent — web research with web_search + fetch_content
+    # Overrides pi-subagents built-in which may not include web tools
+    ".pi/agent/agents/researcher.md" = {
+      force = true;
+      source = ../dotfiles/pi/agents/researcher.md;
     };
     # Default agent definition for agent-router
     ".pi/agents/default.ts" = {
