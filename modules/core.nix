@@ -37,6 +37,7 @@ in
     p7zip-rar
     qrrs
     pandoc
+    python3Packages.weasyprint
     inputs.nixwrap.packages.${pkgs.system}.wrap
   ];
   boot.loader.grub.configurationLimit = 3;
