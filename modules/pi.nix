@@ -231,6 +231,24 @@ in
       force = true;
       source = ../dotfiles/pi/agents/researcher.md;
     };
+    # Planner subagent — creates implementation plans
+    # Override removes output: plan.md so it doesn't auto-write unless asked
+    ".pi/agent/agents/planner.md" = {
+      force = true;
+      source = ../dotfiles/pi/agents/planner.md;
+    };
+    # Context-builder subagent — gathers code context for handoff
+    # Override removes output: context.md so it doesn't auto-write unless asked
+    ".pi/agent/agents/context-builder.md" = {
+      force = true;
+      source = ../dotfiles/pi/agents/context-builder.md;
+    };
+    # Scout subagent — fast codebase recon
+    # Override removes output: context.md so it doesn't auto-write unless asked
+    ".pi/agent/agents/scout.md" = {
+      force = true;
+      source = ../dotfiles/pi/agents/scout.md;
+    };
     # Default agent definition for agent-router
     ".pi/agents/default.ts" = {
       force = true;
