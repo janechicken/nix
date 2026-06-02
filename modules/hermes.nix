@@ -87,8 +87,38 @@ in {
       gateway = {
         disable_slash_help_hint = true;
       };
+
+      mcp_servers = {
+        browser-use = {
+          command = "uvx";
+          args = [
+            "--from"
+            "browser-use[cli]"
+            "browser-use"
+            "--mcp"
+          ];
+          env = {
+            BROWSER_USE_HEADLESS = "false";
+            PLAYWRIGHT_BROWSERS_PATH = "${pkgs.playwright-driver.browsers}";
+            # Hermes filters env to safe vars only — need these for Chrome
+            PYTHONPATH = "";
+            DISPLAY = ":0";
+            # browser-use finds Chrome via `which chromium` on PATH
+            PATH = "${config.home.homeDirectory}/.local/bin:${config.home.profileDirectory}/bin:/run/current-system/sw/bin:/nix/var/nix/profiles/default/bin";
+          };
+          enabled = true;
+        };
+      };
     };
     force = true;
+  };
+
+  home.file.".local/bin/chromium" = {
+    executable = true;
+    text = ''
+      #!${pkgs.stdenv.shell}
+      exec "${pkgs.playwright-driver.browsers}/chromium-1217/chrome-linux64/chrome" "$@"
+    '';
   };
 
   home.file.".hermes/AGENTS.md".text = ''
