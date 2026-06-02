@@ -248,10 +248,10 @@ in rec {
 
   pi-hermes-memory = mkNpmPiExt {
     name = "pi-hermes-memory";
-    version = "0.7.13";
-    tarballUrl = "https://registry.npmjs.org/pi-hermes-memory/-/pi-hermes-memory-0.7.13.tgz";
-    tarballHash = "sha256-B9A1rjiUZRuZh+cyPe3cwchzc6Av72pEjFvzrawAr+E=";
-    outputHash = "sha256-vGGDWJ7xDhyGp+M5Zeie3VX4+N91oBCaoM5n6O+nZnU=";
+    version = "0.7.14";
+    tarballUrl = "https://registry.npmjs.org/pi-hermes-memory/-/pi-hermes-memory-0.7.14.tgz";
+    tarballHash = "sha256-RTPu8NZHoBJcCvgDihTD31GJo5mFS+ey/fTPhcg4goA=";
+    outputHash = "sha256-Zt1pQZ5V0a/ocBU9xo+wxtpVCJ6p1wHIp3RCW0Ejazs=";
   };
 
   pi-timestamps = mkNpmPiExt {

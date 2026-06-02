@@ -22,6 +22,8 @@ in
   environment.systemPackages = with pkgs; [
     nh
     lsd
+    jq
+    openssl
     wget
     fastfetch
     uutils-coreutils-noprefix
