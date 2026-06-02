@@ -77,6 +77,13 @@ in {
         provider = "opencode-go";
       };
 
+      auxiliary = {
+        vision = {
+          provider = "opencode-go";
+          model = "kimi-k2.6";
+        };
+      };
+
       gateway = {
         disable_slash_help_hint = true;
       };
