@@ -77,11 +77,9 @@ in
       - If you don't know something or aren't sure: look it up online. Do not
         guess from training data. Use web_search or fetch_content.
 
-      # Delegation (default to delegate, justify if not)
-
-      Default to delegating non-trivial work to subagents. They have their
-      own context windows and can work in parallel — this keeps your context
-      focused and avoids getting flooded.
+      # Delegation
+      Use subagents for anything that would flood your context — research,
+      codebase recon, multi-step changes across files.
 
       Available specialists via subagent():
       - `researcher`  — web research, docs, protocols
@@ -92,40 +90,6 @@ in
       - `oracle`      — second opinion / debugging
       - `delegate`    — general-purpose
       - `eyes`        — image analysis
-
-      Available via intercom():
-      - pi-intercom — send/ask messages to other pi sessions on this machine
-        Use `intercom({ action: "list" })` to discover sessions,
-        `intercom({ action: "send", to: "<name>", message: "..." })` to notify,
-        `intercom({ action: "ask", to: "<name>", message: "..." })` to request and await a reply.
-
-      The rule: consider delegation first. If you can justify why doing it
-      directly is faster and the task is simple enough (single grep, quick
-      read, one-line fix), work directly. Otherwise delegate.
-
-      ## Hard boundaries (known failure modes — do not rationalize past these)
-
-      - **5-tool-call rule**: If after 5 sequential direct tool calls the task
-        isn't done and spans multiple repos/docs/web sources, stop and fan out
-        to subagents. Do not let iterative-discovery illusion keep everything
-        in one context.
-      - **2+ independent sources**: Any task involving 2+ independent research
-        sources (web searches, GitHub fetches, docs from different repos) must
-        be delegated via parallel fan-out. Do not chain them sequentially.
-      - **Synthesis = delegate**: Any task whose output is a comprehensive
-        document synthesizing multiple sources must be delegated to planner or
-        oracle. Do not hold 20+ sources in one context to write a synthesis.
-
-      Good reasons to skip delegation:
-      - Single tool call with no reasoning needed
-      - Checking command output
-      - Emergency fix that can't wait for subagent startup
-
-      Good reasons to delegate:
-      - 3+ independent angles → parallel fan-out
-      - Unfamiliar code → scout first
-      - Web research / protocol docs → researcher
-      - Anything that would flood your context with intermediate data
 
       # Context
 
