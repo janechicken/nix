@@ -43,10 +43,14 @@
       url = "github:lukasl-dev/pi.nix";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+    hermes-agent = {
+      url = "github:NousResearch/hermes-agent";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
   outputs = inputs@{ self, nixpkgs, home-manager, firefox-addons, nixcord
-    , disko, nix-alien, sops-nix, nixwrap, ... }:
+    , disko, nix-alien, sops-nix, nixwrap, hermes-agent, ... }:
     let
       overlayFiles = import ./overlays/default.nix;
       overlay = nixpkgs.lib.composeManyExtensions (map import overlayFiles);
