@@ -26,6 +26,9 @@
       lldb
       vscode-langservers-extracted
       helix-assist
+      glow
+      marksman
+      mdpls
     ];
     themes = {
       autumn-dark-custom =
@@ -251,6 +254,19 @@
       language-server.helix-assist = {
         command = "helix-assist";
       };
+      language-server.marksman = {
+        command = "marksman";
+      };
+      language-server.mdpls = {
+        command = "mdpls";
+        config = {
+          "markdown.preview.auto" = true;
+          "markdown.preview.browser" = [
+            "firefox"
+            "--new-window"
+          ];
+        };
+      };
       language = [
         {
           name = "nix";
@@ -308,6 +324,10 @@
           name = "html";
           language-servers = [ "vscode-html-language-server" "helix-assist" ];
         }
+        {
+          name = "markdown";
+          language-servers = [ "marksman" "mdpls" "helix-assist" ];
+        }
       ];
     };
     settings = {
@@ -333,6 +353,7 @@
 
         C-space = "completion";
         S-x = "extend_line_above";
+
       };
       keys.insert = {
         up = "no_op";
