@@ -254,22 +254,6 @@ in rec {
     outputHash = "sha256-vGGDWJ7xDhyGp+M5Zeie3VX4+N91oBCaoM5n6O+nZnU=";
   };
 
-  pi-markdown-preview = mkNpmPiExt {
-    name = "pi-markdown-preview";
-    version = "0.9.9";
-    tarballUrl = "https://registry.npmjs.org/pi-markdown-preview/-/pi-markdown-preview-0.9.9.tgz";
-    tarballHash = "sha256-y1TwhNvgDL6kF+oP+AmtjwNczkjMw69Xtajuie3mlkc=";
-    outputHash = "sha256-0ulgk83qWY1AmVDFJqKiH/xXIaTwJ1iKTbGH5kqvjSk=";
-  };
-
-  pi-intercom = mkNpmPiExt {
-    name = "pi-intercom";
-    version = "0.6.0";
-    tarballUrl = "https://registry.npmjs.org/pi-intercom/-/pi-intercom-0.6.0.tgz";
-    tarballHash = "sha256-dsDVKEZhqsQ3JIu2x6Moef6GMpa9FctTN1GyfK/ESBg=";
-    outputHash = "sha256-nwt6JjcMaMCZMP1WYuT5aZU6WqeUyIwuQdtOPJRQyTc=";
-  };
-
   pi-timestamps = mkNpmPiExt {
     name = "pi-timestamps";
     version = "0.1.0";

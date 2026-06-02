@@ -13,17 +13,13 @@ let
   extPaths = map (name: "${toString extDir}/${name}") (builtins.attrNames extFiles);
 
   # Remote Pi extensions (Nix-built npm packages) — only those with real hashes
-  # TODO: Add piolium, pi-markdown-preview once their
-  #       outputHash placeholders are resolved in pkgs/pi-extensions/default.nix
   remoteExts = with pkgs.pi-extensions; [
     pi-web-access
     pi-subagents
     pi-mcp-adapter
     pi-permission-system
     pi-goal
-    pi-intercom
     pi-hermes-memory
-    pi-markdown-preview
     pi-lsp
     pi-timestamps
   ];
@@ -154,16 +150,6 @@ in
             "sudo *" = "ask";
           };
         };
-      };
-    };
-
-    # Pi-intercom config — no confirm dialog on send, reply hint on
-    ".pi/agent/intercom/config.json" = {
-      force = true;
-      text = builtins.toJSON {
-        enabled = true;
-        confirmSend = false;
-        replyHint = true;
       };
     };
 
