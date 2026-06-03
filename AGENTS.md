@@ -37,13 +37,11 @@ nix flake update nixpkgs         # update single input
 ## Architecture
 
 - **flake.nix**: 2 nixosConfigurations + 2 homeConfigurations. Home-manager uses `pkgsWithOverlay` (overlay pre-applied). NixOS configs use plain `nixpkgs.legacyPackages`.
-- **overlays/**: `default.nix` lists overlay files to compose via `nixpkgs.lib.composeManyExtensions`. Currently: `browser-use.nix`, `ghidra-mcp.nix`, `helix-assist.nix`, `helix-zsh.nix`.
-- **pkgs/**: Custom nixpkgs derivations:
+| **overlays/**: `default.nix` lists overlay files to compose via `nixpkgs.lib.composeManyExtensions`. Currently: `browser-use.nix`, `ghidra-mcp.nix`.
+| **pkgs/**: Custom nixpkgs derivations:
   - `pkgs/browser-use/` — 6 packages (agentmail, browser-use-sdk, bubus, cdp-use, uuid7, default)
   - `pkgs/ghidra-mcp/` — GhidraMCP extension
-  - `pkgs/helix-assist/` — Helix editor AI assistant
-  - `pkgs/helix-zsh/` — Helix ZSH integration
-- **Dotfiles**: `dotfiles/` (awesome, dunst, kitty, nvim, picom, rofi, zed). Linked via `home.file` in `modules/desktop.nix`.
+
 - **stateVersion**: 25.05 on all hosts.
 - **No CI** (no `.github/`).
 
@@ -53,8 +51,8 @@ nix flake update nixpkgs         # update single input
 |------|---------|
 | `hosts/<name>/` | Per-host config: `configuration.nix`, `home.nix`, `hardware-configuration.nix` |
 | `modules/` | 45 shared modules (one file per concern, no subdirs) |
-| `overlays/` | nixpkgs overlay definitions (`default.nix` → `browser-use.nix`, `ghidra-mcp.nix`, `helix-assist.nix`, `helix-zsh.nix`) |
-| `pkgs/` | Custom package derivations (browser-use, ghidra-mcp, helix-assist, helix-zsh) |
+| `overlays/` | nixpkgs overlay definitions (`default.nix` → `browser-use.nix`, `ghidra-mcp.nix`) |
+| `pkgs/` | Custom package derivations (browser-use, ghidra-mcp) |
 | `secrets/` | sops-nix encrypted secrets (`secrets.yaml`, `sops-nix.nix`, `home-secrets.nix`) |
 | `dotfiles/` | Dotfile directories synced via home-manager |
 | `skills/` | Custom opencode skill (`solve-challenge`) |
@@ -108,7 +106,6 @@ nix flake update nixpkgs         # update single input
 
 - 419-line config with full editor setup
 - Custom themes, language configs, keybindings
-- Integrated with helix-assist (AI assistant) and helix-zsh (shell integration)
 
 ## Ghidra MCP (`modules/ghidra-mcp.nix`)
 

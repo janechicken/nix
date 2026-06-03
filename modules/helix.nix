@@ -25,7 +25,6 @@
       yaml-language-server
       lldb
       vscode-langservers-extracted
-      helix-assist
       glow
       marksman
       mdpls
@@ -251,9 +250,6 @@
         };
     };
     languages = {
-      language-server.helix-assist = {
-        command = "helix-assist";
-      };
       language-server.marksman = {
         command = "marksman";
       };
@@ -270,63 +266,63 @@
       language = [
         {
           name = "nix";
-          language-servers = [ "nixd" "helix-assist" ];
+          language-servers = [ "nixd" ];
         }
         {
           name = "python";
-          language-servers = [ "pyright" "helix-assist" ];
+          language-servers = [ "pyright" ];
         }
         {
           name = "typescript";
-          language-servers = [ "vtsls" "helix-assist" ];
+          language-servers = [ "vtsls" ];
         }
         {
           name = "javascript";
-          language-servers = [ "vtsls" "helix-assist" ];
+          language-servers = [ "vtsls" ];
         }
         {
           name = "tsx";
-          language-servers = [ "vtsls" "helix-assist" ];
+          language-servers = [ "vtsls" ];
         }
         {
           name = "jsx";
-          language-servers = [ "vtsls" "helix-assist" ];
+          language-servers = [ "vtsls" ];
         }
         {
           name = "lua";
-          language-servers = [ "lua-language-server" "helix-assist" ];
+          language-servers = [ "lua-language-server" ];
         }
         {
           name = "c";
-          language-servers = [ "clangd" "helix-assist" ];
+          language-servers = [ "clangd" ];
         }
         {
           name = "cpp";
-          language-servers = [ "clangd" "helix-assist" ];
+          language-servers = [ "clangd" ];
         }
         {
           name = "rust";
-          language-servers = [ "rust-analyzer" "helix-assist" ];
+          language-servers = [ "rust-analyzer" ];
         }
         {
           name = "yaml";
-          language-servers = [ "yaml-language-server" "helix-assist" ];
+          language-servers = [ "yaml-language-server" ];
         }
         {
           name = "json";
-          language-servers = [ "vscode-json-language-server" "helix-assist" ];
+          language-servers = [ "vscode-json-language-server" ];
         }
         {
           name = "css";
-          language-servers = [ "vscode-css-language-server" "helix-assist" ];
+          language-servers = [ "vscode-css-language-server" ];
         }
         {
           name = "html";
-          language-servers = [ "vscode-html-language-server" "helix-assist" ];
+          language-servers = [ "vscode-html-language-server" ];
         }
         {
           name = "markdown";
-          language-servers = [ "marksman" "mdpls" "helix-assist" ];
+          language-servers = [ "marksman" "mdpls" ];
         }
       ];
     };
