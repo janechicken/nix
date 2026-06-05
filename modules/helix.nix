@@ -22,6 +22,8 @@
       rust-analyzer
       cargo
       rustc
+      zig
+      zls
       yaml-language-server
       lldb
       vscode-langservers-extracted
@@ -303,6 +305,10 @@
         {
           name = "rust";
           language-servers = [ "rust-analyzer" ];
+        }
+        {
+          name = "zig";
+          language-servers = [ "zls" ];
         }
         {
           name = "yaml";

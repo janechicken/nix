@@ -21,12 +21,14 @@
       rust-analyzer
       cargo
       rustc
+      rustfmt
+      zig
+      zls
       yaml-language-server
       lldb
       prettierd
       vscode-langservers-extracted
       nil
-      rustfmt
     ];
     extensions = [ "lua" "nix" "color highlight" ];
     userSettings = builtins.fromJSON (builtins.readFile ../dotfiles/zed/settings.json);
