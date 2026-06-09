@@ -27,6 +27,6 @@
     DEEPSEEK_API_KEY = "$(cat /run/secrets/deepseek_api_key)";
     OPENCODE_API_KEY = "$(cat /run/secrets/opencode_api_key)";
     OPENCODE_GO_API_KEY = "$(cat /run/secrets/opencode_api_key)";
-    ZED_OPEN_AI_COMPATIBLE_EDIT_API_KEY = "$(cat /run/secrets/opencode_api_key)";
+    ZED_OPEN_AI_COMPATIBLE_EDIT_PREDICTION_API_KEY = "$(cat /run/secrets/deepseek_api_key)";
   };
 }
