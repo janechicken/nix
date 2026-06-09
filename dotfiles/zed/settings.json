@@ -1,9 +1,17 @@
 {
   "formatter": "language_server",
+  "edit_predictions": {
+    "open_ai_compatible_api": {
+      "prompt_format": "deepseek_coder",
+      "api_url": "https://opencode.ai/zen/go/v1/chat/completions",
+      "model": "deepseek-v4-flash"
+    },
+    "provider": "zed"
+  },
   "agent": {
     "default_model": {
-      "provider": "openrouter",
-      "model": "deepseek-chat"
+      "provider": "opencode",
+      "model": "go/deepseek-v4-flash"
     }
   },
   "lsp": {
