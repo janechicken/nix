@@ -1,5 +1,6 @@
 {
   "formatter": "language_server",
+  "restore_on_startup": "launchpad",
   "edit_predictions": {
     "open_ai_compatible_api": {
       "prompt_format": "deepseek_coder",
