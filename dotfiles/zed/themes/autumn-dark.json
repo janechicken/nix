@@ -58,6 +58,15 @@
         "terminal.foreground": "#F3F2CC",
         "terminal.bright_foreground": "#F3F2CC",
         "syntax": {
+          "meta.attribute.rust": {
+            "color": "#FAD566"
+          },
+          "punctuation.definition.attribute.rust": {
+            "color": "#F3F2CC"
+          },
+          "punctuation.brackets.attribute.rust": {
+            "color": "#F3F2CC"
+          },
           "attribute": {
             "color": "#86c1b9"
           },
