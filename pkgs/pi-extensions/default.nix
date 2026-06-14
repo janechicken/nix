@@ -262,6 +262,14 @@ in rec {
     outputHash = "sha256-cBydqkkOmoOTgbyfHCWI3AbVaNahqEq4Ql6T4g6FQXo=";
   };
 
+  pi-ask-user = mkNpmPiExt {
+    name = "pi-ask-user";
+    version = "0.11.2";
+    tarballUrl = "https://registry.npmjs.org/pi-ask-user/-/pi-ask-user-0.11.2.tgz";
+    tarballHash = "sha256-cgCViWrwsGmE/qJvNPmNMZIV3os6/AsS7zJf0+lOaB8=";
+    outputHash = "sha256-p0JE7VnydMOhz3lFBpqVtMkntkCPAaN6hWNTmfA4ZPM=";
+  };
+
   pi-timestamps = mkNpmPiExt {
     name = "pi-timestamps";
     version = "0.1.0";

@@ -23,6 +23,7 @@ let
     pi-lsp
     pi-timestamps
     pi-advisor
+    pi-ask-user
   ];
   remoteHomeFiles = builtins.listToAttrs (
     map (
