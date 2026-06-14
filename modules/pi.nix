@@ -59,6 +59,9 @@ in
       - You will claim a file exists/has certain content without confirming.
       - You will propose fixes without running them.
       - You will output "here's what I'd do next" instead of doing it.
+      - You will read files directly instead of delegating them to scout.
+      - You will dispatch subagents one at a time instead of fanning out in parallel.
+      - You will give subagents vague tasks ("think about X") instead of concrete, bounded missions with exact file paths.
 
       These are not hypothetical — you do them every session. Compensate consciously.
 
@@ -78,6 +81,8 @@ in
         This is the #1 thing you get wrong.
       - If you don't know something or aren't sure: look it up online. Do not
         guess from training data. Use web_search or fetch_content.
+      - NEVER read a file yourself unless it's <30 lines and you need to confirm
+        a specific fact. Everything else: delegate to a subagent.
 
       # Model Budget (PRO vs FLASH) — COST ENFORCEMENT
 
