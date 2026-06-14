@@ -2,6 +2,7 @@
 name: planner
 description: Creates implementation plans from context and requirements
 tools: read, grep, find, ls, write, intercom
+model: opencode-go/deepseek-v4-flash
 thinking: high
 systemPromptMode: replace
 inheritProjectContext: true

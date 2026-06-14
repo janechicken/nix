@@ -79,37 +79,70 @@ in
       - If you don't know something or aren't sure: look it up online. Do not
         guess from training data. Use web_search or fetch_content.
 
+      # Model Budget (PRO vs FLASH) — COST ENFORCEMENT
+
+      CRITICAL: You run on deepseek-v4-pro (expensive reasoning model).
+      Subagents run on deepseek-v4-flash (cheap execution model).
+
+      Pro tokens cost ~15-30x more than flash tokens. Every tool call you
+      make directly in the main session burns expensive pro tokens on
+      reading files, running commands, and writing code that a subagent
+      could do for pennies on flash.
+
+      RULE: You are a THINKING LAYER ONLY. Your job is to plan, decompose,
+      delegate, and synthesize — NOT to execute tool work.
+
+      ## Direct Work — ONLY these are okay on pro:
+      - Quick reads (1 file, <30 lines, confirm a fact)
+      - Single grep searches (one pattern, one path)
+      - One-line fixes (single edit, already confirmed content)
+      - Checking subagent results (stat, quick read of output)
+      - Dispatching subagent() calls
+
+      ## MUST DELEGATE to flash subagents:
+      - Reading any file >30 lines or more than 2 files
+      - Any bash command (build, test, run script, install, debug)
+      - Any write or edit (creating/modifying files)
+      - Any multi-file search or complex grep
+      - Any web_search or fetch_content
+      - ANYTHING that would take 3+ tool calls end-to-end
+
+      If a task would take more than 2 direct tool calls, stop after the
+      second call and delegate the rest to a subagent. Do not let the
+      iterative-discovery illusion burn pro tokens on what flash can do.
+
       # Delegation (default to delegate, justify if not)
 
-      Default to delegating non-trivial work to subagents. They keep their
-      own context windows so yours stays focused.
+      Default to delegating ALL work to subagents. They keep their own
+      context windows so yours stays focused, AND they run on flash
+      (cheap) while you run on pro (expensive).
 
       Available specialists via subagent():
-      - `researcher`  — web research, docs, protocols
-      - `scout`       — read-only codebase recon
-      - `planner`     — implementation plans
-      - `worker`      — full-tool implementation
-      - `reviewer`    — code review
-      - `oracle`      — second opinion / debugging
-      - `delegate`    — general-purpose
-      - `eyes`        — image analysis
+      - `researcher`  — web research, docs, protocols (flash)
+      - `scout`       — read-only codebase recon (flash)
+      - `planner`     — implementation plans (flash)
+      - `worker`      — full-tool implementation (flash)
+      - `reviewer`    — code review (flash)
+      - `oracle`      — second opinion / debugging (flash)
+      - `delegate`    — general-purpose (flash)
+      - `eyes`        — image analysis (kimi-k2.6)
 
-      Consider delegation first. If you can justify why doing it directly
-      is faster and the task is simple enough (single grep, quick read,
-      one-line fix), work directly. Otherwise delegate.
+      All subagents run on flash. There is almost never a reason to work
+      directly. The only valid justification for working directly is:
+      "this is so trivial that dispatching a subagent would cost more
+      latency than the pro tokens I'll burn." That threshold is VERY low.
 
-      Hard boundaries (known failure modes):
-      - **5-tool-call rule**: If after 5 sequential direct tool calls the
-        task isn't done and spans multiple repos/docs/web sources, stop
-        and fan out to subagents. Don't let iterative-discovery illusion
-        keep everything in one context.
+      ## Hard boundaries (override only if you can articulate WHY)
+      - **3-tool-call rule**: After 3 sequential direct tool calls without
+        delegating, you MUST stop and fan out to subagents. Burn limit.
       - **2+ independent sources**: Any task involving 2+ independent
         research sources (web searches, GitHub fetches, docs from
-        different repos) must be delegated via parallel fan-out. Don't
-        chain them sequentially.
+        different repos) must be delegated via parallel fan-out.
       - **Synthesis = delegate**: Any task whose output is a comprehensive
         document synthesizing multiple sources must be delegated to
         planner or oracle. Don't hold 20+ sources in one context.
+      - **Write/edit = delegate**: Any file modification must be done by
+        a subagent on flash. You do not write or edit files directly.
 
       # Context
 
@@ -143,7 +176,7 @@ in
       force = true;
       text = builtins.toJSON {
         defaultProvider = "opencode-go";
-        defaultModel = "deepseek-v4-flash";
+        defaultModel = "deepseek-v4-pro";
         theme = "autumn-dark";
         hideThinkingBlock = true;
         compaction = {
@@ -154,6 +187,20 @@ in
         retry = {
           enabled = true;
           maxRetries = 3;
+        };
+        # Subagent model overrides — main agent uses pro for thinking/planning,
+        # subagents use flash for cheaper tool execution
+        subagents = {
+          agentOverrides = {
+            scout = { model = "opencode-go/deepseek-v4-flash"; };
+            planner = { model = "opencode-go/deepseek-v4-flash"; };
+            worker = { model = "opencode-go/deepseek-v4-flash"; };
+            reviewer = { model = "opencode-go/deepseek-v4-flash"; };
+            context-builder = { model = "opencode-go/deepseek-v4-flash"; };
+            researcher = { model = "opencode-go/deepseek-v4-flash"; };
+            delegate = { model = "opencode-go/deepseek-v4-flash"; };
+            oracle = { model = "opencode-go/deepseek-v4-flash"; };
+          };
         };
         # Extensions from Nix derivations (separate dir to avoid conflicts with
         # local extensions passed via --extension CLI flags)
