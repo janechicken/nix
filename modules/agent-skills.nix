@@ -8,6 +8,7 @@ let
     "ctf-ai-ml" "ctf-crypto" "ctf-forensics" "ctf-malware"
     "ctf-misc" "ctf-osint" "ctf-pwn" "ctf-reverse"
     "ctf-web" "ctf-writeup" "rust-skills" "solve-challenge"
+    "superman"
   ];
 
   # Build home.file entries linking each skill from the bundle into Hermes
@@ -52,8 +53,13 @@ in {
         "ctf-web" "ctf-writeup" "rust-skills"
       ];
       enableAll = [ ];
-      explicit.solve-challenge = {
-        from = "local";
+      explicit = {
+        solve-challenge = {
+          from = "local";
+        };
+        superman = {
+          from = "local";
+        };
       };
     };
     targets = {
