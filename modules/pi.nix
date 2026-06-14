@@ -22,6 +22,7 @@ let
     pi-hermes-memory
     pi-lsp
     pi-timestamps
+    pi-advisor
   ];
   remoteHomeFiles = builtins.listToAttrs (
     map (
@@ -284,6 +285,24 @@ in
       force = true;
       text = builtins.toJSON {
         workflow = "none";
+      };
+    };
+    # pi-advisor config — default to deepseek-v4-pro via opencode-go
+    # Overrides the extension's built-in default (anthropic/claude-fable-5).
+    # maxContextMessages is high because deepseek-v4-pro has a massive context
+    # window — the advisor needs the full conversation to give strategic advice.
+    # maxTokens is generous because reasoning="high" counts thinking tokens
+    # against the output budget; 32K leaves room for CoT + actionable verdict.
+    ".pi/agent/advisor.json" = {
+      force = true;
+      text = builtins.toJSON {
+        enabled = true;
+        provider = "opencode-go";
+        model = "deepseek-v4-pro";
+        maxUsesPerRun = 3;
+        maxTokens = 32768;
+        reasoning = "high";
+        maxContextMessages = 200;
       };
     };
   }
