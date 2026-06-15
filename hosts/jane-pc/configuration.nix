@@ -23,7 +23,9 @@
     ../../secrets/sops-nix.nix
     ../../modules/lock.nix
     ../../modules/openvpn.nix
+    ../../modules/wireguard.nix
   ];
+  services.openssh.enable = true;
 
   services.udev.packages = [
     pkgs.yubikey-personalization
@@ -167,6 +169,7 @@
     xorg.xf86inputevdev
     xorg.xf86inputsynaptics
     xorg.xf86inputlibinput
+    tmux
     alsa-utils
     dconf
     adwaita-icon-theme
