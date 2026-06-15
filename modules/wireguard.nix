@@ -8,12 +8,14 @@
       privateKeyFile = "/etc/wireguard/wg0.key";
       generatePrivateKeyFile = true;
 
-      # Pi peers — add as each Pi gets set up:
-      # {
-      #   publicKey = "<Pi's public key>";
-      #   allowedIPs = [ "10.100.0.2/32" ];
-      # }
-      peers = [ ];
+      # Peers — remote devices that connect in
+      peers = [
+        {
+          # Jane's phone (mobile data)
+          publicKey = "1cYFjW/BR6eQ7NP8tA5vaqw3Hl8qGet098/65owQ7U4=";
+          allowedIPs = [ "10.100.0.2/32" ];
+        }
+      ];
     };
   };
 
