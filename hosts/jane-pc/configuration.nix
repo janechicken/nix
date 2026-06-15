@@ -174,7 +174,6 @@
     xorg.xf86inputevdev
     xorg.xf86inputsynaptics
     xorg.xf86inputlibinput
-    tmux
     alsa-utils
     dconf
     adwaita-icon-theme

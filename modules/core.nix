@@ -38,6 +38,7 @@ in
     appimage-run
     p7zip-rar
     qrrs
+    tmux
     pandoc
     python3Packages.weasyprint
     inputs.nixwrap.packages.${pkgs.system}.wrap
