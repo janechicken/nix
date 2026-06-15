@@ -28,7 +28,7 @@
   services.openssh = {
     enable = true;
     settings = {
-      ListenAddress = [ "10.100.0.1" ];
+      ListenAddress = "10.100.0.1";
     };
   };
 
