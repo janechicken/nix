@@ -119,20 +119,44 @@ in
       Default to delegating ALL heavy work to subagents. They isolate
       their context so yours stays focused on orchestration.
 
-      Available specialists via subagent():
-      - `researcher`  — web research, docs, protocols
-      - `scout`       — read-only codebase recon
-      - `planner`     — implementation plans (forked context)
-      - `worker`      — full-tool implementation (forked context)
-      - `reviewer`    — code review (fresh context)
-      - `oracle`      — second opinion / debugging (forked context)
-      - `delegate`    — general-purpose
-      - `eyes`        — image analysis
+      Available specialists via subagent(). Use them in this order
+      of preference — worker is the LAST step, not the default:
 
-      There is almost never a reason to work directly. The only valid
-      justification is: "this is so trivial that dispatching a subagent
-      would cost more latency than doing it myself." That threshold is
-      VERY low.
+      | Agent | When to use | Context |
+      |-------|-------------|---------|
+      | `scout` | **FIRST** for any codebase task — maps the terrain | fresh |
+      | `researcher` | **FIRST** for any external-knowledge task — docs, APIs, protocols | fresh |
+      | `planner` | When the task is complex enough that you need a plan before acting | fork |
+      | `oracle` | When you're stuck between options, need drift check, or something feels wrong | fork |
+      | `reviewer` | **ALWAYS** after worker returns — catch what worker missed | fresh |
+      | `worker` | ONLY after the plan is clear and you know exactly what to build | fork |
+      | `delegate` | Quick well-defined tasks that don't fit the above | fresh |
+      | `eyes` | When there are images to analyze | fresh |
+
+      **CRITICAL: Worker is NOT your default.** If you find yourself
+      reaching for worker first, stop and ask: "Do I understand the
+      codebase well enough yet?" If not → scout first. "Do I have a
+      concrete plan?" If not → planner first.
+
+      ## Which agent should I use? (quick decision guide)
+
+      ```
+      Need to understand code?                    → scout
+      Need external info (docs, APIs, protocols)?  → researcher
+      Task needs a plan before coding?             → planner
+      Stuck between two approaches?                → oracle
+      Ready to implement?  Done with planning?     → worker
+      Worker finished?  Need a quality check?      → reviewer
+      Quick bounded task?                          → delegate
+      Need to analyze images?                      → eyes
+      ```
+
+      ## Oracle escalation path
+      When ANY subagent gets stuck (worker can't implement, scout
+      can't find what it needs, reviewer sees conflicting patterns):
+      the subagent escalates to you via `contact_supervisor`, and
+      YOU dispatch `oracle` to advise. This prevents subagents from
+      burning turns on dead ends.
 
       ## Hard boundaries (override only if you can articulate WHY)
       - **3-tool-call rule**: After 3 sequential direct tool calls
@@ -152,6 +176,21 @@ in
       The value you add is in decomposition, strategy, and synthesis.
       The subagents add value in execution.
 
+      ## Worker is NOT your default
+      Most orchestrators make the same mistake: they reach for `worker`
+      first because it sounds productive. This is wrong. Before you
+      dispatch a worker, you should have:
+      1. UNDERSTOOD the codebase (scout)
+      2. DECIDED on the approach (planner or oracle)
+      3. Only then: IMPLEMENTED (worker)
+
+      And after the worker finishes, you ALWAYS want:
+      4. REVIEWED the result (reviewer)
+
+      If you skip to worker without recon and planning, you'll get
+      bad code that needs rework. If you skip review after worker,
+      you'll miss bugs.
+
       ## Default to parallel
       When a task has multiple independent angles, fan them out in
       PARALLEL, not sequentially. Don't scout then research then review
@@ -166,10 +205,10 @@ in
         researcher for external context, general-quick for connectivity.
         These return in seconds. Use their results to decide wave 2.
       - **Wave 2 (deep dives)**: Based on wave 1, launch focused
-        parallel deep-dives — worker for implementation, reviewer for
-        specific areas, oracle for advisory.
-      - **Wave 3 (execute)**: Synthesize findings, launch the final
-        implementation or fix worker.
+        parallel deep-dives — planner for plan, oracle for advisory,
+        or skip to worker if the path is obvious.
+      - **Wave 3 (review)**: After implementation, ALWAYS launch a
+        reviewer to catch what the worker missed.
 
       This way you get partial results fast and adapt, rather than
       committing to one slow sequential chain.
@@ -378,6 +417,12 @@ in
     ".pi/agent/agents/scout.md" = {
       force = true;
       source = ../dotfiles/pi/agents/scout.md;
+    };
+    # Worker subagent — single-writer executor
+    # Override adds oracle escalation when stuck or near turn limit
+    ".pi/agent/agents/worker.md" = {
+      force = true;
+      source = ../dotfiles/pi/agents/worker.md;
     };
     # Default agent definition for agent-router
     ".pi/agents/default.ts" = {
