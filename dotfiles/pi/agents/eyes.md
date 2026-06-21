@@ -1,7 +1,7 @@
 ---
 name: eyes
 description: Image analysis agent. Uses kimi-k2.6 (vision-capable) to analyze images. Read-only.
-model: opencode-go/kimi-k2.6
+model: neuralwatt/kimi-k2.6-fast
 tools: read, grep, find, ls
 thinking: low
 systemPromptMode: replace

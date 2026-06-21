@@ -280,8 +280,8 @@ in
     ".pi/agent/settings.json" = {
       force = true;
       text = builtins.toJSON {
-        defaultProvider = "opencode-go";
-        defaultModel = "deepseek-v4-flash";
+        defaultProvider = "neuralwatt";
+        defaultModel = "glm-5.2";
         theme = "autumn-dark";
         hideThinkingBlock = true;
         compaction = {
@@ -297,14 +297,15 @@ in
         # main agent's context stays clean for orchestration
         subagents = {
           agentOverrides = {
-            scout = { model = "opencode-go/deepseek-v4-flash"; };
-            planner = { model = "opencode-go/deepseek-v4-flash"; };
-            worker = { model = "opencode-go/deepseek-v4-flash"; };
-            reviewer = { model = "opencode-go/deepseek-v4-flash"; };
-            context-builder = { model = "opencode-go/deepseek-v4-flash"; };
-            researcher = { model = "opencode-go/deepseek-v4-flash"; };
-            delegate = { model = "opencode-go/deepseek-v4-flash"; };
-            oracle = { model = "opencode-go/deepseek-v4-pro"; };
+            scout = { model = "neuralwatt/glm-5.2-short-fast"; };
+            planner = { model = "neuralwatt/glm-5.2-short-fast"; };
+            worker = { model = "neuralwatt/glm-5.2-short-fast"; };
+            reviewer = { model = "neuralwatt/glm-5.2-short-fast"; };
+            context-builder = { model = "neuralwatt/glm-5.2-short-fast"; };
+            researcher = { model = "neuralwatt/glm-5.2-short-fast"; };
+            delegate = { model = "neuralwatt/glm-5.2-short-fast"; };
+            oracle = { model = "neuralwatt/glm-5.2-short-fast"; };
+            eyes = { model = "neuralwatt/kimi-k2.6-fast"; };
           };
         };
         # Extensions from Nix derivations (separate dir to avoid conflicts with
@@ -462,12 +463,27 @@ in
       force = true;
       text = builtins.toJSON {
         enabled = true;
-        provider = "opencode-go";
-        model = "deepseek-v4-pro";
+        provider = "neuralwatt";
+        model = "glm-5.2";
         maxUsesPerRun = 3;
         maxTokens = 32768;
         reasoning = "high";
         maxContextMessages = 200;
+      };
+    };
+
+    # Neuralwatt extension settings — enables hidden models (e.g. glm-5.2-short-fast)
+    # discovered via the authenticated /v1/models API endpoint.
+    # All fields set explicitly to prevent extension migrations from writing to
+    # the read-only Nix store symlink.
+    ".pi/agent/extensions/neuralwatt.json" = {
+      force = true;
+      text = builtins.toJSON {
+        quotaCommand = true;
+        quotaWarnings = true;
+        subBarIntegration = true;
+        includeLegacyModelIds = false;
+        includeHiddenModels = true;
       };
     };
   }
