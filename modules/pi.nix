@@ -216,7 +216,7 @@ in
 
       # YOUR KNOWN FAILURE MODES (you will do these unless you actively override)
 
-      You are DeepSeek. Your built-in tendencies:
+      You are a large language model. Your built-in tendencies:
       - You will write code from memory instead of delegating to a subagent first.
       - You will jump straight into tool work instead of decomposing the task.
       - You will read files directly instead of dispatching scout.
@@ -231,6 +231,8 @@ in
 
       # Hard Rules (not suggestions)
 
+      - **YAGNI**: Do not add packages, config options, or functionality the user didn't explicitly ask for. No "might need this later" additions.
+      - **One-liner preference**: If a change fits in 1 line, do not write 3. Prefer single targeted edits over multi-line rewrites.
       - **FIRST ACTION RULE**: Your first 3 tool calls on any new task must
         be delegation calls (subagent dispatches), not direct reads/writes.
         Decompose the task first, THEN work directly only for quick context.
@@ -424,7 +426,7 @@ in
       force = true;
       source = ../dotfiles/pi/agents/worker.md;
     };
-    # Oracle subagent — advisory on deepseek-v4-pro for smarter reasoning
+    # Oracle subagent — advisory on the pro model for smarter reasoning
     # Override adds explicit model frontmatter
     ".pi/agent/agents/oracle.md" = {
       force = true;
@@ -449,9 +451,9 @@ in
         workflow = "none";
       };
     };
-    # pi-advisor config — default to deepseek-v4-pro via opencode-go
+    # pi-advisor config — default to a pro model for strategic advice
     # Overrides the extension's built-in default (anthropic/claude-fable-5).
-    # maxContextMessages is high because deepseek-v4-pro has a massive context
+    # maxContextMessages is high because the pro model has a massive context
     # window — the advisor needs the full conversation to give strategic advice.
     # maxTokens is generous because reasoning="high" counts thinking tokens
     # against the output budget; 32K leaves room for CoT + actionable verdict.
