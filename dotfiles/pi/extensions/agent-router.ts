@@ -184,23 +184,21 @@ export default async function (pi: ExtensionAPI) {
     return { action: "continue" };
   });
 
-  // --- Inject agent prompt as <system-reminder> ---
-  pi.on("context", (event) => {
+  // --- Inject agent prompt into the system prompt ---
+  // Uses before_agent_start so the reminder lands in the system field of the
+  // provider request (messages[0] role:"system") rather than being appended
+  // to a user message. The system prompt persists for all turns in the agent
+  // run, so the reminder stays active without re-injecting each turn.
+  pi.on("before_agent_start", (event) => {
     if (!activeAgent?.prompt) return;
 
-    const lastUserMsg = event.messages.findLast((m) => m.role === "user");
-    if (!lastUserMsg) return;
+    const prompt = activeAgent.prompt
+      .replace(/<\/?system-reminder>/g, "")
+      .trim();
 
-    const reminder = `<system-reminder>\n${activeAgent.prompt.replace(/<\/?system-reminder>/g, "").trim()}\n</system-reminder>`;
-
-    const content = lastUserMsg.content;
-    if (typeof content === "string") {
-      lastUserMsg.content = content + "\n\n" + reminder;
-    } else if (Array.isArray(content)) {
-      content.push({ type: "text", text: reminder });
-    }
-
-    return { messages: event.messages };
+    return {
+      systemPrompt: event.systemPrompt + "\n\n" + prompt,
+    };
   });
 
   // --- Runtime enforcement via permission system ---

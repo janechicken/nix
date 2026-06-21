@@ -92,7 +92,7 @@ let
       fi
 
       # Update package.json to point at the now-root entry point
-      sed -i 's|"'"$rel"'"|"./'"$filename"'"|g' "$out/package.json"
+      sed -i 's|"'"$entry"'"|"./'"$filename"'"|g' "$out/package.json"
     }
   '';
 
@@ -101,12 +101,12 @@ in rec {
   # -----------------------------------------------------------------------
   # Build an extension from a GitHub repo (yarn or pnpm).
   # -----------------------------------------------------------------------
-  mkPiExt = { name, version, owner, repo, rev, srcHash, outputHash, pkgManager ? "yarn", extraInstallCommands ? "" }:
+  mkPiExt = { name, version, owner, repo, rev, srcHash, outputHash, pkgManager ? "yarn", installFlags ? "", extraInstallCommands ? "" }:
     let
       pm = if pkgManager == "pnpm" then pnpm else yarn;
       installCmd = if pkgManager == "pnpm"
-        then "pnpm install --no-frozen-lockfile --no-optional"
-        else "yarn install --no-progress --non-interactive";
+        then "pnpm install --no-frozen-lockfile --no-optional ${installFlags}"
+        else "yarn install --no-progress --non-interactive ${installFlags}";
     in
     stdenv.mkDerivation {
       pname = name;
@@ -290,8 +290,13 @@ in rec {
     rev = "v0.7.2";
     srcHash = "sha256-2rhA9td+1Y5rmjcRBdvfIperugtiZKzVUTk4VJDPOHQ=";
     pkgManager = "pnpm";
-    outputHash = "sha256-SE7IHYK9rgxiI3fXHZUqep9Gtfz9B+2WdSa+G0zGZMM=";
+    installFlags = "--frozen-lockfile";
+    outputHash = "sha256-WRzIpq01U5Yl1ztXDKh9uy+V1mMkAk9pAjm4OZOFY/g=";
     extraInstallCommands = ''
+      rm -rf "$out/node_modules/.pnpm"/*/node_modules/*/node_modules/.cache 2>/dev/null || true
+      rm -f "$out/node_modules/.modules.yaml" "$out/node_modules/.pnpm-lock.yaml" "$out/pnpm-lock.yaml" "$out/yarn.lock" "$out/package-lock.json" 2>/dev/null || true
+      find "$out/node_modules" -name '.cache' -prune -exec rm -rf {} \; 2>/dev/null || true
+      find "$out" -name '*.tsbuildinfo' -delete 2>/dev/null || true
       echo 'export { default } from "./src/extensions/command-quotas/index.ts";' > "$out/neuralwatt-quotas.ts"
       echo 'export { default } from "./src/extensions/quota-warnings/index.ts";' > "$out/neuralwatt-warnings.ts"
       echo 'export { default } from "./src/extensions/sub-bar-integration/index.ts";' > "$out/neuralwatt-sub-bar.ts"
