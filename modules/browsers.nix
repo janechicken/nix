@@ -2,6 +2,7 @@
 {
   programs.librewolf = {
     enable = true;
+    package = pkgs.librewolf-bin;
     nativeMessagingHosts = [ pkgs.keepassxc ];
     policies = {
       SearchEngines = {
