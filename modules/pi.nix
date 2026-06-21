@@ -22,6 +22,7 @@ let
     pi-hermes-memory
     pi-lsp
     pi-timestamps
+    pi-neuralwatt
     pi-advisor
     pi-ask-user
   ];

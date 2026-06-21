@@ -101,7 +101,7 @@ in rec {
   # -----------------------------------------------------------------------
   # Build an extension from a GitHub repo (yarn or pnpm).
   # -----------------------------------------------------------------------
-  mkPiExt = { name, version, owner, repo, rev, srcHash, outputHash, pkgManager ? "yarn" }:
+  mkPiExt = { name, version, owner, repo, rev, srcHash, outputHash, pkgManager ? "yarn", extraInstallCommands ? "" }:
     let
       pm = if pkgManager == "pnpm" then pnpm else yarn;
       installCmd = if pkgManager == "pnpm"
@@ -134,6 +134,7 @@ in rec {
         rm -rf "$out/.npm" "$out/.cache" "$out/node_modules/.cache" 2>/dev/null || true
         ${promoteEntryPoint}
         promote_entry_point "$out"
+        ${extraInstallCommands}
       '';
     };
 
@@ -278,6 +279,22 @@ in rec {
     outputHash = "sha256-s6KGE5IUrN+oHss5wLTr73hZW1atnbIJ/TPCyHKIKdg=";
     extraInstallCommands = ''
       echo 'export { default } from "./timestamps.ts";' > "$out/extensions/index.ts"
+    '';
+  };
+
+  pi-neuralwatt = mkPiExt {
+    name = "pi-neuralwatt";
+    version = "0.7.2";
+    owner = "aliou";
+    repo = "pi-neuralwatt";
+    rev = "v0.7.2";
+    srcHash = "sha256-2rhA9td+1Y5rmjcRBdvfIperugtiZKzVUTk4VJDPOHQ=";
+    pkgManager = "pnpm";
+    outputHash = "sha256-SE7IHYK9rgxiI3fXHZUqep9Gtfz9B+2WdSa+G0zGZMM=";
+    extraInstallCommands = ''
+      echo 'export { default } from "./src/extensions/command-quotas/index.ts";' > "$out/neuralwatt-quotas.ts"
+      echo 'export { default } from "./src/extensions/quota-warnings/index.ts";' > "$out/neuralwatt-warnings.ts"
+      echo 'export { default } from "./src/extensions/sub-bar-integration/index.ts";' > "$out/neuralwatt-sub-bar.ts"
     '';
   };
 }
