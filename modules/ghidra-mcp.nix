@@ -1,8 +1,13 @@
-{ config, pkgs, lib, ... }:
+{
+  config,
+  pkgs,
+  lib,
+  ...
+}:
 
 let
   ghidraVersion = pkgs.ghidra-bin.version;
-  extName = "GhidraMCP-${lib.replaceStrings ["."] ["-"] "1.4"}.zip";
+  extName = "GhidraMCP-${pkgs.ghidra-mcp.version}.zip";
 in
 {
   home.packages = [ pkgs.ghidra-mcp ];
