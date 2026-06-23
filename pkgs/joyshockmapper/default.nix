@@ -34,7 +34,7 @@ let
     owner = "libsdl-org";
     repo = "SDL";
     rev = "release-3.4.4";
-    hash = "sha256-/dvOMEV9mduqk+BVpUqtdVGAEHIDmiQOIjMZPDzABRs=";
+    hash = "sha256-vCz+jZ1Sl6Of60HXljciTjR3U4da0PldyFsG79qmQ7g=";
   };
 
   # Pre-fetched CPM dependencies
@@ -42,21 +42,21 @@ let
     owner = "Electronicks";
     repo = "pocket_fsm";
     rev = "e447ec24c7a547bd1fbe8d964baa866a9cf146c8";
-    hash = "sha256-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=";
+    hash = "sha256-/dvOMEV9mduqk+BVpUqtdVGAEHIDmiQOIjMZPDzABRs=";
   };
 
   gmh_src = fetchFromGitHub {
     owner = "JibbSmart";
     repo = "GamepadMotionHelpers";
     rev = "39b578aacf34c3a1c584d8f7f194adc776f88055";
-    hash = "sha256-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=";
+    hash = "sha256-yEEcjUzXQAyc/3STuH7Yhbl5r+/S+M15AxNDEbhJuAY=";
   };
 
   magic_enum_src = fetchFromGitHub {
     owner = "Neargye";
     repo = "magic_enum";
     rev = "47e34ada93e0bf70dcea551636755cd66d893768";
-    hash = "sha256-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=";
+    hash = "sha256-tiou5sFNtbL110qK4MbjlY+x1yW8W6Irp6oMzuNM2I=";
   };
 in
 stdenv.mkDerivation {
