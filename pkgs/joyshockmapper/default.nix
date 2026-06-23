@@ -56,7 +56,7 @@ let
     owner = "Neargye";
     repo = "magic_enum";
     rev = "47e34ada93e0bf70dcea551636755cd66d893768";
-    hash = "sha256-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=";
+    hash = lib.fakeHash;
   };
 in
 stdenv.mkDerivation {
@@ -67,7 +67,7 @@ stdenv.mkDerivation {
     owner = "evan1mclean";
     repo = "JSM_custom_curve";
     rev = "0ace2daec59816d35e2859dcf2b2fc27d5958863";
-    hash = "sha256-BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB=";
+    hash = lib.fakeHash;
   };
 
   nativeBuildInputs = [
