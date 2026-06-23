@@ -163,6 +163,20 @@ stdenv.mkDerivation {
     # ../etc/JoyShockMapper/ resolves outside $prefix; change to share/ dir
     substituteInPlace cmake/LinuxConfig.cmake \
       --replace-fail '../etc/JoyShockMapper/' 'share/JoyShockMapper/'
+
+    # ---- DEBUG: print GP button states in GetButtons ----
+    sed -i '/case JS_TYPE_8BITDO_ULTIMATE2_WIRELESS:/a\
+\t\t\tfprintf(stderr, "DBG_GP: LP1=%d RP1=%d LP2=%d RP2=%d\\n",\
+\t\t\tSDL_GetGamepadButton(_controllerMap[deviceId]->_sdlController, SDL_GAMEPAD_BUTTON_LEFT_PADDLE1),\
+\t\t\tSDL_GetGamepadButton(_controllerMap[deviceId]->_sdlController, SDL_GAMEPAD_BUTTON_RIGHT_PADDLE1),\
+\t\t\tSDL_GetGamepadButton(_controllerMap[deviceId]->_sdlController, SDL_GAMEPAD_BUTTON_LEFT_PADDLE2),\
+\t\t\tSDL_GetGamepadButton(_controllerMap[deviceId]->_sdlController, SDL_GAMEPAD_BUTTON_RIGHT_PADDLE2));' \
+      JoyShockMapper/src/SDLWrapper.cpp
+
+    # ---- DEBUG: print controller type set by VID/PID ----
+    sed -i '/_ctrlr_type = JS_TYPE_8BITDO_ULTIMATE2_WIRELESS;/a\
+\t\t\tfprintf(stderr, "DBG_VID: ULTIMATE2 type=%d\\n", JS_TYPE_8BITDO_ULTIMATE2_WIRELESS);' \
+      JoyShockMapper/src/SDLWrapper.cpp
   '';
 
   meta = with lib; {
