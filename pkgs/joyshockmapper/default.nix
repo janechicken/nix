@@ -56,7 +56,7 @@ let
     owner = "jamek";
     repo = "magic_enum";
     rev = "47e34ada93e0bf70dcea551636755cd66d893768";
-    hash = lib.fakeSha256;
+    hash = lib.fakeHash;
   };
 in
 stdenv.mkDerivation {
