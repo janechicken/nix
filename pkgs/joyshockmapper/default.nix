@@ -42,21 +42,21 @@ let
     owner = "Electronicks";
     repo = "pocket_fsm";
     rev = "e447ec24c7a547bd1fbe8d964baa866a9cf146c8";
-    hash = "sha256-BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB=";
+    hash = "sha256-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=";
   };
 
   gmh_src = fetchFromGitHub {
     owner = "JibbSmart";
     repo = "GamepadMotionHelpers";
     rev = "39b578aacf34c3a1c584d8f7f194adc776f88055";
-    hash = "sha256-CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC=";
+    hash = "sha256-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=";
   };
 
   magic_enum_src = fetchFromGitHub {
     owner = "Neargye";
     repo = "magic_enum";
     rev = "47e34ada93e0bf70dcea551636755cd66d893768";
-    hash = "sha256-DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD=";
+    hash = "sha256-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=";
   };
 in
 stdenv.mkDerivation {
@@ -67,7 +67,7 @@ stdenv.mkDerivation {
     owner = "evan1mclean";
     repo = "JSM_custom_curve";
     rev = "0ace2daec59816d35e2859dcf2b2fc27d5958863";
-    hash = "sha256-EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE=";
+    hash = "sha256-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=";
   };
 
   nativeBuildInputs = [
