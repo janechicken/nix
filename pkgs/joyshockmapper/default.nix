@@ -156,7 +156,7 @@ stdenv.mkDerivation {
       JoyShockMapper/include/Gamepad.h
 
     # ---- StatusNotifierItem.cpp: fix use-after-move crash ----
-    sed -i 's/thread_{ \[this, \&beforeShow\]/thread_{ [this, beforeShow = std::move(beforeShow)]/' \
+    sed -i 's/  : thread_{ \[this, \&beforeShow\] {/  : thread_{ [this, beforeShow = std::move(beforeShow)] {/' \
       JoyShockMapper/src/linux/StatusNotifierItem.cpp
 
     # ---- Linux config: fix GyroConfigs install path ----
