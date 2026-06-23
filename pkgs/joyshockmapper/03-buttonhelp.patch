@@ -1,0 +1,19 @@
+--- /nix/store/wc1xz4in479bgzdiqh9lb78h7j8gqjkf-source/JoyShockMapper/src/ButtonHelp.cpp	1969-12-31 19:00:01.000000000 -0500
++++ /tmp/pi-github-repos/evan1mclean/JSM_custom_curve/JoyShockMapper/src/ButtonHelp.cpp	2026-06-23 15:28:22.323955496 -0400
+@@ -51,6 +51,16 @@
+ 	{ ButtonID::TLEFT, "Touch stick tilted left" },
+ 	{ ButtonID::TRIGHT, "Touch stick tilted right" },
+ 	{ ButtonID::TRING, "Touch ring binding, either inner or outer." },
++	{ ButtonID::LTOUCH, "Left stick capacitive touch" },
++	{ ButtonID::RTOUCH, "Right stick capacitive touch" },
++	{ ButtonID::LMINI, "Left mini shoulder button" },
++	{ ButtonID::RMINI, "Right mini shoulder button" },
++	{ ButtonID::MISC1, "Additional button that varies by controller" },
++	{ ButtonID::MISC2, "Additional button that varies by controller" },
++	{ ButtonID::MISC3, "Additional button that varies by controller" },
++	{ ButtonID::MISC4, "Additional button that varies by controller" },
++	{ ButtonID::MISC5, "Additional button that varies by controller" },
++	{ ButtonID::MISC6, "Additional button that varies by controller" },
+ };
+ 
+ map<int, ButtonID> nnm = { 
