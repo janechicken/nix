@@ -56,7 +56,7 @@ let
     owner = "Neargye";
     repo = "magic_enum";
     rev = "47e34ada93e0bf70dcea551636755cd66d893768";
-    hash = lib.fakeHash;
+    hash = "sha256-/RIuIAROWQhk4YUVv0TiGC6a9jtM1TI511Y5WOgZVCQ=";
   };
 in
 stdenv.mkDerivation {
