@@ -1,6 +1,7 @@
 {
   lib,
   fetchFromGitHub,
+  fetchurl,
   stdenv,
   cmake,
   pkg-config,
@@ -52,11 +53,9 @@ let
     hash = "sha256-yEEcjUzXQAyc/3STuH7Yhbl5r+/S+M15AxNDEbhJuAY=";
   };
 
-  magic_enum_src = fetchFromGitHub {
-    owner = "jamek";
-    repo = "magic_enum";
-    rev = "47e34ada93e0bf70dcea551636755cd66d893768";
-    hash = "sha256-pC997GahEZZ7Xfu1n7ftDdRW6c+EMnDXGM6aHPz9Cv0=";
+  magic_enum_src = fetchurl {
+    url = "https://github.com/jamek/magic_enum/archive/47e34ada93e0bf70dcea551636755cd66d893768.tar.gz";
+    sha256 = "a42f7dec66a111967b5dfbb59fb7ed0dd456e9cf843270d718ce9a1cfcfd0afd";
   };
 in
 stdenv.mkDerivation {
@@ -110,7 +109,9 @@ stdenv.mkDerivation {
     cp -r --no-preserve=mode ${sdl3_src} /build/SDL3
     cp -r --no-preserve=mode ${pocket_fsm_src} /build/pocket_fsm
     cp -r --no-preserve=mode ${gmh_src} /build/gmh
-    cp -r --no-preserve=mode ${magic_enum_src} /build/magic_enum
+    # magic_enum_src is a fetchurl tarball, extract it
+    mkdir -p /build/magic_enum
+    tar xzf ${magic_enum_src} --strip-components=1 -C /build/magic_enum
 
     # Add 8BitDo Ultimate 2 Wireless (PID 0x6012) to SDL3 gamepad database
     # Not in upstream SDL3 3.4.4 db. Button indices confirmed by sdltest.
