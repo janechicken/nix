@@ -91,6 +91,8 @@ stdenv.mkDerivation {
     sed -i '/^[[:space:]]*set(SDL_HIDAPI ON)$/,/^[[:space:]]*)$/c\    find_package(SDL3 REQUIRED)' \
       JoyShockMapper/CMakeLists.txt
     sed -i '/CMAKE_MSVC_RUNTIME_LIBRARY/d' JoyShockMapper/CMakeLists.txt
+    sed -i '/SDL_uclibc PROPERTIES/d' JoyShockMapper/CMakeLists.txt
+    sed -i '/SDL3-shared PROPERTIES/d' JoyShockMapper/CMakeLists.txt
     sed -i 's/ SDL3-shared//' JoyShockMapper/CMakeLists.txt
 
     # ---- magic_enum: pre-fetched local source ----
