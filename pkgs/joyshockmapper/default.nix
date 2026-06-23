@@ -10,35 +10,12 @@
   gtkmm3,
   libappindicator-gtk3,
   libevdev,
-  libusb1,
-  hidapi,
-  libdrm,
-  libx11,
-  libxext,
-  libxi,
-  libxrandr,
-  libxkbcommon,
-  alsa-lib,
-  pulseaudio,
-  dbus,
-  systemd,
-  libdecor,
-  wayland-scanner,
-  libxscrnsaver,
+  sdl3,
 }:
 
 let
   version = "2.1.0";
 
-  # SDL3: pre-fetched at release-3.4.4 (same as fork uses)
-  sdl3_src = fetchFromGitHub {
-    owner = "libsdl-org";
-    repo = "SDL";
-    rev = "release-3.4.4";
-    hash = "sha256-vCz+jZ1Sl6Of60HXljciTjR3U4da0PldyFsG79qmQ7g=";
-  };
-
-  # Pre-fetched CPM dependencies
   pocket_fsm_src = fetchFromGitHub {
     owner = "Electronicks";
     repo = "pocket_fsm";
@@ -80,43 +57,21 @@ stdenv.mkDerivation {
     gtkmm3
     libappindicator-gtk3
     libevdev
-    libusb1
-    hidapi
-    systemd
-    libdrm
-    libx11
-    libxext
-    libxi
-    libxrandr
-    libxkbcommon
-    alsa-lib
-    pulseaudio
-    dbus
-    libdecor
-    wayland-scanner
-    libxscrnsaver
+    sdl3
   ];
 
   cmakeFlags = [
     "-DCMAKE_CXX_COMPILER=clang++"
     "-DCMAKE_BUILD_TYPE=Release"
     "-DPACKAGE_DIR=bin"
-    "-DSDL_X11_XTEST=OFF"
   ];
 
   preConfigure = ''
     # Copy pre-fetched CPM deps to writeable locations
-    cp -r --no-preserve=mode ${sdl3_src} /build/SDL3
     cp -r --no-preserve=mode ${pocket_fsm_src} /build/pocket_fsm
     cp -r --no-preserve=mode ${gmh_src} /build/gmh
-    # magic_enum_src is a fetchurl tarball, extract it
     mkdir -p /build/magic_enum
     tar xzf ${magic_enum_src} --strip-components=1 -C /build/magic_enum
-
-    # Add 8BitDo Ultimate 2 Wireless (PID 0x6012) to SDL3 gamepad database
-    # Not in upstream SDL3 3.4.4 db. Button indices confirmed by sdltest.
-    sed -i '/static const char \*s_GamepadMappings\[\] = {/a\    "03000000c82d00001260000000000000,8BitDo Ultimate 2 Wireless,a:b0,b:b1,dpleft:h0.8,dpdown:h0.4,dpright:h0.2,dpup:h0.1,leftshoulder:b6,leftstick:b13,lefttrigger:b8,leftx:a0,lefty:a2,paddle1:b11,paddle2:b12,paddle3:b13,paddle4:b14,rightshoulder:b7,rightstick:b14,righttrigger:b9,rightx:a3,righty:a5,x:b3,y:b4,"' /build/SDL3/src/joystick/SDL_gamepad_db.h
-    sed -i '/static const char \*s_GamepadMappings\[\] = {/a\    "05000000c82d00001260000000000000,8BitDo Ultimate 2 Wireless,a:b0,b:b1,dpleft:h0.8,dpdown:h0.4,dpright:h0.2,dpup:h0.1,leftshoulder:b6,leftstick:b13,lefttrigger:b8,leftx:a0,lefty:a2,paddle1:b11,paddle2:b12,paddle3:b13,paddle4:b14,rightshoulder:b7,rightstick:b14,righttrigger:b9,rightx:a3,righty:a5,x:b3,y:b4,"' /build/SDL3/src/joystick/SDL_gamepad_db.h
 
     # pocket_fsm's CMakeLists.txt calls write_basic_package_version_file
     # without including CMakePackageConfigHelpers
@@ -132,10 +87,11 @@ stdenv.mkDerivation {
     substituteInPlace JoyShockMapper/CMakeLists.txt \
       --replace-fail 'git_describe(GIT_TAG --tags --dirty=_d)' 'set(GIT_TAG "v${version}")'
 
-    # ---- SDL3: pre-fetched local source ----
-    sed -i '/^[[:space:]]*set(SDL_HIDAPI ON)$/,/^[[:space:]]*)$/c\    set(SDL_HIDAPI ON)\n    set(SDL_TEST_LIBRARY OFF)\n    set(SDL_SHARED ON)\n    set(SDL_TEST OFF)\n    FetchContent_Declare(SDL3 SOURCE_DIR "/build/SDL3")\n    FetchContent_MakeAvailable(SDL3)' \
+    # ---- SDL3: use system package instead of CPM ----
+    sed -i '/^[[:space:]]*set(SDL_HIDAPI ON)$/,/^[[:space:]]*)$/c\    find_package(SDL3 REQUIRED)' \
       JoyShockMapper/CMakeLists.txt
     sed -i '/CMAKE_MSVC_RUNTIME_LIBRARY/d' JoyShockMapper/CMakeLists.txt
+    sed -i 's/ SDL3-shared//' JoyShockMapper/CMakeLists.txt
 
     # ---- magic_enum: pre-fetched local source ----
     sed -i '/^# magic_enum$/,/^)$/c\FetchContent_Declare(magic_enum SOURCE_DIR "/build/magic_enum")\nFetchContent_MakeAvailable(magic_enum)' \
@@ -160,22 +116,21 @@ stdenv.mkDerivation {
       JoyShockMapper/src/linux/StatusNotifierItem.cpp
 
     # ---- Linux config: fix GyroConfigs install path ----
-    # ../etc/JoyShockMapper/ resolves outside $prefix; change to share/ dir
     substituteInPlace cmake/LinuxConfig.cmake \
       --replace-fail '../etc/JoyShockMapper/' 'share/JoyShockMapper/'
 
     # ---- DEBUG: print GP button states in GetButtons ----
     sed -i '/case JS_TYPE_8BITDO_ULTIMATE2_WIRELESS:/a\
-\t\t\tfprintf(stderr, "DBG_GP: LP1=%d RP1=%d LP2=%d RP2=%d\\n",\
-\t\t\tSDL_GetGamepadButton(_controllerMap[deviceId]->_sdlController, SDL_GAMEPAD_BUTTON_LEFT_PADDLE1),\
-\t\t\tSDL_GetGamepadButton(_controllerMap[deviceId]->_sdlController, SDL_GAMEPAD_BUTTON_RIGHT_PADDLE1),\
-\t\t\tSDL_GetGamepadButton(_controllerMap[deviceId]->_sdlController, SDL_GAMEPAD_BUTTON_LEFT_PADDLE2),\
-\t\t\tSDL_GetGamepadButton(_controllerMap[deviceId]->_sdlController, SDL_GAMEPAD_BUTTON_RIGHT_PADDLE2));' \
+                        fprintf(stderr, "DBG_GP: LP1=%d RP1=%d LP2=%d RP2=%d\\n",\
+                        SDL_GetGamepadButton(_controllerMap[deviceId]->_sdlController, SDL_GAMEPAD_BUTTON_LEFT_PADDLE1),\
+                        SDL_GetGamepadButton(_controllerMap[deviceId]->_sdlController, SDL_GAMEPAD_BUTTON_RIGHT_PADDLE1),\
+                        SDL_GetGamepadButton(_controllerMap[deviceId]->_sdlController, SDL_GAMEPAD_BUTTON_LEFT_PADDLE2),\
+                        SDL_GetGamepadButton(_controllerMap[deviceId]->_sdlController, SDL_GAMEPAD_BUTTON_RIGHT_PADDLE2));' \
       JoyShockMapper/src/SDLWrapper.cpp
 
     # ---- DEBUG: print controller type set by VID/PID ----
     sed -i '/_ctrlr_type = JS_TYPE_8BITDO_ULTIMATE2_WIRELESS;/a\
-\t\t\tfprintf(stderr, "DBG_VID: ULTIMATE2 type=%d\\n", JS_TYPE_8BITDO_ULTIMATE2_WIRELESS);' \
+                        fprintf(stderr, "DBG_VID: ULTIMATE2 type=%d\\n", JS_TYPE_8BITDO_ULTIMATE2_WIRELESS);' \
       JoyShockMapper/src/SDLWrapper.cpp
   '';
 
