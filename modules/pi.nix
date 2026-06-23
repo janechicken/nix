@@ -100,7 +100,6 @@ in
       | `reviewer` | **ALWAYS** after worker returns — catch what worker missed | fresh |
       | `worker` | ONLY after the plan is clear and you know exactly what to build | fork |
       | `delegate` | Quick well-defined tasks that don't fit the above | fresh |
-      | `eyes` | When there are images to analyze | fresh |
 
       **CRITICAL: Worker is NOT your default.** If you find yourself
       reaching for worker first, stop and ask: "Do I understand the
@@ -117,7 +116,6 @@ in
       Ready to implement?  Done with planning?     → worker
       Worker finished?  Need a quality check?      → reviewer
       Quick bounded task?                          → delegate
-      Need to analyze images?                      → eyes
       ```
 
       ## Oracle escalation path
@@ -364,15 +362,14 @@ in
         # main agent's context stays clean for orchestration
         subagents = {
           agentOverrides = {
-            scout = { model = "neuralwatt/glm-5.2-short-fast"; };
-            planner = { model = "neuralwatt/glm-5.2-short-fast"; };
-            worker = { model = "neuralwatt/glm-5.2-short-fast"; };
-            reviewer = { model = "neuralwatt/glm-5.2-short-fast"; };
-            context-builder = { model = "neuralwatt/glm-5.2-short-fast"; };
-            researcher = { model = "neuralwatt/glm-5.2-short-fast"; };
-            delegate = { model = "neuralwatt/glm-5.2-short-fast"; };
-            oracle = { model = "neuralwatt/glm-5.2-short-fast"; };
-            eyes = { model = "neuralwatt/kimi-k2.6-fast"; };
+            scout = { model = "opencode-go/mimo-v2.5"; };
+            planner = { model = "opencode-go/mimo-v2.5"; };
+            worker = { model = "opencode-go/mimo-v2.5"; };
+            reviewer = { model = "opencode-go/mimo-v2.5"; };
+            context-builder = { model = "opencode-go/mimo-v2.5"; };
+            researcher = { model = "opencode-go/mimo-v2.5"; };
+            delegate = { model = "opencode-go/mimo-v2.5"; };
+            oracle = { model = "opencode-go/mimo-v2.5"; };
           };
         };
         # Extensions from Nix derivations (separate dir to avoid conflicts with
@@ -459,11 +456,6 @@ in
           bashMode = "yellow";
         };
       };
-    };
-    # Eyes subagent — kimi-k2.6 vision agent for image analysis
-    ".pi/agent/agents/eyes.md" = {
-      force = true;
-      source = ../dotfiles/pi/agents/eyes.md;
     };
     # Researcher subagent — web research with web_search + fetch_content
     # Overrides pi-subagents built-in which may not include web tools
