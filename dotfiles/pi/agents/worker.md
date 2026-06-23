@@ -3,7 +3,7 @@ name: worker
 description: Implementation agent — single-writer executor. Escalates to oracle when stuck or near its turn limit.
 tools: read, grep, find, ls, bash, edit, write, contact_supervisor
 thinking: high
-model: neuralwatt/glm-5.2-short-fast
+model: opencode-go/mimo-v2.5
 systemPromptMode: replace
 inheritProjectContext: true
 inheritSkills: false

@@ -2,7 +2,7 @@
 name: context-builder
 description: Analyzes requirements and codebase, generates context and meta-prompt
 tools: read, grep, find, ls, bash, write, web_search, intercom
-model: neuralwatt/glm-5.2-short-fast
+model: opencode-go/mimo-v2.5
 thinking: medium
 systemPromptMode: replace
 inheritProjectContext: true

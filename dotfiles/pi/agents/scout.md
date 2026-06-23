@@ -2,7 +2,7 @@
 name: scout
 description: Fast codebase recon that returns compressed context for handoff
 tools: read, grep, find, ls, bash, write, intercom
-model: neuralwatt/glm-5.2-short-fast
+model: opencode-go/mimo-v2.5
 thinking: low
 systemPromptMode: replace
 inheritProjectContext: true
