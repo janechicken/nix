@@ -34,7 +34,7 @@ let
     owner = "libsdl-org";
     repo = "SDL";
     rev = "release-3.4.4";
-    hash = "sha256-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=";
+    hash = "sha256-/dvOMEV9mduqk+BVpUqtdVGAEHIDmiQOIjMZPDzABRs=";
   };
 
   # Pre-fetched CPM dependencies
