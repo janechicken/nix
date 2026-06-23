@@ -24,6 +24,7 @@
     ../../modules/keyring.nix
     ../../modules/flatpak.nix
     ../../modules/nix-ld.nix
+    ../../modules/ntsync.nix
     ../../modules/networking.nix
     ../../modules/xdg-portal.nix
     ../../modules/lock.nix
