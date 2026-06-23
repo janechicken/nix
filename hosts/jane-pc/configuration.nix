@@ -2,10 +2,17 @@
 # your system. Help is available in the configuration.nix(5) man page, on
 # https://search.nixos.org/options and in the NixOS manual (`nixos-help`).
 
-{ config, lib, pkgs, inputs, ... }:
+{
+  config,
+  lib,
+  pkgs,
+  inputs,
+  ...
+}:
 
 {
-  imports = [ # Include the results of the hardware scan.
+  imports = [
+    # Include the results of the hardware scan.
     ./hardware-configuration.nix
     ../../modules/fonts.nix
     ../../modules/core.nix
@@ -25,7 +32,10 @@
     ../../modules/lock.nix
     ../../modules/openvpn.nix
     ../../modules/wireguard.nix
+    ../../modules/joyshockmapper.nix
   ];
+  services.joyshockmapper.enable = true;
+
   services.openssh = {
     enable = true;
     settings = {
@@ -79,7 +89,10 @@
     };
   };
 
-  nix.settings.experimental-features = [ "nix-command" "flakes" ];
+  nix.settings.experimental-features = [
+    "nix-command"
+    "flakes"
+  ];
   nix.settings.extra-substituters = [ "https://pi.cachix.org" ];
   nix.settings.extra-trusted-public-keys = [
     "pi.cachix.org-1:lGeoGJaZ5ZDabuRzkcD5EBTNnDM4HJ1vqeOxlWk1Flk="
@@ -88,8 +101,7 @@
   networking.hostName = "jane-pc"; # Define your hostname.
   # Pick only one of the below networking options.
   # networking.wireless.enable = true;  # Enables wireless support via wpa_supplicant.
-  networking.networkmanager.enable =
-    true; # Easiest to use and most distros use this by default.
+  networking.networkmanager.enable = true; # Easiest to use and most distros use this by default.
 
   # Set your time zone.
   time.timeZone = "America/New_York";
@@ -110,16 +122,22 @@
   services.xserver = {
     enable = true;
     autorun = false;
-    displayManager.startx = { enable = true; };
+    displayManager.startx = {
+      enable = true;
+    };
     windowManager.awesome = {
       enable = true;
-      luaModules = with pkgs.luaPackages; [ luarocks luadbi-mysql vicious ];
+      luaModules = with pkgs.luaPackages; [
+        luarocks
+        luadbi-mysql
+        vicious
+      ];
     };
     deviceSection = ''
       Option "TearFree" "False"
       Option "VariableRefresh" "True"
     '';
-  videoDrivers = [ "modesetting" ];
+    videoDrivers = [ "modesetting" ];
   };
   environment.sessionVariables = {
     LIBVA_DRIVER_NAME = "iHD";
@@ -162,7 +180,13 @@
   # Define a user account. Don't forget to set a password with ‘passwd’.
   users.users.jane = {
     isNormalUser = true;
-    extraGroups = [ "wheel" "input" "networkmanager" "audio" "input" ];
+    extraGroups = [
+      "wheel"
+      "input"
+      "networkmanager"
+      "audio"
+      "input"
+    ];
     shell = pkgs.zsh;
   };
 

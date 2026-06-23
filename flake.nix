@@ -11,12 +11,16 @@
       url = "gitlab:rycee/nur-expressions?dir=pkgs/firefox-addons";
       inputs.nixpkgs.follows = "nixpkgs";
     };
-    nixcord = { url = "github:FlameFlag/nixcord"; };
+    nixcord = {
+      url = "github:FlameFlag/nixcord";
+    };
     disko = {
       url = "github:nix-community/disko";
       inputs.nixpkgs.follows = "nixpkgs";
     };
-    nix-alien = { url = "github:thiagokokada/nix-alien"; };
+    nix-alien = {
+      url = "github:thiagokokada/nix-alien";
+    };
     sops-nix = {
       url = "github:Mic92/sops-nix";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -49,8 +53,20 @@
     };
   };
 
-  outputs = inputs@{ self, nixpkgs, home-manager, firefox-addons, nixcord
-    , disko, nix-alien, sops-nix, nixwrap, hermes-agent, ... }:
+  outputs =
+    inputs@{
+      self,
+      nixpkgs,
+      home-manager,
+      firefox-addons,
+      nixcord,
+      disko,
+      nix-alien,
+      sops-nix,
+      nixwrap,
+      hermes-agent,
+      ...
+    }:
     let
       overlayFiles = import ./overlays/default.nix;
       overlay = nixpkgs.lib.composeManyExtensions (map import overlayFiles);
@@ -63,12 +79,18 @@
         jane-pc = nixpkgs.lib.nixosSystem {
           system = "x86_64-linux";
           specialArgs = { inherit inputs; };
-          modules = [ ./hosts/jane-pc/configuration.nix ];
+          modules = [
+            ./hosts/jane-pc/configuration.nix
+            { nixpkgs.overlays = [ overlay ]; }
+          ];
         };
         jane-laptop = nixpkgs.lib.nixosSystem {
           system = "x86_64-linux";
           specialArgs = { inherit inputs; };
-          modules = [ ./hosts/jane-laptop/configuration.nix ];
+          modules = [
+            ./hosts/jane-laptop/configuration.nix
+            { nixpkgs.overlays = [ overlay ]; }
+          ];
         };
       };
 
