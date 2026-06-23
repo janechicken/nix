@@ -34,7 +34,7 @@ let
     owner = "libsdl-org";
     repo = "SDL";
     rev = "release-3.4.4";
-    hash = lib.fakeHash;
+    hash = "sha256-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=";
   };
 
   # Pre-fetched CPM dependencies
@@ -42,21 +42,21 @@ let
     owner = "Electronicks";
     repo = "pocket_fsm";
     rev = "e447ec24c7a547bd1fbe8d964baa866a9cf146c8";
-    hash = lib.fakeHash;
+    hash = "sha256-BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB=";
   };
 
   gmh_src = fetchFromGitHub {
     owner = "JibbSmart";
     repo = "GamepadMotionHelpers";
     rev = "39b578aacf34c3a1c584d8f7f194adc776f88055";
-    hash = lib.fakeHash;
+    hash = "sha256-CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC=";
   };
 
   magic_enum_src = fetchFromGitHub {
     owner = "Neargye";
     repo = "magic_enum";
     rev = "47e34ada93e0bf70dcea551636755cd66d893768";
-    hash = lib.fakeHash;
+    hash = "sha256-DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD=";
   };
 in
 stdenv.mkDerivation {
@@ -67,7 +67,7 @@ stdenv.mkDerivation {
     owner = "evan1mclean";
     repo = "JSM_custom_curve";
     rev = "0ace2daec59816d35e2859dcf2b2fc27d5958863";
-    hash = lib.fakeHash;
+    hash = "sha256-EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE=";
   };
 
   nativeBuildInputs = [
