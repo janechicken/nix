@@ -2,7 +2,7 @@
 name: worker
 description: Implementation agent — single-writer executor. Escalates to oracle when stuck or near its turn limit.
 tools: read, grep, find, ls, bash, edit, write, mcp, contact_supervisor
-thinking: high
+thinking: off
 model: opencode-go/deepseek-v4-flash
 systemPromptMode: replace
 inheritProjectContext: true

@@ -384,6 +384,7 @@ in
             };
             delegate = {
               model = "opencode-go/deepseek-v4-flash";
+              thinking = "off";
             };
             oracle = {
               model = "opencode-go/deepseek-v4-flash";

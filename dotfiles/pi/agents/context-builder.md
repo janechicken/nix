@@ -3,7 +3,7 @@ name: context-builder
 description: Analyzes requirements and codebase, generates context and meta-prompt
 tools: read, grep, find, ls, bash, write, web_search, intercom
 model: opencode-go/deepseek-v4-flash
-thinking: medium
+thinking: off
 systemPromptMode: replace
 inheritProjectContext: true
 inheritSkills: false

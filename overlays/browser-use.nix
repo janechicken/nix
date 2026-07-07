@@ -6,6 +6,12 @@ final: prev: {
       cdp-use = pyfinal.callPackage ../pkgs/browser-use/cdp-use.nix { };
       bubus = pyfinal.callPackage ../pkgs/browser-use/bubus.nix { };
       agentmail = pyfinal.callPackage ../pkgs/browser-use/agentmail.nix { };
+
+      # jsonpath-python 1.1.6 has a flaky performance benchmark that fails
+      # on this hardware. Required by mistralai (→ hermes-agent).
+      jsonpath-python = pyprev.jsonpath-python.overrideAttrs (old: {
+        doCheck = false;
+      });
     };
   };
   browser-use = final.python312Packages.buildPythonPackage (with final.python312Packages; {
