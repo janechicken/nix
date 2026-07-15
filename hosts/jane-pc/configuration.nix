@@ -36,13 +36,6 @@
   ];
   services.joyshockmapper.enable = true;
 
-  services.openssh = {
-    enable = true;
-    settings = {
-      ListenAddress = "10.100.0.1";
-    };
-  };
-
   services.udev.packages = [
     pkgs.yubikey-personalization
   ];
