@@ -27,7 +27,6 @@
     ../../modules/browser-use.nix
     ../../modules/mcp.nix
     ../../secrets/home-secrets.nix
-    ../../modules/xdg-portal-home.nix
   ];
   # Home Manager needs a bit of information about you and the paths it should
   # manage.

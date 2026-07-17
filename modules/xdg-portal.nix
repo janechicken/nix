@@ -4,7 +4,13 @@
   xdg.portal = {
     enable = true;
     config.common.default = "gtk";
-    extraPortals = [ pkgs.xdg-desktop-portal-gtk ];
+    # gtk-portal does not implement Screenshot, OpenURI, or own
+    # org.freedesktop.ScreenSaver. Add gnome-portal to provide those
+    # backends on X11 sessions without gnome-shell.
+    extraPortals = [
+      pkgs.xdg-desktop-portal-gtk
+      pkgs.xdg-desktop-portal-gnome
+    ];
   };
 
   # xdg-desktop-portal-gtk starts via graphical-session.target, but
