@@ -2,7 +2,7 @@
 name: scout
 description: Fast codebase recon that returns compressed context for handoff
 tools: read, grep, find, ls, bash, write, intercom
-model: opencode-go/deepseek-v4-flash
+model: cursor/grok-4.5
 thinking: off
 systemPromptMode: replace
 inheritProjectContext: true

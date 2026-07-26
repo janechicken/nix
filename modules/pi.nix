@@ -25,6 +25,7 @@ let
     pi-neuralwatt
     pi-advisor
     pi-ask-user
+    pi-cursor-sdk
   ];
   remoteHomeFiles = builtins.listToAttrs (
     map (
@@ -347,8 +348,8 @@ in
     ".pi/agent/settings.json" = {
       force = true;
       text = builtins.toJSON {
-        defaultProvider = "neuralwatt";
-        defaultModel = "glm-5.2";
+        defaultProvider = "cursor";
+        defaultModel = "grok-4.5";
         theme = "autumn-dark";
         hideThinkingBlock = true;
         compaction = {
@@ -365,32 +366,32 @@ in
         subagents = {
           agentOverrides = {
             scout = {
-              model = "opencode-go/deepseek-v4-flash";
+              model = "cursor/grok-4.5";
             };
             planner = {
-              model = "opencode-go/deepseek-v4-flash";
+              model = "cursor/grok-4.5";
             };
             worker = {
-              model = "opencode-go/deepseek-v4-flash";
+              model = "cursor/grok-4.5";
             };
             reviewer = {
-              model = "opencode-go/deepseek-v4-flash";
+              model = "cursor/grok-4.5";
             };
             context-builder = {
-              model = "opencode-go/deepseek-v4-flash";
+              model = "cursor/grok-4.5";
             };
             researcher = {
-              model = "opencode-go/deepseek-v4-flash";
+              model = "cursor/grok-4.5";
             };
             delegate = {
-              model = "opencode-go/deepseek-v4-flash";
+              model = "cursor/grok-4.5";
               thinking = "off";
             };
             oracle = {
-              model = "opencode-go/deepseek-v4-flash";
+              model = "cursor/grok-4.5";
             };
             eyes = {
-              model = "opencode-go/kimi-k2.6";
+              model = "cursor/grok-4.5";
             };
           };
         };
@@ -515,7 +516,7 @@ in
       force = true;
       source = ../dotfiles/pi/agents/oracle.md;
     };
-    # Eyes subagent — kimi-k2.6 vision agent for image analysis
+    # Eyes subagent — image analysis via cursor/grok-4.5
     ".pi/agent/agents/eyes.md" = {
       force = true;
       source = ../dotfiles/pi/agents/eyes.md;
@@ -549,8 +550,8 @@ in
       force = true;
       text = builtins.toJSON {
         enabled = true;
-        provider = "neuralwatt";
-        model = "glm-5.2";
+        provider = "cursor";
+        model = "grok-4.5";
         maxUsesPerRun = 3;
         maxTokens = 32768;
         reasoning = "high";

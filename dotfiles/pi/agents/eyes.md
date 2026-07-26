@@ -1,7 +1,7 @@
 ---
 name: eyes
-description: Image analysis agent. Uses kimi-k2.6 (vision-capable) to analyze images. Read-only.
-model: opencode-go/kimi-k2.6
+description: Image analysis agent. Uses cursor/grok-4.5 to analyze images. Read-only.
+model: cursor/grok-4.5
 tools: read, grep, find, ls
 thinking: off
 systemPromptMode: replace
