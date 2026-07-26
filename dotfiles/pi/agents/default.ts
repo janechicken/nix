@@ -1,12 +1,11 @@
 /**
  * Default (normal) agent mode for Pi.
  *
- * YOU ARE THE ORCHESTRATOR. Your job: decompose, parallelize,
- * brief concretely, synthesize results. Subagents handle tool
- * work so your context stays clean and focused on strategy.
+ * Subagents available when parallel independent work helps.
+ * Same model as the main agent — skip for simple single-path tasks.
  */
 
 export default {
   id: "default",
-  prompt: "Activate orchestrator mode — see rules above for full delegation discipline.",
+  prompt: "Subagents available via subagent() — use when parallel independent work helps. Same model; skip for simple single-path tasks.",
 };
