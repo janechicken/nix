@@ -33,6 +33,7 @@
   xdg.configFile."flameshot/flameshot.ini".text = ''
     [General]
     useX11LegacyScreenshot=true
+    captureActiveMonitor=true
     contrastOpacity=188
     drawColor=#ff0000
     saveAfterCopy=true
