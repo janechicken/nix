@@ -28,6 +28,19 @@
     pkgs.xbacklight
   ];
 
+  # Flameshot 14 defaults to xdg Screenshot portal; Awesome has none.
+  # Force Qt X11 grab instead (no gnome/xapp portal needed).
+  xdg.configFile."flameshot/flameshot.ini".text = ''
+    [General]
+    useX11LegacyScreenshot=true
+    contrastOpacity=188
+    drawColor=#ff0000
+    saveAfterCopy=true
+    savePath=${config.home.homeDirectory}/Pictures/Screenshots
+    showSelectionGeometryHideTime=3000
+    undoLimit=100
+  '';
+
   home.file = {
     ".config/awesome" = {
       recursive = true;

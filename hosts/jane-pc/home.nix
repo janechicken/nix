@@ -59,14 +59,25 @@
   # plain files is through 'home.file'.
   home.file = {
     ".xinitrc".text = ''
-      #!/bin/bash/
-      
+      #!/bin/bash
+      export XDG_CURRENT_DESKTOP=Awesome
+      export XDG_SESSION_DESKTOP=Awesome
+      export XDG_SESSION_TYPE=x11
+
       # kill startup apps
-      killall picom
-      
+      killall picom 2>/dev/null || true
       picom &
-      
+
       xrandr --output DP-3 --primary --mode 1920x1080 --rate 165 --pos 0x0 --output DP-1 --mode 1920x1080 --pos 1920x0
+
+      # Feed X env into systemd --user so portals/dbus activation see it.
+      systemctl --user import-environment DISPLAY XAUTHORITY XDG_CURRENT_DESKTOP XDG_SESSION_DESKTOP XDG_SESSION_TYPE
+      dbus-update-activation-environment --systemd DISPLAY XAUTHORITY XDG_CURRENT_DESKTOP XDG_SESSION_DESKTOP XDG_SESSION_TYPE
+
+      # Pull up graphical-session.target (RefuseManualStart) for gnome portal.
+      trap 'systemctl --user stop awesome-graphical-session.service' EXIT
+      systemctl --user start awesome-graphical-session.service
+
       exec awesome
     '';
   };
