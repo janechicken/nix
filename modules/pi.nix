@@ -29,6 +29,7 @@ let
     pi-advisor
     pi-ask-user
     pi-cursor-sdk
+    pi-effort
   ];
   remoteHomeFiles = builtins.listToAttrs (
     map (

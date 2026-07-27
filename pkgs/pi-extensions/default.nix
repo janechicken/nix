@@ -290,6 +290,14 @@ in rec {
     outputHash = "sha256-d5hu/Hukx8NZT/DKYJ80/i0X9oNvB3sYwST01UPtxEY=";
   };
 
+  pi-effort = mkNpmPiExt {
+    name = "pi-effort";
+    version = "0.0.5";
+    tarballUrl = "https://registry.npmjs.org/pi-effort/-/pi-effort-0.0.5.tgz";
+    tarballHash = "sha256-YQXMAAN803QQscnInGUq0e56bjioUJ2VKudd1naDugE=";
+    outputHash = "sha256-BGLAyjFxx51bJXPUAdHOOx4Rc5xh+bMDuaCEqQE7oyI=";
+  };
+
   pi-neuralwatt = mkPiExt {
     name = "pi-neuralwatt";
     version = "0.7.2";
