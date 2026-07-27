@@ -10,9 +10,13 @@ let
   # Local extensions (from dotfiles) — passed via --extension CLI flags
   extDir = ../dotfiles/pi/extensions;
   extFiles = builtins.readDir extDir;
-  # Unwire delegation-guard (file kept for restore); load other local extensions
+  # Unwire DeepSeek-era fences (files kept for restore); load other local extensions
+  unwiredExts = [
+    "delegation-guard.ts"
+    "tool-use-enforcement.ts"
+  ];
   extPaths = map (name: "${toString extDir}/${name}") (
-    builtins.filter (name: name != "delegation-guard.ts") (builtins.attrNames extFiles)
+    builtins.filter (name: !(builtins.elem name unwiredExts)) (builtins.attrNames extFiles)
   );
 
   # Remote Pi extensions (Nix-built npm packages) — only those with real hashes
@@ -69,7 +73,6 @@ in
       - **YAGNI**: No packages/options/features user didn't ask for.
       - **One-liner preference**: 1-line fix beats multi-line rewrite when it fits.
       - Verify tool/subagent results before trusting (stat, check output, run test).
-      - Never end a turn with plans/"next steps" — end with an executable action or a result.
       - Unknown facts → look them up; do not guess from training data.
       - Never output a code block you haven't read from the actual file.
       - No scratch markdown in project dirs (`progress.md`, `TODO.md`, `NOTES.md`, `*.tmp.md`). Subagent outputs under `/tmp`; delete agent-created scratch `.md` before turn ends. User-requested docs OK.
