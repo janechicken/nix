@@ -18,12 +18,6 @@
     owner = config.users.users.jane.name;
     path = "/home/jane/.ssh/id_rsa.pub";
   };
-  sops.secrets."neuralwatt_api_key" = {
-    owner = config.users.users.jane.name;
-  };
-  sops.secrets."cursor_api_key" = {
-    owner = config.users.users.jane.name;
-  };
   # sops.secrets."gpg_key" = { # uncomment when needed
   #   owner = config.users.users.jane.name;
   # };
@@ -33,8 +27,6 @@
     DEEPSEEK_API_KEY = "$(cat /run/secrets/deepseek_api_key)";
     OPENCODE_API_KEY = "$(cat /run/secrets/opencode_api_key)";
     OPENCODE_GO_API_KEY = "$(cat /run/secrets/opencode_api_key)";
-    NEURALWATT_API_KEY = "$(cat /run/secrets/neuralwatt_api_key)";
-    CURSOR_API_KEY = "$(cat /run/secrets/cursor_api_key)";
     ZED_OPEN_AI_COMPATIBLE_EDIT_PREDICTION_API_KEY = "$(cat /run/secrets/deepseek_api_key)";
   };
 }

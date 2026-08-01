@@ -1,7 +1,7 @@
 ---
 name: eyes
-description: Image analysis agent. Uses cursor/grok-4.5 to analyze images. Read-only.
-model: cursor/grok-4.5
+description: Image analysis agent. Uses opencode-go/deepseek-v4-flash to analyze images. Read-only.
+model: opencode-go/deepseek-v4-flash
 tools: read, grep, find, ls
 thinking: off
 systemPromptMode: replace

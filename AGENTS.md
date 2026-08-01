@@ -95,7 +95,7 @@ nix flake update nixpkgs         # update single input
 - **Package**: `pi-coding-agent` from nixpkgs
 - **Auth**: `OPENCODE_API_KEY` env var (shared with OpenCode, set via sops-nix)
 - **Settings**: `~/.pi/agent/settings.json`
-  - Provider: `cursor`, model: `grok-4.5`
+  - Provider: `opencode-go`, model: `deepseek-v4-flash`
   - Theme: dark
   - Compaction enabled (reserve 16K, keep 20K recent)
   - Retry enabled (max 3 retries)

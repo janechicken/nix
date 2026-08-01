@@ -1,7 +1,7 @@
 ---
 name: oracle
 description: High-context decision-consistency oracle that protects inherited state and prevents drift
-model: cursor/grok-4.5
+model: opencode-go/deepseek-v4-flash
 tools: read, grep, find, ls, bash, intercom
 thinking: high
 systemPromptMode: replace

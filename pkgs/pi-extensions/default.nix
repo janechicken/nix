@@ -282,40 +282,11 @@ in rec {
     '';
   };
 
-  pi-cursor-sdk = mkNpmPiExt {
-    name = "pi-cursor-sdk";
-    version = "0.1.61";
-    tarballUrl = "https://registry.npmjs.org/pi-cursor-sdk/-/pi-cursor-sdk-0.1.61.tgz";
-    tarballHash = "sha256-Xc5wbFNELGJymc66/MCPnBGGKcu0V1psQU4LwMkJlY8=";
-    outputHash = "sha256-d5hu/Hukx8NZT/DKYJ80/i0X9oNvB3sYwST01UPtxEY=";
-  };
-
   pi-effort = mkNpmPiExt {
     name = "pi-effort";
     version = "0.0.5";
     tarballUrl = "https://registry.npmjs.org/pi-effort/-/pi-effort-0.0.5.tgz";
     tarballHash = "sha256-YQXMAAN803QQscnInGUq0e56bjioUJ2VKudd1naDugE=";
     outputHash = "sha256-BGLAyjFxx51bJXPUAdHOOx4Rc5xh+bMDuaCEqQE7oyI=";
-  };
-
-  pi-neuralwatt = mkPiExt {
-    name = "pi-neuralwatt";
-    version = "0.7.2";
-    owner = "aliou";
-    repo = "pi-neuralwatt";
-    rev = "v0.7.2";
-    srcHash = "sha256-2rhA9td+1Y5rmjcRBdvfIperugtiZKzVUTk4VJDPOHQ=";
-    pkgManager = "pnpm";
-    installFlags = "--frozen-lockfile";
-    outputHash = "sha256-WRzIpq01U5Yl1ztXDKh9uy+V1mMkAk9pAjm4OZOFY/g=";
-    extraInstallCommands = ''
-      rm -rf "$out/node_modules/.pnpm"/*/node_modules/*/node_modules/.cache 2>/dev/null || true
-      rm -f "$out/node_modules/.modules.yaml" "$out/node_modules/.pnpm-lock.yaml" "$out/pnpm-lock.yaml" "$out/yarn.lock" "$out/package-lock.json" 2>/dev/null || true
-      find "$out/node_modules" -name '.cache' -prune -exec rm -rf {} \; 2>/dev/null || true
-      find "$out" -name '*.tsbuildinfo' -delete 2>/dev/null || true
-      echo 'export { default } from "./src/extensions/command-quotas/index.ts";' > "$out/neuralwatt-quotas.ts"
-      echo 'export { default } from "./src/extensions/quota-warnings/index.ts";' > "$out/neuralwatt-warnings.ts"
-      echo 'export { default } from "./src/extensions/sub-bar-integration/index.ts";' > "$out/neuralwatt-sub-bar.ts"
-    '';
   };
 }

@@ -29,10 +29,8 @@ let
     pi-hermes-memory
     pi-lsp
     pi-timestamps
-    pi-neuralwatt
     pi-advisor
     pi-ask-user
-    pi-cursor-sdk
     pi-effort
   ];
   remoteHomeFiles = builtins.listToAttrs (
@@ -157,8 +155,8 @@ in
     ".pi/agent/settings.json" = {
       force = true;
       text = builtins.toJSON {
-        defaultProvider = "cursor";
-        defaultModel = "grok-4.5";
+        defaultProvider = "opencode-go";
+        defaultModel = "deepseek-v4-flash";
         theme = "autumn-dark";
         hideThinkingBlock = true;
         compaction = {
@@ -175,32 +173,32 @@ in
         subagents = {
           agentOverrides = {
             scout = {
-              model = "cursor/grok-4.5";
+              model = "opencode-go/deepseek-v4-flash";
             };
             planner = {
-              model = "cursor/grok-4.5";
+              model = "opencode-go/deepseek-v4-flash";
             };
             worker = {
-              model = "cursor/grok-4.5";
+              model = "opencode-go/deepseek-v4-flash";
             };
             reviewer = {
-              model = "cursor/grok-4.5";
+              model = "opencode-go/deepseek-v4-flash";
             };
             context-builder = {
-              model = "cursor/grok-4.5";
+              model = "opencode-go/deepseek-v4-flash";
             };
             researcher = {
-              model = "cursor/grok-4.5";
+              model = "opencode-go/deepseek-v4-flash";
             };
             delegate = {
-              model = "cursor/grok-4.5";
+              model = "opencode-go/deepseek-v4-flash";
               thinking = "off";
             };
             oracle = {
-              model = "cursor/grok-4.5";
+              model = "opencode-go/deepseek-v4-flash";
             };
             eyes = {
-              model = "cursor/grok-4.5";
+              model = "opencode-go/deepseek-v4-flash";
             };
           };
         };
@@ -325,7 +323,7 @@ in
       force = true;
       source = ../dotfiles/pi/agents/oracle.md;
     };
-    # Eyes subagent — image analysis via cursor/grok-4.5
+    # Eyes subagent — image analysis
     ".pi/agent/agents/eyes.md" = {
       force = true;
       source = ../dotfiles/pi/agents/eyes.md;
@@ -359,8 +357,8 @@ in
       force = true;
       text = builtins.toJSON {
         enabled = true;
-        provider = "cursor";
-        model = "grok-4.5";
+        provider = "opencode-go";
+        model = "deepseek-v4-flash";
         maxUsesPerRun = 3;
         maxTokens = 32768;
         reasoning = "high";
@@ -368,20 +366,6 @@ in
       };
     };
 
-    # Neuralwatt extension settings — enables hidden models (e.g. glm-5.2-short-fast)
-    # discovered via the authenticated /v1/models API endpoint.
-    # All fields set explicitly to prevent extension migrations from writing to
-    # the read-only Nix store symlink.
-    ".pi/agent/extensions/neuralwatt.json" = {
-      force = true;
-      text = builtins.toJSON {
-        quotaCommand = true;
-        quotaWarnings = true;
-        subBarIntegration = true;
-        includeLegacyModelIds = false;
-        includeHiddenModels = true;
-      };
-    };
   }
   // remoteHomeFiles;
 }
