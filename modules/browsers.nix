@@ -52,6 +52,9 @@
         "privacy.sanitize.sanitizeOnShutdown" = false;
         "network.cookie.lifetimePolicy" = 0;
         "xpinstall.signatures.required" = false;
+        # 0 = never draw tabs in titlebar -> no CSD -> no Firefox-drawn
+        # min/max/close buttons. Awesome hides the server titlebar anyway.
+        "browser.tabs.inTitlebar" = 0;
       };
     };
   };
