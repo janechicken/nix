@@ -282,6 +282,14 @@ in rec {
     '';
   };
 
+  pi-cursor-sdk = mkNpmPiExt {
+    name = "pi-cursor-sdk";
+    version = "0.1.61";
+    tarballUrl = "https://registry.npmjs.org/pi-cursor-sdk/-/pi-cursor-sdk-0.1.61.tgz";
+    tarballHash = "sha256-Xc5wbFNELGJymc66/MCPnBGGKcu0V1psQU4LwMkJlY8=";
+    outputHash = "sha256-d5hu/Hukx8NZT/DKYJ80/i0X9oNvB3sYwST01UPtxEY=";
+  };
+
   pi-effort = mkNpmPiExt {
     name = "pi-effort";
     version = "0.0.5";

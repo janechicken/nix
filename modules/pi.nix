@@ -31,6 +31,7 @@ let
     pi-timestamps
     pi-advisor
     pi-ask-user
+    pi-cursor-sdk
     pi-effort
   ];
   remoteHomeFiles = builtins.listToAttrs (
@@ -49,7 +50,7 @@ in
   # Pi agent - terminal coding harness from pi.dev
   # Package: pi.nix (github:lukasl-dev/pi.nix) — proper buildNpmPackage build,
   #          Cachix binary cache (pi.cachix.org)
-  # Auth: OPENCODE_API_KEY env var (set via sops-nix).
+  # Auth: DEEPSEEK_API_KEY env var (set via sops-nix).
   programs.pi.coding-agent = {
     enable = true;
 
@@ -64,7 +65,7 @@ in
 
       `subagent()` exists. Same model as you — use when parallel work helps (independent recon, research, review, implementation angles). Brief concrete: paths + deliverable. Outputs under `/tmp`, not the project tree. Skip subagents for simple single-path work.
 
-      Available: `scout`, `researcher`, `planner`, `oracle`, `reviewer`, `worker`, `delegate`, `eyes`.
+      Available: `scout`, `researcher`, `planner`, `oracle`, `reviewer`, `worker`, `delegate`.
 
       # Hard Rules
 
@@ -151,11 +152,11 @@ in
     };
 
     # Pi global settings
-    # Provider/model from sops-nix OPENCODE_API_KEY env var
+    # Provider/model from sops-nix DEEPSEEK_API_KEY env var
     ".pi/agent/settings.json" = {
       force = true;
       text = builtins.toJSON {
-        defaultProvider = "opencode-go";
+        defaultProvider = "deepseek";
         defaultModel = "deepseek-v4-flash";
         theme = "autumn-dark";
         hideThinkingBlock = true;
@@ -173,33 +174,33 @@ in
         subagents = {
           agentOverrides = {
             scout = {
-              model = "opencode-go/deepseek-v4-flash";
+              model = "deepseek/deepseek-v4-flash";
             };
             planner = {
-              model = "opencode-go/deepseek-v4-flash";
+              model = "deepseek/deepseek-v4-flash";
             };
             worker = {
-              model = "opencode-go/deepseek-v4-flash";
+              model = "deepseek/deepseek-v4-flash";
             };
             reviewer = {
-              model = "opencode-go/deepseek-v4-flash";
+              model = "deepseek/deepseek-v4-flash";
             };
             context-builder = {
-              model = "opencode-go/deepseek-v4-flash";
+              model = "deepseek/deepseek-v4-flash";
             };
             researcher = {
-              model = "opencode-go/deepseek-v4-flash";
+              model = "deepseek/deepseek-v4-flash";
             };
             delegate = {
-              model = "opencode-go/deepseek-v4-flash";
+              model = "deepseek/deepseek-v4-flash";
               thinking = "off";
             };
             oracle = {
-              model = "opencode-go/deepseek-v4-flash";
+              model = "deepseek/deepseek-v4-flash";
             };
-            eyes = {
-              model = "opencode-go/deepseek-v4-flash";
-            };
+            # eyes = {  # commented out: deepseek v4 has no vision support
+            #   model = "deepseek/deepseek-v4-flash";
+            # };
           };
         };
         # Extensions from Nix derivations (separate dir to avoid conflicts with
@@ -323,11 +324,11 @@ in
       force = true;
       source = ../dotfiles/pi/agents/oracle.md;
     };
-    # Eyes subagent — image analysis
-    ".pi/agent/agents/eyes.md" = {
-      force = true;
-      source = ../dotfiles/pi/agents/eyes.md;
-    };
+    # Eyes subagent — commented out: deepseek v4 has no vision support
+    # ".pi/agent/agents/eyes.md" = {
+    #   force = true;
+    #   source = ../dotfiles/pi/agents/eyes.md;
+    # };
     # Default agent definition for agent-router
     ".pi/agents/default.ts" = {
       force = true;
@@ -357,7 +358,7 @@ in
       force = true;
       text = builtins.toJSON {
         enabled = true;
-        provider = "opencode-go";
+        provider = "deepseek";
         model = "deepseek-v4-flash";
         maxUsesPerRun = 3;
         maxTokens = 32768;

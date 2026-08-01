@@ -17,7 +17,6 @@
     ../../modules/zed.nix
     ../../modules/opencode.nix
     ../../modules/pi.nix
-    ../../modules/hermes.nix
     ../../modules/agent-skills.nix
     ../../modules/messaging.nix
     ../../modules/syncthing.nix

@@ -63,9 +63,9 @@ nix flake update nixpkgs         # update single input
 - User age key: `~/.config/sops/age/keys.txt`
 - Encrypted secrets: `secrets/secrets.yaml` (`.sops.yaml` in project root defines the sole age key)
 - Decrypted at `/run/secrets/` (tmpfs)
-- 4 active secrets: `deepseek_api_key`, `opencode_api_key`, `ssh_key`, `ssh_pubkey`
-  - OpenRouter key was deprecated; only DeepSeek + OpenCode AI API keys are active
-- System secrets set as `environment.sessionVariables` (`DEEPSEEK_API_KEY`, `OPENCODE_API_KEY`, `OPENCODE_GO_API_KEY`, `OPENAI_API_KEY`, `OPENAI_MODEL`, `OPENAI_MODEL_FOR_CHAT`, `OPENAI_ENDPOINT`)
+- 4 active secrets: `deepseek_api_key`, `cursor_api_key`, `ssh_key`, `ssh_pubkey`
+  - OpenRouter/OpenCode keys were deprecated; DeepSeek is the default provider, `cursor_api_key` enables the cursor-sdk extension (e.g. `cursor/kimi-k3`)
+- System secrets set as `environment.sessionVariables` (`DEEPSEEK_API_KEY`, `CURSOR_API_KEY`, `OPENAI_API_KEY`, `OPENAI_MODEL`, `OPENAI_MODEL_FOR_CHAT`, `OPENAI_ENDPOINT`)
 - Commented out secret: `gpg_key`
 
 ## Agent Skills (`modules/agent-skills.nix`)
@@ -80,7 +80,7 @@ nix flake update nixpkgs         # update single input
 
 ## OpenCode (`modules/opencode.nix`)
 
-- **Agents**: `reviewer`, `squad` (dispatcher), `student`, `general`, `general-quick`, `explore`, `eyes`
+- **Agents**: `reviewer`, `squad` (dispatcher), `student`, `general`, `general-quick`, `explore` (eyes commented out — deepseek v4 no vision)
 - **MCP**:
   - `browser-use` — via `uvx --from browser-use[cli] browser-use --mcp` (headless disabled, playwright from nix store)
   - `ghidra` — GhidraMCP for reverse engineering
@@ -88,14 +88,14 @@ nix flake update nixpkgs         # update single input
 - **Commands**: `/test` (build verification), `/git`, `/solve-challenge`, `/ctf-writeup`, `/breath`
 - **Theme**: gruvbox
 - **Global style**: terse caveman (set in `context` field)
-- **Auth**: `OPENCODE_API_KEY` env var (set via sops-nix system-wide)
+- **Auth**: `DEEPSEEK_API_KEY` env var (set via sops-nix system-wide)
 
 ## Pi Agent (`modules/pi.nix`)
 
 - **Package**: `pi-coding-agent` from nixpkgs
-- **Auth**: `OPENCODE_API_KEY` env var (shared with OpenCode, set via sops-nix)
+- **Auth**: `DEEPSEEK_API_KEY` env var (set via sops-nix system-wide)
 - **Settings**: `~/.pi/agent/settings.json`
-  - Provider: `opencode-go`, model: `deepseek-v4-flash`
+  - Provider: `deepseek`, model: `deepseek-v4-flash`
   - Theme: dark
   - Compaction enabled (reserve 16K, keep 20K recent)
   - Retry enabled (max 3 retries)

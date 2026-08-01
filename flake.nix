@@ -47,10 +47,6 @@
       url = "github:lukasl-dev/pi.nix";
       inputs.nixpkgs.follows = "nixpkgs";
     };
-    hermes-agent = {
-      url = "github:NousResearch/hermes-agent";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
   };
 
   outputs =
@@ -64,7 +60,6 @@
       nix-alien,
       sops-nix,
       nixwrap,
-      hermes-agent,
       ...
     }:
     let

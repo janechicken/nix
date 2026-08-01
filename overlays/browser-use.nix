@@ -8,7 +8,7 @@ final: prev: {
       agentmail = pyfinal.callPackage ../pkgs/browser-use/agentmail.nix { };
 
       # jsonpath-python 1.1.6 has a flaky performance benchmark that fails
-      # on this hardware. Required by mistralai (→ hermes-agent).
+      # on this hardware. Required by mistralai (browser-use dep tree).
       jsonpath-python = pyprev.jsonpath-python.overrideAttrs (old: {
         doCheck = false;
       });

@@ -1,7 +1,7 @@
 ---
 name: eyes
-description: Image analysis agent. Uses opencode-go/deepseek-v4-flash to analyze images. Read-only.
-model: opencode-go/deepseek-v4-flash
+description: Image analysis agent. Read-only. (commented out: needs a vision-capable model, deepseek v4 has none)
+# model: deepseek/deepseek-v4-flash
 tools: read, grep, find, ls
 thinking: off
 systemPromptMode: replace

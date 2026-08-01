@@ -60,41 +60,9 @@ in
         };
       };
 
-      model = "opencode-go/deepseek-v4-flash";
+      model = "deepseek/deepseek-v4-flash";
 
       provider = {
-        opencode-go = {
-          models = {
-            deepseek-v4-flash = {
-              variants = {
-                none = {
-                  thinking.type = "disabled";
-                };
-              };
-            };
-            deepseek-v4-pro = {
-              variants = {
-                none = {
-                  thinking.type = "disabled";
-                };
-              };
-            };
-            "kimi-k2.6" = {
-              variants = {
-                none = {
-                  thinking.type = "disabled";
-                };
-              };
-            };
-            "glm-5.1" = {
-              variants = {
-                none = {
-                  thinking.type = "disabled";
-                };
-              };
-            };
-          };
-        };
         deepseek = {
           models = {
             deepseek-v4-flash = {
@@ -120,7 +88,7 @@ in
           description = "Reviews code for security vulnerabilities, performance issues, and language standards compliance";
           mode = "primary";
           prompt = "You are a code reviewer specializing in security, performance, and language standards.\n\nFocus on:\n- Security vulnerabilities (SQL injection, XSS, auth issues, secrets exposure, etc.)\n- Performance bottlenecks and inefficiencies\n- Language-specific best practices and coding standards\n- Code quality and maintainability concerns\n\nProvide constructive feedback with specific recommendations. Do not make changes - only analyze and suggest improvements.";
-          model = "opencode-go/deepseek-v4-flash";
+          model = "deepseek/deepseek-v4-flash";
           temperature = 0.2;
           steps = 15;
           permission = {
@@ -134,11 +102,11 @@ in
         };
 
         build = {
-          model = "opencode-go/deepseek-v4-flash";
+          model = "deepseek/deepseek-v4-flash";
         };
 
         plan = {
-          model = "opencode-go/deepseek-v4-flash";
+          model = "deepseek/deepseek-v4-flash";
         };
 
         squad = {
@@ -153,7 +121,6 @@ in
             - **general** — Full tool access, unlimited steps. Use for ALL hands-on work: analysis, coding, bash, investigation, final execution.
             - **general-quick** — Full tool access, max 5 steps. Use for fast recon, shallow probes, quick checks that should return fast.
             - **explore** — Read-only. Use for: searching files, reading source, quick lookups.
-            - **eyes** — Read-only image analysis. Use for: viewing/analyzing image files only.
 
             ## Strategy: Multi-wave Dispatch
             Dispatch sub-agents in waves. Each wave is parallel within itself but sequential between waves.
@@ -171,7 +138,7 @@ in
             - Even the final "execute the solution" step must be done by a sub-agent
             - If you catch yourself about to use a tool, STOP and dispatch a sub-agent instead
           '';
-          model = "opencode-go/deepseek-v4-flash";
+          model = "deepseek/deepseek-v4-flash";
           temperature = 0.1;
           steps = 30;
           permission = {
@@ -192,7 +159,7 @@ in
         student = {
           description = "Agent with writing style of a student";
           mode = "primary";
-          model = "opencode-go/deepseek-v4-flash";
+          model = "deepseek/deepseek-v4-flash";
           prompt = ''
             Complete writing assignments in a natural student voice.
 
@@ -260,7 +227,7 @@ in
         general = {
           description = "Full-access sub-agent for deep work. 25 step limit.";
           mode = "subagent";
-          model = "opencode-go/deepseek-v4-flash";
+          model = "deepseek/deepseek-v4-flash";
           temperature = 0.1;
           steps = 25;
           thinking = {
@@ -282,7 +249,7 @@ in
         general-quick = {
           description = "Fast sub-agent for quick recon and shallow probes. Max 5 steps.";
           mode = "subagent";
-          model = "opencode-go/deepseek-v4-flash";
+          model = "deepseek/deepseek-v4-flash";
           temperature = 0.1;
           steps = 5;
           thinking = {
@@ -299,32 +266,33 @@ in
           };
         };
         explore = {
-          model = "opencode-go/deepseek-v4-flash";
+          model = "deepseek/deepseek-v4-flash";
           thinking = {
             type = "disabled";
           };
         };
 
-        eyes = {
-          description = "Image analysis agent. Only sees image files.";
-          mode = "subagent";
-          model = "opencode-go/kimi-k2.6";
-          temperature = 0.1;
-          steps = 10;
-          permission = {
-            read = "allow";
-            grep = "allow";
-            glob = "allow";
-            write = "deny";
-            edit = "deny";
-            bash = "deny";
-            webfetch = "deny";
-            task = "deny";
-            todowrite = "deny";
-            question = "deny";
-            skill = "deny";
-          };
-        };
+        # eyes = {
+        #   description = "Image analysis agent. Only sees image files.";
+        #   mode = "subagent";
+        #   # deepseek v4 has no vision support — restore when a vision-capable model is available
+        #   model = "deepseek/deepseek-v4-flash";
+        #   temperature = 0.1;
+        #   steps = 10;
+        #   permission = {
+        #     read = "allow";
+        #     grep = "allow";
+        #     glob = "allow";
+        #     write = "deny";
+        #     edit = "deny";
+        #     bash = "deny";
+        #     webfetch = "deny";
+        #     task = "deny";
+        #     todowrite = "deny";
+        #     question = "deny";
+        #     skill = "deny";
+        #   };
+        # };
       };
     };
   };
