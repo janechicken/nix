@@ -152,12 +152,12 @@ in
     };
 
     # Pi global settings
-    # Provider/model from sops-nix DEEPSEEK_API_KEY env var
+    # Provider/model from sops-nix OPENROUTER_API_KEY env var
     ".pi/agent/settings.json" = {
       force = true;
       text = builtins.toJSON {
-        defaultProvider = "deepseek";
-        defaultModel = "deepseek-v4-flash";
+        defaultProvider = "openrouter";
+        defaultModel = "openrouter/deepseek/deepseek-v4-flash-latest";
         theme = "autumn-dark";
         hideThinkingBlock = true;
         compaction = {
@@ -174,33 +174,33 @@ in
         subagents = {
           agentOverrides = {
             scout = {
-              model = "deepseek/deepseek-v4-flash";
+              model = "openrouter/deepseek/deepseek-v4-flash-latest";
             };
             planner = {
-              model = "deepseek/deepseek-v4-flash";
+              model = "openrouter/deepseek/deepseek-v4-flash-latest";
             };
             worker = {
-              model = "deepseek/deepseek-v4-flash";
+              model = "openrouter/deepseek/deepseek-v4-flash-latest";
             };
             reviewer = {
-              model = "deepseek/deepseek-v4-flash";
+              model = "openrouter/deepseek/deepseek-v4-flash-latest";
             };
             context-builder = {
-              model = "deepseek/deepseek-v4-flash";
+              model = "openrouter/deepseek/deepseek-v4-flash-latest";
             };
             researcher = {
-              model = "deepseek/deepseek-v4-flash";
+              model = "openrouter/deepseek/deepseek-v4-flash-latest";
             };
             delegate = {
-              model = "deepseek/deepseek-v4-flash";
+              model = "openrouter/deepseek/deepseek-v4-flash-latest";
               thinking = "off";
             };
             oracle = {
-              model = "deepseek/deepseek-v4-flash";
+              model = "openrouter/deepseek/deepseek-v4-flash-latest";
             };
-            # eyes = {  # commented out: deepseek v4 has no vision support
-            #   model = "deepseek/deepseek-v4-flash";
-            # };
+            eyes = {  # image analysis via qwen/qwen3.7-flash (vision-capable)
+              model = "openrouter/qwen/qwen3.7-flash";
+            };
           };
         };
         # Extensions from Nix derivations (separate dir to avoid conflicts with
@@ -324,11 +324,11 @@ in
       force = true;
       source = ../dotfiles/pi/agents/oracle.md;
     };
-    # Eyes subagent — commented out: deepseek v4 has no vision support
-    # ".pi/agent/agents/eyes.md" = {
-    #   force = true;
-    #   source = ../dotfiles/pi/agents/eyes.md;
-    # };
+    # Eyes subagent — image analysis via qwen/qwen3.7-flash (vision-capable)
+    ".pi/agent/agents/eyes.md" = {
+      force = true;
+      source = ../dotfiles/pi/agents/eyes.md;
+    };
     # Default agent definition for agent-router
     ".pi/agents/default.ts" = {
       force = true;
@@ -358,8 +358,8 @@ in
       force = true;
       text = builtins.toJSON {
         enabled = true;
-        provider = "deepseek";
-        model = "deepseek-v4-flash";
+        provider = "openrouter";
+        model = "openrouter/deepseek/deepseek-v4-flash-latest";
         maxUsesPerRun = 3;
         maxTokens = 32768;
         reasoning = "high";

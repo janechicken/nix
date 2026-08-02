@@ -2,7 +2,7 @@
 name: scout
 description: Fast codebase recon that returns compressed context for handoff
 tools: read, grep, find, ls, bash, write, intercom
-model: deepseek/deepseek-v4-flash
+model: openrouter/deepseek/deepseek-v4-flash-latest
 thinking: off
 systemPromptMode: replace
 inheritProjectContext: true

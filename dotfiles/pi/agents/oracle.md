@@ -1,7 +1,7 @@
 ---
 name: oracle
 description: High-context decision-consistency oracle that protects inherited state and prevents drift
-model: deepseek/deepseek-v4-flash
+model: openrouter/deepseek/deepseek-v4-flash-latest
 tools: read, grep, find, ls, bash, intercom
 thinking: high
 systemPromptMode: replace

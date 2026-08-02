@@ -63,9 +63,9 @@ nix flake update nixpkgs         # update single input
 - User age key: `~/.config/sops/age/keys.txt`
 - Encrypted secrets: `secrets/secrets.yaml` (`.sops.yaml` in project root defines the sole age key)
 - Decrypted at `/run/secrets/` (tmpfs)
-- 5 active secrets: `deepseek_api_key`, `cursor_api_key`, `ssh_key`, `ssh_pubkey`, `cheapcompute_api_key`
-  - OpenRouter/OpenCode keys were deprecated; DeepSeek is the default provider, `cursor_api_key` enables the cursor-sdk extension (e.g. `cursor/kimi-k3`), `cheapcompute_api_key` enables the cheapcompute provider extension
-- System secrets set as `environment.sessionVariables` (`DEEPSEEK_API_KEY`, `CURSOR_API_KEY`, `OPENAI_API_KEY`, `OPENAI_MODEL`, `OPENAI_MODEL_FOR_CHAT`, `OPENAI_ENDPOINT`)
+- 6 active secrets: `deepseek_api_key`, `cursor_api_key`, `openrouter_api_key`, `ssh_key`, `ssh_pubkey`, `cheapcompute_api_key`
+  - `openrouter_api_key` enables the OpenRouter provider (default, e.g. `deepseek/deepseek-v4-flash-latest`), `cursor_api_key` enables the cursor-sdk extension (e.g. `cursor/kimi-k3`), `cheapcompute_api_key` enables the cheapcompute provider extension
+- System secrets set as `environment.sessionVariables` (`DEEPSEEK_API_KEY`, `CURSOR_API_KEY`, `OPENROUTER_API_KEY`, `OPENAI_API_KEY`, `OPENAI_MODEL`, `OPENAI_MODEL_FOR_CHAT`, `OPENAI_ENDPOINT`)
 - Commented out secret: `gpg_key`
 
 ## Agent Skills (`modules/agent-skills.nix`)
@@ -80,7 +80,7 @@ nix flake update nixpkgs         # update single input
 
 ## OpenCode (`modules/opencode.nix`)
 
-- **Agents**: `reviewer`, `squad` (dispatcher), `student`, `general`, `general-quick`, `explore` (eyes commented out — deepseek v4 no vision)
+- **Agents**: `reviewer`, `squad` (dispatcher), `student`, `general`, `general-quick`, `explore`, `eyes` (vision via qwen/qwen3.7-flash)
 - **MCP**:
   - `browser-use` — via `uvx --from browser-use[cli] browser-use --mcp` (headless disabled, playwright from nix store)
   - `ghidra` — GhidraMCP for reverse engineering
@@ -88,16 +88,16 @@ nix flake update nixpkgs         # update single input
 - **Commands**: `/test` (build verification), `/git`, `/solve-challenge`, `/ctf-writeup`, `/breath`
 - **Theme**: gruvbox
 - **Global style**: terse caveman (set in `context` field)
-- **Auth**: `DEEPSEEK_API_KEY` env var (set via sops-nix system-wide)
+- **Auth**: `OPENROUTER_API_KEY` env var (set via sops-nix system-wide)
 
 ## Pi Agent (`modules/pi.nix`)
 
 - **Package**: `pi-coding-agent` from nixpkgs
-- **Auth**: `DEEPSEEK_API_KEY` env var (set via sops-nix system-wide)
+- **Auth**: `OPENROUTER_API_KEY` env var (set via sops-nix system-wide)
 - **Local extensions**: auto-globbed from `dotfiles/pi/extensions/*.ts` (via `--extension` flags), except `unwiredExts` list
   - `cheapcompute-provider.ts` — registers cheapcompute.app as OpenAI-compatible provider, reads `CHEAPCOMPUTE_API_KEY` (sops secret `cheapcompute_api_key`), autodetects models at startup via `GET /models` + id-based inference (context window, reasoning, vision)
 - **Settings**: `~/.pi/agent/settings.json`
-  - Provider: `deepseek`, model: `deepseek-v4-flash`
+  - Provider: `openrouter`, model: `deepseek/deepseek-v4-flash-latest`
   - Theme: dark
   - Compaction enabled (reserve 16K, keep 20K recent)
   - Retry enabled (max 3 retries)

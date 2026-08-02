@@ -60,19 +60,19 @@ in
         };
       };
 
-      model = "deepseek/deepseek-v4-flash";
+      model = "deepseek/deepseek-v4-flash-latest";
 
       provider = {
-        deepseek = {
+        openrouter = {
           models = {
-            deepseek-v4-flash = {
+            "deepseek/deepseek-v4-flash-latest" = {
               variants = {
                 none = {
                   thinking.type = "disabled";
                 };
               };
             };
-            deepseek-v4-pro = {
+            "deepseek/deepseek-v4-pro" = {
               variants = {
                 none = {
                   thinking.type = "disabled";
@@ -88,7 +88,7 @@ in
           description = "Reviews code for security vulnerabilities, performance issues, and language standards compliance";
           mode = "primary";
           prompt = "You are a code reviewer specializing in security, performance, and language standards.\n\nFocus on:\n- Security vulnerabilities (SQL injection, XSS, auth issues, secrets exposure, etc.)\n- Performance bottlenecks and inefficiencies\n- Language-specific best practices and coding standards\n- Code quality and maintainability concerns\n\nProvide constructive feedback with specific recommendations. Do not make changes - only analyze and suggest improvements.";
-          model = "deepseek/deepseek-v4-flash";
+          model = "deepseek/deepseek-v4-flash-latest";
           temperature = 0.2;
           steps = 15;
           permission = {
@@ -102,11 +102,11 @@ in
         };
 
         build = {
-          model = "deepseek/deepseek-v4-flash";
+          model = "deepseek/deepseek-v4-flash-latest";
         };
 
         plan = {
-          model = "deepseek/deepseek-v4-flash";
+          model = "deepseek/deepseek-v4-flash-latest";
         };
 
         squad = {
@@ -138,7 +138,7 @@ in
             - Even the final "execute the solution" step must be done by a sub-agent
             - If you catch yourself about to use a tool, STOP and dispatch a sub-agent instead
           '';
-          model = "deepseek/deepseek-v4-flash";
+          model = "deepseek/deepseek-v4-flash-latest";
           temperature = 0.1;
           steps = 30;
           permission = {
@@ -159,7 +159,7 @@ in
         student = {
           description = "Agent with writing style of a student";
           mode = "primary";
-          model = "deepseek/deepseek-v4-flash";
+          model = "deepseek/deepseek-v4-flash-latest";
           prompt = ''
             Complete writing assignments in a natural student voice.
 
@@ -227,7 +227,7 @@ in
         general = {
           description = "Full-access sub-agent for deep work. 25 step limit.";
           mode = "subagent";
-          model = "deepseek/deepseek-v4-flash";
+          model = "deepseek/deepseek-v4-flash-latest";
           temperature = 0.1;
           steps = 25;
           thinking = {
@@ -249,7 +249,7 @@ in
         general-quick = {
           description = "Fast sub-agent for quick recon and shallow probes. Max 5 steps.";
           mode = "subagent";
-          model = "deepseek/deepseek-v4-flash";
+          model = "deepseek/deepseek-v4-flash-latest";
           temperature = 0.1;
           steps = 5;
           thinking = {
@@ -266,33 +266,33 @@ in
           };
         };
         explore = {
-          model = "deepseek/deepseek-v4-flash";
+          model = "deepseek/deepseek-v4-flash-latest";
           thinking = {
             type = "disabled";
           };
         };
 
-        # eyes = {
-        #   description = "Image analysis agent. Only sees image files.";
-        #   mode = "subagent";
-        #   # deepseek v4 has no vision support — restore when a vision-capable model is available
-        #   model = "deepseek/deepseek-v4-flash";
-        #   temperature = 0.1;
-        #   steps = 10;
-        #   permission = {
-        #     read = "allow";
-        #     grep = "allow";
-        #     glob = "allow";
-        #     write = "deny";
-        #     edit = "deny";
-        #     bash = "deny";
-        #     webfetch = "deny";
-        #     task = "deny";
-        #     todowrite = "deny";
-        #     question = "deny";
-        #     skill = "deny";
-        #   };
-        # };
+        eyes = {
+          description = "Image analysis agent. Only sees image files.";
+          mode = "subagent";
+          # vision via qwen/qwen3.7-flash
+          model = "qwen/qwen3.7-flash";
+          temperature = 0.1;
+          steps = 10;
+          permission = {
+            read = "allow";
+            grep = "allow";
+            glob = "allow";
+            write = "deny";
+            edit = "deny";
+            bash = "deny";
+            webfetch = "deny";
+            task = "deny";
+            todowrite = "deny";
+            question = "deny";
+            skill = "deny";
+          };
+        };
       };
     };
   };

@@ -11,8 +11,8 @@
   },
   "agent": {
     "default_model": {
-      "provider": "opencode",
-      "model": "go/deepseek-v4-flash"
+      "provider": "openrouter",
+      "model": "deepseek/deepseek-v4-flash-latest"
     }
   },
   "project_panel": {

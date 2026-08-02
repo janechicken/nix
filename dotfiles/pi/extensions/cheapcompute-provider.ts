@@ -27,6 +27,10 @@ const API_KEY_ENV = "CHEAPCOMPUTE_API_KEY";
 // Safe defaults when neither the API nor id inference yields a value.
 const DEFAULT_CONTEXT_WINDOW = 128_000;
 const DEFAULT_MAX_TOKENS = 8_192;
+// CheapCompute's API hard-caps max_tokens at 8192 (422 above that);
+// researched model max-output values (e.g. 384K for DeepSeek-V4) must be
+// clamped or the request fails.
+const API_MAX_TOKENS_CAP = 8_192;
 const DEFAULT_COST = { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 };
 
 interface RawModel {
@@ -294,7 +298,20 @@ function toProviderModel(model: RawModel) {
   const input = apiInput(model) ?? (family?.vision ? ["text", "image"] : ["text"]);
   const cost = apiCost(model) ?? DEFAULT_COST;
 
-  return { id, name, reasoning, input, cost, contextWindow, maxTokens };
+  return {
+    id,
+    name,
+    reasoning,
+    input,
+    cost,
+    contextWindow,
+    maxTokens: Math.min(maxTokens, API_MAX_TOKENS_CAP),
+    // pi sends max_completion_tokens by default for non-OpenAI providers, which
+    // cheapcompute does not validate (it passes it to upstreams that reject it
+    // mid-stream, producing the "no-execution response" error). Force max_tokens
+    // — the field cheapcompute validates at its 8192 cap.
+    compat: { maxTokensField: "max_tokens" as const },
+  };
 }
 
 async function fetchModels(apiKey: string): Promise<RawModel[]> {
