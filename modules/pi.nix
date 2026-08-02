@@ -157,7 +157,7 @@ in
       force = true;
       text = builtins.toJSON {
         defaultProvider = "openrouter";
-        defaultModel = "openrouter/deepseek/deepseek-v4-flash-latest";
+        defaultModel = "openrouter/~deepseek/deepseek-v4-flash-latest";
         theme = "autumn-dark";
         hideThinkingBlock = true;
         compaction = {
@@ -174,29 +174,29 @@ in
         subagents = {
           agentOverrides = {
             scout = {
-              model = "openrouter/deepseek/deepseek-v4-flash-latest";
+              model = "openrouter/~deepseek/deepseek-v4-flash-latest";
             };
             planner = {
-              model = "openrouter/deepseek/deepseek-v4-flash-latest";
+              model = "openrouter/~deepseek/deepseek-v4-flash-latest";
             };
             worker = {
-              model = "openrouter/deepseek/deepseek-v4-flash-latest";
+              model = "openrouter/~deepseek/deepseek-v4-flash-latest";
             };
             reviewer = {
-              model = "openrouter/deepseek/deepseek-v4-flash-latest";
+              model = "openrouter/~deepseek/deepseek-v4-flash-latest";
             };
             context-builder = {
-              model = "openrouter/deepseek/deepseek-v4-flash-latest";
+              model = "openrouter/~deepseek/deepseek-v4-flash-latest";
             };
             researcher = {
-              model = "openrouter/deepseek/deepseek-v4-flash-latest";
+              model = "openrouter/~deepseek/deepseek-v4-flash-latest";
             };
             delegate = {
-              model = "openrouter/deepseek/deepseek-v4-flash-latest";
+              model = "openrouter/~deepseek/deepseek-v4-flash-latest";
               thinking = "off";
             };
             oracle = {
-              model = "openrouter/deepseek/deepseek-v4-flash-latest";
+              model = "openrouter/~deepseek/deepseek-v4-flash-latest";
             };
             eyes = {  # image analysis via qwen/qwen3.7-flash (vision-capable)
               model = "openrouter/qwen/qwen3.7-flash";
@@ -359,7 +359,7 @@ in
       text = builtins.toJSON {
         enabled = true;
         provider = "openrouter";
-        model = "openrouter/deepseek/deepseek-v4-flash-latest";
+        model = "openrouter/~deepseek/deepseek-v4-flash-latest";
         maxUsesPerRun = 3;
         maxTokens = 32768;
         reasoning = "high";

@@ -3,7 +3,7 @@ name: worker
 description: Implementation agent — single-writer executor. Escalates to oracle when stuck or near its turn limit.
 tools: read, grep, find, ls, bash, edit, write, mcp, contact_supervisor
 thinking: off
-model: openrouter/deepseek/deepseek-v4-flash-latest
+model: openrouter/~deepseek/deepseek-v4-flash-latest
 systemPromptMode: replace
 inheritProjectContext: true
 inheritSkills: false

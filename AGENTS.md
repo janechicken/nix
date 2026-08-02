@@ -64,7 +64,7 @@ nix flake update nixpkgs         # update single input
 - Encrypted secrets: `secrets/secrets.yaml` (`.sops.yaml` in project root defines the sole age key)
 - Decrypted at `/run/secrets/` (tmpfs)
 - 6 active secrets: `deepseek_api_key`, `cursor_api_key`, `openrouter_api_key`, `ssh_key`, `ssh_pubkey`, `cheapcompute_api_key`
-  - `openrouter_api_key` enables the OpenRouter provider (default, e.g. `deepseek/deepseek-v4-flash-latest`), `cursor_api_key` enables the cursor-sdk extension (e.g. `cursor/kimi-k3`), `cheapcompute_api_key` enables the cheapcompute provider extension
+  - `openrouter_api_key` enables the OpenRouter provider (default, e.g. `openrouter/~deepseek/deepseek-v4-flash-latest`), `cursor_api_key` enables the cursor-sdk extension (e.g. `cursor/kimi-k3`), `cheapcompute_api_key` enables the cheapcompute provider extension
 - System secrets set as `environment.sessionVariables` (`DEEPSEEK_API_KEY`, `CURSOR_API_KEY`, `OPENROUTER_API_KEY`, `OPENAI_API_KEY`, `OPENAI_MODEL`, `OPENAI_MODEL_FOR_CHAT`, `OPENAI_ENDPOINT`)
 - Commented out secret: `gpg_key`
 
@@ -97,7 +97,7 @@ nix flake update nixpkgs         # update single input
 - **Local extensions**: auto-globbed from `dotfiles/pi/extensions/*.ts` (via `--extension` flags), except `unwiredExts` list
   - `cheapcompute-provider.ts` — registers cheapcompute.app as OpenAI-compatible provider, reads `CHEAPCOMPUTE_API_KEY` (sops secret `cheapcompute_api_key`), autodetects models at startup via `GET /models` + id-based inference (context window, reasoning, vision)
 - **Settings**: `~/.pi/agent/settings.json`
-  - Provider: `openrouter`, model: `deepseek/deepseek-v4-flash-latest`
+  - Provider: `openrouter`, model: `~deepseek/deepseek-v4-flash-latest`
   - Theme: dark
   - Compaction enabled (reserve 16K, keep 20K recent)
   - Retry enabled (max 3 retries)
