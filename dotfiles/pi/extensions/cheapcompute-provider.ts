@@ -46,77 +46,126 @@ interface FamilyRule {
   reasoning: boolean;
   /** Whether the family accepts image input. */
   vision?: boolean;
+  /** Max output tokens (default: derived from contextWindow if unset). */
+  maxTokens?: number;
 }
 
 // Most specific patterns first (e.g. "gpt-4o-mini" before "gpt-4o",
 // "qwen3-vl" before "qwen3").
 const FAMILY_RULES: FamilyRule[] = [
-  // Claude — all reasoning-capable; newest opus/sonnet/fable are 1M context.
-  { match: "claude-fable", contextWindow: 1_000_000, reasoning: true, vision: true },
-  { match: "claude-opus-4-8", contextWindow: 1_000_000, reasoning: true, vision: true },
-  { match: "claude-opus-4.8", contextWindow: 1_000_000, reasoning: true, vision: true },
-  { match: "claude-opus-5", contextWindow: 1_000_000, reasoning: true, vision: true },
-  { match: "claude-sonnet-5", contextWindow: 1_000_000, reasoning: true, vision: true },
-  { match: "claude", contextWindow: 200_000, reasoning: true, vision: true },
+  // ---- Claude (Anthropic) ----
+  // 5/4.8/4.7/4.6-gen (fable, opus, sonnet) = 1M ctx / 128K out;
+  // 4.5-gen (haiku/sonnet/opus 4.5) = 200K / 64K out. All reasoning + vision.
+  { match: "claude-fable", contextWindow: 1_000_000, reasoning: true, vision: true, maxTokens: 128_000 },
+  { match: "claude-opus-4-8", contextWindow: 1_000_000, reasoning: true, vision: true, maxTokens: 128_000 },
+  { match: "claude-opus-4.8", contextWindow: 1_000_000, reasoning: true, vision: true, maxTokens: 128_000 },
+  { match: "claude-opus-4.7", contextWindow: 1_000_000, reasoning: true, vision: true, maxTokens: 128_000 },
+  { match: "claude-opus-4.6", contextWindow: 1_000_000, reasoning: true, vision: true, maxTokens: 128_000 },
+  { match: "claude-sonnet-4.6", contextWindow: 1_000_000, reasoning: true, vision: true, maxTokens: 128_000 },
+  { match: "claude-opus-5", contextWindow: 1_000_000, reasoning: true, vision: true, maxTokens: 128_000 },
+  { match: "claude-sonnet-5", contextWindow: 1_000_000, reasoning: true, vision: true, maxTokens: 128_000 },
+  { match: "claude", contextWindow: 200_000, reasoning: true, vision: true, maxTokens: 64_000 },
 
-  // Gemini — all reasoning-capable, 1M context, vision.
-  { match: "gemini", contextWindow: 1_000_000, reasoning: true, vision: true },
+  // ---- Gemini (Google) ----
+  // All 1M ctx, thinking + vision, 65,536 max output.
+  { match: "gemini", contextWindow: 1_048_576, reasoning: true, vision: true, maxTokens: 65_536 },
 
-  // DeepSeek — reasoning-capable. v4 generation doubles the context.
-  { match: "deepseek-v4", contextWindow: 256_000, reasoning: true },
+  // ---- DeepSeek ----
+  // V4 series: 1M ctx / 384K output. R1 + V3.2: 128K.
+  { match: "deepseek-v4", contextWindow: 1_000_000, reasoning: true, maxTokens: 384_000 },
   { match: "deepseek-r1", contextWindow: 128_000, reasoning: true },
   { match: "deepseek", contextWindow: 128_000, reasoning: true },
 
-  // GPT-5.x — reasoning; newer 5.6 line has 400K context.
-  { match: "gpt-5.6", contextWindow: 400_000, reasoning: true, vision: true },
-  { match: "gpt-5", contextWindow: 128_000, reasoning: true, vision: true },
+  // ---- GPT-5.x (OpenAI) ----
+  // 5.4/5.5/5.6 = 1.05M ctx / 128K out; 5.4-mini/nano = 400K; gpt-5-mini = 128K.
+  { match: "gpt-5-mini", contextWindow: 128_000, reasoning: true, vision: true, maxTokens: 16_384 },
+  { match: "gpt-5.4-mini", contextWindow: 400_000, reasoning: true, vision: true, maxTokens: 128_000 },
+  { match: "gpt-5.4-nano", contextWindow: 400_000, reasoning: true, vision: true, maxTokens: 128_000 },
+  { match: "gpt-5.6", contextWindow: 1_050_000, reasoning: true, vision: true, maxTokens: 128_000 },
+  { match: "gpt-5", contextWindow: 1_050_000, reasoning: true, vision: true, maxTokens: 128_000 },
 
-  // GPT-4o — hybrid, no extended thinking.
-  { match: "gpt-4o-mini", contextWindow: 128_000, reasoning: false, vision: true },
-  { match: "gpt-4o", contextWindow: 128_000, reasoning: false, vision: true },
+  // ---- GPT-4o (OpenAI) ----
+  // Hybrid, no extended thinking, 16K max output.
+  { match: "gpt-4o-mini", contextWindow: 128_000, reasoning: false, vision: true, maxTokens: 16_384 },
+  { match: "gpt-4o", contextWindow: 128_000, reasoning: false, vision: true, maxTokens: 16_384 },
 
-  // GPT-OSS — reasoning-capable, text-only.
-  { match: "gpt-oss", contextWindow: 128_000, reasoning: true },
+  // ---- GPT-OSS (OpenAI open-weight) ----
+  // 131K ctx, CoT reasoning, text-only.
+  { match: "gpt-oss", contextWindow: 131_072, reasoning: true },
 
-  // Kimi K-series — reasoning, 128K.
+  // ---- Kimi (Moonshot) ----
+  // K3 = 1M ctx + native vision; K2.5+ = 256K; base K2 = 128K text-only.
+  { match: "kimi-k3", contextWindow: 1_000_000, reasoning: true, vision: true, maxTokens: 131_072 },
+  { match: "kimi-k2.7", contextWindow: 256_000, reasoning: true, vision: true },
+  { match: "kimi-k2.6", contextWindow: 256_000, reasoning: true, vision: true },
+  { match: "kimi-k2.5", contextWindow: 256_000, reasoning: true, vision: true },
+  { match: "kimi-k2-thinking", contextWindow: 256_000, reasoning: true, vision: true },
   { match: "kimi", contextWindow: 128_000, reasoning: true },
 
-  // GLM — reasoning; 4.7/5 generation grew to 200K.
-  { match: "glm-4.7", contextWindow: 200_000, reasoning: true },
-  { match: "glm-5", contextWindow: 200_000, reasoning: true },
-  { match: "glm-4.6", contextWindow: 128_000, reasoning: true },
-  { match: "glm-4.5", contextWindow: 128_000, reasoning: true },
+  // ---- GLM (Zhipu/Z.AI) ----
+  // 4.5 = 128K / 96K out; 4.6+ = 200K / 128K out; 5.2 = 1M. 5v-turbo is the only VLM.
+  { match: "glm-5.2", contextWindow: 1_000_000, reasoning: true, maxTokens: 128_000 },
+  { match: "glm-5v", contextWindow: 200_000, reasoning: true, vision: true, maxTokens: 128_000 },
+  { match: "glm-5", contextWindow: 200_000, reasoning: true, maxTokens: 128_000 },
+  { match: "glm-4.7", contextWindow: 200_000, reasoning: true, maxTokens: 128_000 },
+  { match: "glm-4.6", contextWindow: 200_000, reasoning: true, maxTokens: 128_000 },
+  { match: "glm-4.5", contextWindow: 128_000, reasoning: true, maxTokens: 96_000 },
 
-  // Grok — reasoning, 256K, vision.
-  { match: "grok", contextWindow: 256_000, reasoning: true, vision: true },
+  // ---- Grok (xAI) ----
+  // 4.1-fast = 2M; 4.3/4.20 = 1M; 4.5 = 500K; build-0.1 = 256K. All reasoning + vision.
+  { match: "grok-4.1-fast", contextWindow: 2_000_000, reasoning: true, vision: true },
+  { match: "grok-4.20", contextWindow: 1_000_000, reasoning: true, vision: true },
+  { match: "grok-4.3", contextWindow: 1_000_000, reasoning: true, vision: true },
+  { match: "grok-4.5", contextWindow: 500_000, reasoning: true, vision: true },
+  { match: "grok-build", contextWindow: 256_000, reasoning: true, vision: true },
+  { match: "grok", contextWindow: 1_000_000, reasoning: true, vision: true },
 
-  // Qwen3 — thinking-capable; vl variants are vision-language.
-  { match: "qwen3-vl", contextWindow: 128_000, reasoning: true, vision: true },
+  // ---- Qwen (Alibaba) ----
+  // 3.7-max/plus, 3.5-plus/flash, 3-coder = 1M; vl = 256K; dense 3.x = 128K.
+  { match: "qwen-3-7", contextWindow: 1_000_000, reasoning: true },
+  { match: "qwen3-vl", contextWindow: 256_000, reasoning: true, vision: true },
+  { match: "qwen3.5-plus", contextWindow: 1_000_000, reasoning: true },
+  { match: "qwen3.5-flash", contextWindow: 1_000_000, reasoning: true },
+  { match: "qwen3-coder", contextWindow: 1_000_000, reasoning: true },
+  { match: "qwen3.6-plus", contextWindow: 1_000_000, reasoning: true },
   { match: "qwen3", contextWindow: 128_000, reasoning: true },
-  { match: "qwen-3-7", contextWindow: 128_000, reasoning: true },
 
-  // MiniMax M-series — reasoning.
-  { match: "minimax", contextWindow: 128_000, reasoning: true },
+  // ---- MiniMax ----
+  // M3 = 1M + vision; M2.x = 200K text-only, 128K max output.
+  { match: "minimax-m3", contextWindow: 1_000_000, reasoning: true, vision: true },
+  { match: "minimax-m2.7", contextWindow: 204_800, reasoning: true, maxTokens: 128_000 },
+  { match: "minimax", contextWindow: 200_000, reasoning: true, maxTokens: 128_000 },
 
-  // NVIDIA Nemotron — reasoning.
-  { match: "nvidia-nemotron", contextWindow: 128_000, reasoning: true },
+  // ---- NVIDIA Nemotron ----
+  // 3.x = up to 1M (default 256K), configurable thinking, text-only.
+  { match: "nvidia-nemotron", contextWindow: 256_000, reasoning: true, maxTokens: 128_000 },
 
-  // Aion.
-  { match: "aion", contextWindow: 128_000, reasoning: true },
+  // ---- Aion ----
+  // 2.0 (DeepSeek V3.2 fine-tune): 131K, thinking mode, text-only.
+  { match: "aion", contextWindow: 131_072, reasoning: true, maxTokens: 32_768 },
 
-  // Gemma — instruction-tuned, no extended thinking.
-  { match: "gemma", contextWindow: 128_000, reasoning: false },
+  // ---- Gemma (Google) ----
+  // 3.x = 128K instruct, no CoT; 4.x = 256K with <|think|> mode. Both vision.
+  { match: "gemma-4", contextWindow: 256_000, reasoning: true, vision: true },
+  { match: "gemma-3", contextWindow: 128_000, reasoning: false, vision: true },
 
-  // Llama / Hermes.
+  // ---- Llama / Hermes ----
+  // Instruct-tuned, no CoT, text-only.
   { match: "hermes", contextWindow: 128_000, reasoning: false },
   { match: "llama", contextWindow: 128_000, reasoning: false },
 
-  // Mistral.
+  // ---- Mistral ----
+  // small-3.2 = 128K no-CoT but vision; small-4 = 256K reasoning + vision;
+  // large = 128K no-CoT, text-only.
+  { match: "mistral-small-3.2", contextWindow: 128_000, reasoning: false, vision: true },
+  { match: "mistral-small-4", contextWindow: 256_000, reasoning: true, vision: true },
+  { match: "mistral-large", contextWindow: 128_000, reasoning: false },
   { match: "mistral", contextWindow: 128_000, reasoning: false },
 
-  // Mercury, Venice, and anything else — text-only fallback.
-  { match: "mercury", contextWindow: 128_000, reasoning: false },
-  { match: "venice", contextWindow: 128_000, reasoning: false },
+  // ---- Mercury / Venice ----
+  // mercury-2 = reasoning diffusion LLM, text-only; venice = decensored Mistral instruct + vision.
+  { match: "mercury", contextWindow: 128_000, reasoning: true, maxTokens: 128_000 },
+  { match: "venice", contextWindow: 128_000, reasoning: false, vision: true },
 ];
 
 function inferFamily(model: RawModel): FamilyRule | undefined {
@@ -239,6 +288,7 @@ function toProviderModel(model: RawModel) {
   const apiMax = apiMaxTokens(model);
   const maxTokens =
     apiMax ??
+    family?.maxTokens ??
     Math.min(DEFAULT_MAX_TOKENS, Math.floor(contextWindow / 4));
   const reasoning = apiReasoning(model) ?? family?.reasoning ?? false;
   const input = apiInput(model) ?? (family?.vision ? ["text", "image"] : ["text"]);
