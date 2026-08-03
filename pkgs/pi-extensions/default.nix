@@ -255,14 +255,6 @@ in rec {
     outputHash = "sha256-Zt1pQZ5V0a/ocBU9xo+wxtpVCJ6p1wHIp3RCW0Ejazs=";
   };
 
-  pi-advisor = mkNpmPiExt {
-    name = "pi-advisor";
-    version = "0.3.0";
-    tarballUrl = "https://registry.npmjs.org/pi-advisor/-/pi-advisor-0.3.0.tgz";
-    tarballHash = "sha256-zZlgH2JmkOPKKpwKz7ZwWpabEZCtVTPWcC2jDzdLshM=";
-    outputHash = "sha256-cBydqkkOmoOTgbyfHCWI3AbVaNahqEq4Ql6T4g6FQXo=";
-  };
-
   pi-ask-user = mkNpmPiExt {
     name = "pi-ask-user";
     version = "0.11.2";

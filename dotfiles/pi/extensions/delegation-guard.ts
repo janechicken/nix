@@ -40,7 +40,6 @@ const DIRECT_TOOLS = new Set([
 // Tools that are orchestration helpers — don't count as direct work
 const ORCHESTRATION_TOOLS = new Set([
   "subagent",
-  "advisor",
   "memory",
   "memory_search",
   "session_search",

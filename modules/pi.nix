@@ -29,7 +29,6 @@ let
     pi-hermes-memory
     pi-lsp
     pi-timestamps
-    pi-advisor
     pi-ask-user
     pi-cursor-sdk
     pi-effort
@@ -348,25 +347,6 @@ in
         workflow = "none";
       };
     };
-    # pi-advisor config — default to a pro model for strategic advice
-    # Overrides the extension's built-in default (anthropic/claude-fable-5).
-    # maxContextMessages is high because the pro model has a massive context
-    # window — the advisor needs the full conversation to give strategic advice.
-    # maxTokens is generous because reasoning="high" counts thinking tokens
-    # against the output budget; 32K leaves room for CoT + actionable verdict.
-    ".pi/agent/advisor.json" = {
-      force = true;
-      text = builtins.toJSON {
-        enabled = true;
-        provider = "openrouter";
-        model = "openrouter/~deepseek/deepseek-v4-flash-latest";
-        maxUsesPerRun = 3;
-        maxTokens = 32768;
-        reasoning = "high";
-        maxContextMessages = 200;
-      };
-    };
-
   }
   // remoteHomeFiles;
 }
