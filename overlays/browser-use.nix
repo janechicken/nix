@@ -12,6 +12,27 @@ final: prev: {
       jsonpath-python = pyprev.jsonpath-python.overrideAttrs (old: {
         doCheck = false;
       });
+
+      # scipy 1.18.0 test_support_moments_sample[Normal] is a flaky
+      # hypothesis-property test (tolerance 2e-09 vs ~2e-09 mismatch). Fails
+      # intermittently on this hardware. Required by pint (browser-use dep tree).
+      scipy = pyprev.scipy.overrideAttrs (old: {
+        disabledTests = (old.disabledTests or [ ]) ++ [ "test_support_moments_sample" ];
+      });
+
+      # inline-snapshot test_docs snapshot tests are out of sync with current
+      # source/pytest and fail spuriously. Required by browser-use dep tree.
+      inline-snapshot = pyprev.inline-snapshot.overrideAttrs (old: {
+        disabledTestPaths = (old.disabledTestPaths or [ ]) ++ [ "tests/test_docs.py" ];
+      });
+
+      # django test_crafted_xml_performance is a wall-clock perf test (2.16s vs
+      # 2.0s limit) that fails on this hardware, plus flaky test_pickle.
+      # Required by google-api-python-client.
+      django = pyprev.django.overrideAttrs (old: {
+        disabledTestPaths = (old.disabledTestPaths or [ ]) ++ [ "django/core/serializers/tests/test_deserialization.py" ];
+        disabledTests = (old.disabledTests or [ ]) ++ [ "test_pickle" ];
+      });
     };
   };
   browser-use = final.python312Packages.buildPythonPackage (with final.python312Packages; {

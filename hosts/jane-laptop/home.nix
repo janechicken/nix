@@ -26,7 +26,7 @@
   # manage.
   home.username = "jane";
   home.homeDirectory = "/home/jane";
-  nixpkgs.config.permittedInsecurePackages = [ "python3.13-ecdsa-0.19.2" "librewolf-bin-151.0.1-2" "librewolf-bin-unwrapped-151.0.1-2" ];   
+  nixpkgs.config.permittedInsecurePackages = [ "python3.13-ecdsa-0.19.2" "python3.14-ecdsa-0.19.2" "librewolf-bin-151.0.1-2" "librewolf-bin-unwrapped-151.0.1-2" ];   
 
   # This value determines the Home Manager release that your configuration is
   # compatible with. This helps avoid breakage when a new Home Manager release
