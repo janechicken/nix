@@ -21,6 +21,9 @@
   sops.secrets."cheapcompute_api_key" = {
     owner = config.users.users.jane.name;
   };
+  sops.secrets."nanogpt_api_key" = {
+    owner = config.users.users.jane.name;
+  };
   sops.secrets."openrouter_api_key" = {
     owner = config.users.users.jane.name;
   };
@@ -33,6 +36,7 @@
     DEEPSEEK_API_KEY = "$(cat /run/secrets/deepseek_api_key)";
     CURSOR_API_KEY = "$(cat /run/secrets/cursor_api_key)";
     CHEAPCOMPUTE_API_KEY = "$(cat /run/secrets/cheapcompute_api_key)";
+    NANOGPT_API_KEY = "$(cat /run/secrets/nanogpt_api_key)";
     OPENROUTER_API_KEY = "$(cat /run/secrets/openrouter_api_key)";
     ZED_OPEN_AI_COMPATIBLE_EDIT_PREDICTION_API_KEY = "$(cat /run/secrets/deepseek_api_key)";
   };
