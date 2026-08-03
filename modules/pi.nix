@@ -157,7 +157,7 @@ in
       force = true;
       text = builtins.toJSON {
         defaultProvider = "openrouter";
-        defaultModel = "openrouter/~deepseek/deepseek-v4-flash-latest";
+        defaultModel = "~deepseek/deepseek-v4-flash-latest";
         theme = "autumn-dark";
         hideThinkingBlock = true;
         compaction = {
