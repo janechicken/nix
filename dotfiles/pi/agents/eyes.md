@@ -1,7 +1,7 @@
 ---
 name: eyes
 description: Image analysis agent. Read-only. Uses qwen/qwen3.7-flash for vision.
-model: openrouter/qwen/qwen3.7-flash
+model: nanogpt/qwen/qwen3.7-flash
 tools: read, grep, find, ls
 thinking: off
 systemPromptMode: replace

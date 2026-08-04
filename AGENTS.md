@@ -97,7 +97,7 @@ nix flake update nixpkgs         # update single input
 - **Local extensions**: auto-globbed from `dotfiles/pi/extensions/*.ts` (via `--extension` flags), except `unwiredExts` list
   - `cheapcompute-provider.ts` — registers cheapcompute.app as OpenAI-compatible provider, reads `CHEAPCOMPUTE_API_KEY` (sops secret `cheapcompute_api_key`), autodetects models at startup via `GET /models` + id-based inference (context window, reasoning, vision)
 - **Settings**: `~/.pi/agent/settings.json`
-  - Provider: `openrouter`, model: `~deepseek/deepseek-v4-flash-latest`
+  - Provider: `nanogpt`, model: `deepseek/deepseek-v4-flash-0731`
   - Theme: dark
   - Compaction enabled (reserve 16K, keep 20K recent)
   - Retry enabled (max 3 retries)

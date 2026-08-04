@@ -2,7 +2,7 @@
 name: planner
 description: Creates implementation plans from context and requirements
 tools: read, grep, find, ls, write, intercom
-model: openrouter/~deepseek/deepseek-v4-flash-latest
+model: nanogpt/deepseek/deepseek-v4-flash-0731
 thinking: high
 systemPromptMode: replace
 inheritProjectContext: true

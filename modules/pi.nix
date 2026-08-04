@@ -155,8 +155,8 @@ in
     ".pi/agent/settings.json" = {
       force = true;
       text = builtins.toJSON {
-        defaultProvider = "openrouter";
-        defaultModel = "~deepseek/deepseek-v4-flash-latest";
+        defaultProvider = "nanogpt";
+        defaultModel = "deepseek/deepseek-v4-flash-0731";
         theme = "autumn-dark";
         hideThinkingBlock = true;
         compaction = {
@@ -173,32 +173,32 @@ in
         subagents = {
           agentOverrides = {
             scout = {
-              model = "openrouter/~deepseek/deepseek-v4-flash-latest";
+              model = "nanogpt/deepseek/deepseek-v4-flash-0731";
             };
             planner = {
-              model = "openrouter/~deepseek/deepseek-v4-flash-latest";
+              model = "nanogpt/deepseek/deepseek-v4-flash-0731";
             };
             worker = {
-              model = "openrouter/~deepseek/deepseek-v4-flash-latest";
+              model = "nanogpt/deepseek/deepseek-v4-flash-0731";
             };
             reviewer = {
-              model = "openrouter/~deepseek/deepseek-v4-flash-latest";
+              model = "nanogpt/deepseek/deepseek-v4-flash-0731";
             };
             context-builder = {
-              model = "openrouter/~deepseek/deepseek-v4-flash-latest";
+              model = "nanogpt/deepseek/deepseek-v4-flash-0731";
             };
             researcher = {
-              model = "openrouter/~deepseek/deepseek-v4-flash-latest";
+              model = "nanogpt/deepseek/deepseek-v4-flash-0731";
             };
             delegate = {
-              model = "openrouter/~deepseek/deepseek-v4-flash-latest";
+              model = "nanogpt/deepseek/deepseek-v4-flash-0731";
               thinking = "off";
             };
             oracle = {
-              model = "openrouter/~deepseek/deepseek-v4-flash-latest";
+              model = "nanogpt/deepseek/deepseek-v4-flash-0731";
             };
             eyes = {  # image analysis via qwen/qwen3.7-flash (vision-capable)
-              model = "openrouter/qwen/qwen3.7-flash";
+              model = "nanogpt/qwen/qwen3.7-flash";
             };
           };
         };

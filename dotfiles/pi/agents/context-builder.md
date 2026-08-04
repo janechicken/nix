@@ -2,7 +2,7 @@
 name: context-builder
 description: Analyzes requirements and codebase, generates context and meta-prompt
 tools: read, grep, find, ls, bash, write, web_search, intercom
-model: openrouter/~deepseek/deepseek-v4-flash-latest
+model: nanogpt/deepseek/deepseek-v4-flash-0731
 thinking: off
 systemPromptMode: replace
 inheritProjectContext: true
