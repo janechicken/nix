@@ -98,6 +98,7 @@
   xdg.userDirs = {
     enable = true;
     createDirectories = true;
+    setSessionVariables = false; # deprecated in home-manager; keep off
   };
 
   # Let Home Manager install and manage itself.

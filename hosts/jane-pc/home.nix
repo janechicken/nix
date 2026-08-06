@@ -109,6 +109,15 @@
   #
   home.sessionVariables = { };
 
+  # Create and manage the standard user directories (Desktop, Documents,
+  # Downloads, Music, Pictures, Public, Templates, Videos). Non-destructive:
+  # only mkdir -p's any that are absent + writes the user-dirs.dirs pointer.
+  xdg.userDirs = {
+    enable = true;
+    createDirectories = true;
+    setSessionVariables = false; # deprecated in home-manager; keep off
+  };
+
   # Let Home Manager install and manage itself.
   programs.home-manager.enable = true;
 }
