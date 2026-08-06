@@ -91,6 +91,15 @@
   #
   home.sessionVariables = { };
 
+  # Create and manage the standard user directories (Desktop, Documents,
+  # Downloads, Music, Pictures, Public, Templates, Videos). This is a fresh
+  # install, so NixOS would otherwise leave them absent until a desktop
+  # environment's xdg-user-dirs runs.
+  xdg.userDirs = {
+    enable = true;
+    createDirectories = true;
+  };
+
   # Let Home Manager install and manage itself.
   programs.home-manager.enable = true;
 }
