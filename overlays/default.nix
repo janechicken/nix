@@ -3,5 +3,5 @@
   ./ghidra-mcp.nix
   ./joyshockmapper.nix
   ./mdpls.nix
-  ./pi-extensions.nix
+  ./omp.nix
 ]

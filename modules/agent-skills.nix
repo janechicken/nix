@@ -36,15 +36,12 @@
         solve-challenge = {
           from = "local";
         };
-        superman = {
-          from = "local";
-        };
       };
     };
     targets = {
       opencode.enable = true;
-      pi = {
-        dest = "$HOME/.pi/agent/skills";
+      omp = {
+        dest = "$HOME/.omp/agent/skills";
         enable = true;
       };
     };

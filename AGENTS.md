@@ -37,10 +37,11 @@ nix flake update nixpkgs         # update single input
 ## Architecture
 
 - **flake.nix**: 2 nixosConfigurations + 2 homeConfigurations. Home-manager uses `pkgsWithOverlay` (overlay pre-applied). NixOS configs use plain `nixpkgs.legacyPackages`.
-| **overlays/**: `default.nix` lists overlay files to compose via `nixpkgs.lib.composeManyExtensions`. Currently: `browser-use.nix`, `ghidra-mcp.nix`.
+| **overlays/**: `default.nix` lists overlay files to compose via `nixpkgs.lib.composeManyExtensions`. Currently: `browser-use.nix`, `ghidra-mcp.nix`, `joyshockmapper.nix`, `mdpls.nix`, `omp.nix`.
 | **pkgs/**: Custom nixpkgs derivations:
   - `pkgs/browser-use/` — 6 packages (agentmail, browser-use-sdk, bubus, cdp-use, uuid7, default)
   - `pkgs/ghidra-mcp/` — GhidraMCP extension
+  - `pkgs/omp/` — oh-my-pi release binary package
 
 - **stateVersion**: 25.05 on all hosts.
 - **No CI** (no `.github/`).
@@ -55,7 +56,7 @@ nix flake update nixpkgs         # update single input
 | `pkgs/` | Custom package derivations (browser-use, ghidra-mcp) |
 | `secrets/` | sops-nix encrypted secrets (`secrets.yaml`, `sops-nix.nix`, `home-secrets.nix`) |
 | `dotfiles/` | Dotfile directories synced via home-manager |
-| `skills/` | Custom opencode skill (`solve-challenge`) |
+| `skills/` | Custom skill (`solve-challenge`) |
 
 ## Secrets (sops-nix)
 
@@ -63,8 +64,8 @@ nix flake update nixpkgs         # update single input
 - User age key: `~/.config/sops/age/keys.txt`
 - Encrypted secrets: `secrets/secrets.yaml` (`.sops.yaml` in project root defines the sole age key)
 - Decrypted at `/run/secrets/` (tmpfs)
-- 6 active secrets: `deepseek_api_key`, `cursor_api_key`, `openrouter_api_key`, `ssh_key`, `ssh_pubkey`, `cheapcompute_api_key`
-  - `openrouter_api_key` enables the OpenRouter provider (default, e.g. `openrouter/~deepseek/deepseek-v4-flash-latest`), `cursor_api_key` enables the cursor-sdk extension (e.g. `cursor/kimi-k3`), `cheapcompute_api_key` enables the cheapcompute provider extension
+- 7 active secrets: `deepseek_api_key`, `cursor_api_key`, `openrouter_api_key`, `ssh_key`, `ssh_pubkey`, `cheapcompute_api_key`, `nanogpt_api_key`
+  - `openrouter_api_key` enables the OpenRouter provider (default, e.g. `openrouter/~deepseek/deepseek-v4-flash-latest`), `cursor_api_key` enables the cursor-sdk extension (e.g. `cursor/kimi-k3`), `cheapcompute_api_key`  + `nanogpt_api_key` feed the omp `models.yml` custom providers
 - System secrets set as `environment.sessionVariables` (`DEEPSEEK_API_KEY`, `CURSOR_API_KEY`, `OPENROUTER_API_KEY`, `OPENAI_API_KEY`, `OPENAI_MODEL`, `OPENAI_MODEL_FOR_CHAT`, `OPENAI_ENDPOINT`)
 - Commented out secret: `gpg_key`
 
@@ -76,7 +77,7 @@ nix flake update nixpkgs         # update single input
   - `local` — from `../skills/` dir with `solve-challenge`
 - **Enabled CTF skills**: `ctf-ai-ml`, `ctf-crypto`, `ctf-forensics`, `ctf-malware`, `ctf-misc`, `ctf-osint`, `ctf-pwn`, `ctf-reverse`, `ctf-web`, `ctf-writeup`
 - **Explicit skill**: `solve-challenge` (from local source)
-- Target: OpenCode (`targets.opencode.enable = true`)
+- **Targets**: OpenCode (`targets.opencode.enable = true`) + omp (`.omp/agent/skills`)
 
 ## OpenCode (`modules/opencode.nix`)
 
@@ -90,19 +91,20 @@ nix flake update nixpkgs         # update single input
 - **Global style**: terse caveman (set in `context` field)
 - **Auth**: `OPENROUTER_API_KEY` env var (set via sops-nix system-wide)
 
-## Pi Agent (`modules/pi.nix`)
+## oh-my-pi Agent (`modules/omp.nix`) — replaces pi
 
-- **Package**: `pi-coding-agent` from nixpkgs
+- **Package**: `pkgs.omp` from `overlays/omp.nix` — fetches the `omp-linux-x64` release binary from GitHub (`can1357/oh-my-pi`), `autoPatchelf`'d for glibc. Not in nixpkgs.
+- **Config**: `~/.omp/agent/` (YAML), tracked as dotfiles (`dotfiles/.omp/agent/`) and wired via `modules/omp.nix` (same pattern as awesome/rofi/zed). `models.yml` / theme are store-linked; `config.yml` is seeded from the dotfile by `home.activation.writeOmpConfig` into a writable copy (omp mutates it at runtime):
+  - **Providers** (`models.yml`): custom OpenAI-compatible `nanogpt` + `cheapcompute`, both with `discovery: openai-models-list` (runtime `GET /models`), reading `NANOGPT_API_KEY` / `CHEAPCOMPUTE_API_KEY` (sops sessionVariables)
+  - **Model roles**: default/smol `nanogpt/deepseek/deepseek-v4-flash-0731`, vision `nanogpt/qwen/qwen3.7-flash` (from the removed eyes subagent)
+  - **Theme**: custom `autumn-dark` (ported from old pi theme, `~/.omp/agent/themes/autumn-dark.json`, selected via `theme.dark`)
+  - **Rules**: caveman contract in `~/.omp/agent/APPEND_SYSTEM.md`
+  - **Permissions**: `tools.approval` auto-approves read-only tools; `bash.patterns` denies `rm -rf`, prompts `sudo`
+  - **Compaction** enabled (reserve 16K, keep 20K), **retry** enabled (max 3)
+  - **hideThinkingBlock**: true
+- **Agents**: `~/.omp/agent/agents/*.md` (researcher = web research)
+- **Skills**: via `modules/agent-skills.nix` target `omp` → `~/.omp/agent/skills`
 - **Auth**: `OPENROUTER_API_KEY` env var (set via sops-nix system-wide)
-- **Local extensions**: auto-globbed from `dotfiles/pi/extensions/*.ts` (via `--extension` flags), except `unwiredExts` list
-  - `cheapcompute-provider.ts` — registers cheapcompute.app as OpenAI-compatible provider, reads `CHEAPCOMPUTE_API_KEY` (sops secret `cheapcompute_api_key`), autodetects models at startup via `GET /models` + id-based inference (context window, reasoning, vision)
-- **Settings**: `~/.pi/agent/settings.json`
-  - Provider: `nanogpt`, model: `deepseek/deepseek-v4-flash-0731`
-  - Theme: dark
-  - Compaction enabled (reserve 16K, keep 20K recent)
-  - Retry enabled (max 3 retries)
-- **Extension**: tool-use enforcement — blocks text-only responses without tool calls (enforces research-first behavior)
-- **AGENTS.md**: loaded every Pi session with NixOS-specific instructions
 
 ## Helix Editor (`modules/helix.nix`)
 
