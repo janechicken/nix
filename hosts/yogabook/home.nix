@@ -9,22 +9,11 @@
   imports = [
     ../../modules/desktop.nix
     ../../modules/git.nix
-    ../../modules/spotify.nix
     ../../modules/discord.nix
-    ../../modules/crypto.nix
-    ../../modules/hex.nix
-    ../../modules/gpg.nix
-    ../../modules/chess.nix
-    ../../modules/zed.nix
-    ../../modules/omp.nix
-    ../../modules/opencode.nix
-    ../../modules/agent-skills.nix
-    ../../modules/messaging.nix
     ../../modules/syncthing.nix
-    ../../modules/obsidian.nix
-    ../../modules/renix.nix
-    ../../modules/ghidra-mcp.nix
-    ../../modules/mcp.nix
+    ../../modules/crypto.nix
+    ../../modules/gpg.nix
+    ../../modules/omp.nix
     ../../secrets/home-secrets.nix
   ];
   # Home Manager needs a bit of information about you and the paths it should

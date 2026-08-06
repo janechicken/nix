@@ -1,4 +1,10 @@
-{ config, inputs, pkgs, lib, ... }:
+{
+  config,
+  inputs,
+  pkgs,
+  lib,
+  ...
+}:
 {
   programs.librewolf = {
     enable = true;
@@ -9,37 +15,37 @@
         Default = "Startpage";
       };
     };
-    
+
     profiles.jane = {
       search.force = true;
-      extensions.packages =
-        with inputs.firefox-addons.packages."x86_64-linux"; [
-          keepassxc-browser
-          darkreader
-          sponsorblock
-          fastforwardteam
-          violentmonkey
-          clearurls
-          user-agent-string-switcher
-          canvasblocker
-        ];
+      extensions.packages = with inputs.firefox-addons.packages.${pkgs.system}; [
+        keepassxc-browser
+        darkreader
+        sponsorblock
+        fastforwardteam
+        violentmonkey
+        clearurls
+        user-agent-string-switcher
+        canvasblocker
+      ];
       search.engines = {
         "Nix Packages" = {
-          urls = [{
-            template = "https://search.nixos.org/packages";
-            params = [
-              {
-                name = "type";
-                value = "packages";
-              }
-              {
-                name = "query";
-                value = "{searchTerms}";
-              }
-            ];
-          }];
-          icon =
-            "${pkgs.nixos-icons}/share/icons/hicolor/scalable/apps/nix-snowflake.svg";
+          urls = [
+            {
+              template = "https://search.nixos.org/packages";
+              params = [
+                {
+                  name = "type";
+                  value = "packages";
+                }
+                {
+                  name = "query";
+                  value = "{searchTerms}";
+                }
+              ];
+            }
+          ];
+          icon = "${pkgs.nixos-icons}/share/icons/hicolor/scalable/apps/nix-snowflake.svg";
           definedAliases = [ "@np" ];
         };
       };

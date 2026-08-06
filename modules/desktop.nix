@@ -1,8 +1,20 @@
-{ config, inputs, pkgs, lib, system, ... }:
+{
+  config,
+  inputs,
+  pkgs,
+  lib,
+  system,
+  ...
+}:
 
 {
   # this assumes xorg and awesome are both already enabled in configuration.nix, this just copies the xinitrc and awesome config
-  imports = [ ./browsers.nix ./terminal.nix ./zsh.nix ./helix.nix ];
+  imports = [
+    ./browsers.nix
+    ./terminal.nix
+    ./zsh.nix
+    ./helix.nix
+  ];
 
   nixpkgs.config = {
     allowBroken = true;
@@ -23,7 +35,7 @@
     pkgs.easyeffects
     pkgs.pavucontrol
     pkgs.flameshot
-    inputs.nix-alien.packages."x86_64-linux".nix-alien
+    inputs.nix-alien.packages.${pkgs.system}.nix-alien
     pkgs.yt-dlp-light
     pkgs.xbacklight
   ];
@@ -57,7 +69,9 @@
     };
   };
 
-  home.sessionVariables = { MAKEFLAGS = "-j$(nproc)"; };
+  home.sessionVariables = {
+    MAKEFLAGS = "-j$(nproc)";
+  };
 
   programs.rofi = {
     enable = true;
@@ -67,13 +81,17 @@
   dconf = {
     enable = true;
     settings = {
-      "org/gnome/desktop/interface" = { color-scheme = "prefer-dark"; };
+      "org/gnome/desktop/interface" = {
+        color-scheme = "prefer-dark";
+      };
     };
   };
 
   gtk = {
     enable = true;
-    theme = { name = "Adwaita"; };
+    theme = {
+      name = "Adwaita";
+    };
     cursorTheme = {
       name = "Bibata-Modern-Classic";
       package = pkgs.bibata-cursors;

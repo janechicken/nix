@@ -62,41 +62,41 @@
       overlayFiles = import ./overlays/default.nix;
       overlay = nixpkgs.lib.composeManyExtensions (map import overlayFiles);
       # For home-manager, pkgs must already have the overlay applied
-      pkgsWithOverlay = nixpkgs.legacyPackages.x86_64-linux.extend overlay;
+      # pkgs with the overlay pre-applied, per system. NixOS configs apply the
+      # overlay via nixpkgs.overlays; home-manager needs it baked into pkgs.
+      pkgsFor = system: nixpkgs.legacyPackages.${system}.extend overlay;
+      mkNixos =
+        system: host:
+        nixpkgs.lib.nixosSystem {
+          inherit system;
+          specialArgs = { inherit inputs; };
+          modules = [
+            ./hosts/${host}/configuration.nix
+            { nixpkgs.overlays = [ overlay ]; }
+          ];
+        };
+      mkHome =
+        system: host:
+        home-manager.lib.homeManagerConfiguration {
+          pkgs = pkgsFor system;
+          extraSpecialArgs = { inherit inputs; };
+          modules = [ ./hosts/${host}/home.nix ];
+        };
     in
     {
       # nh os switch .
       nixosConfigurations = {
-        jane-pc = nixpkgs.lib.nixosSystem {
-          system = "x86_64-linux";
-          specialArgs = { inherit inputs; };
-          modules = [
-            ./hosts/jane-pc/configuration.nix
-            { nixpkgs.overlays = [ overlay ]; }
-          ];
-        };
-        jane-laptop = nixpkgs.lib.nixosSystem {
-          system = "x86_64-linux";
-          specialArgs = { inherit inputs; };
-          modules = [
-            ./hosts/jane-laptop/configuration.nix
-            { nixpkgs.overlays = [ overlay ]; }
-          ];
-        };
+        jane-pc = mkNixos "x86_64-linux" "jane-pc";
+        jane-laptop = mkNixos "x86_64-linux" "jane-laptop";
+        # Snapdragon X2 Elite (ARM) — Lenovo Yoga Slim 7 14Q8Y11
+        yogabook = mkNixos "aarch64-linux" "yogabook";
       };
 
       # nh home switch .
       homeConfigurations = {
-        "jane@jane-pc" = home-manager.lib.homeManagerConfiguration {
-          pkgs = pkgsWithOverlay;
-          extraSpecialArgs = { inherit inputs; };
-          modules = [ ./hosts/jane-pc/home.nix ];
-        };
-        "jane@jane-laptop" = home-manager.lib.homeManagerConfiguration {
-          pkgs = pkgsWithOverlay;
-          extraSpecialArgs = { inherit inputs; };
-          modules = [ ./hosts/jane-laptop/home.nix ];
-        };
+        "jane@jane-pc" = mkHome "x86_64-linux" "jane-pc";
+        "jane@jane-laptop" = mkHome "x86_64-linux" "jane-laptop";
+        "jane@yogabook" = mkHome "aarch64-linux" "yogabook";
       };
     };
 }

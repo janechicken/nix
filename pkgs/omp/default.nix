@@ -7,11 +7,19 @@
 }:
 
 let
-  version = "17.2.9";
+  version = "17.2.10";
+  # GitHub release assets are per-arch: omp-linux-x64 / omp-linux-arm64.
+  asset = if stdenv.hostPlatform.isAarch64 then "arm64" else "x64";
   src = fetchurl {
-    url = "https://github.com/can1357/oh-my-pi/releases/download/v${version}/omp-linux-x64";
-    hash = "sha256-T3rrM7LzR8EaWsjHNjDjHQLAo+7zaTRoiAufXo8CoCs=";
+    url = "https://github.com/can1357/oh-my-pi/releases/download/v${version}/omp-linux-${asset}";
+    hash =
+      if stdenv.hostPlatform.isAarch64 then
+        "sha256-yTXV0l62d6Ylk0+B9LIbD/BbZEAP656Q8C8O/jlnY4Y="
+      else
+        "sha256-T+VksjSCzWJ2caJBeEJJjJey9ytfijpO+4CU5iPfejM=";
   };
+  # NixOS's glibc loader differs between architectures.
+  loader = if stdenv.hostPlatform.isAarch64 then "ld-linux-aarch64.so.1" else "ld-linux-x86-64.so.2";
 in
 stdenv.mkDerivation {
   pname = "omp";
@@ -33,7 +41,7 @@ stdenv.mkDerivation {
   installPhase = ''
     runHook preInstall
     install -Dm755 $src $out/bin/omp
-    patchelf --set-interpreter ${glibc}/lib/ld-linux-x86-64.so.2 $out/bin/omp
+    patchelf --set-interpreter ${glibc}/lib/${loader} $out/bin/omp
     runHook postInstall
   '';
 
@@ -42,6 +50,9 @@ stdenv.mkDerivation {
     homepage = "https://omp.sh";
     license = lib.licenses.asl20;
     mainProgram = "omp";
-    platforms = [ "x86_64-linux" ];
+    platforms = [
+      "x86_64-linux"
+      "aarch64-linux"
+    ];
   };
 }

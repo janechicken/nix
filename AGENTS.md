@@ -1,6 +1,6 @@
 # AGENTS.md
 
-NixOS + Home Manager flake config. 2 hosts, x86_64-linux only.
+NixOS + Home Manager flake config. 3 hosts: 2× x86_64-linux (jane-pc, jane-laptop), 1× aarch64-linux (yogabook, Snapdragon X2 Elite).
 
 ## Hosts
 
@@ -8,6 +8,7 @@ NixOS + Home Manager flake config. 2 hosts, x86_64-linux only.
 |------|------|-----|---------|
 | `jane-pc` | desktop | Intel (modesetting) | FIDO2+LUKS, Awesome WM, gaming |
 | `jane-laptop` | laptop | NVIDIA (open) | FIDO2+LUKS, TLP, lid switch handling |
+| `yogabook` | laptop | Snapdragon X2 Elite (Adreno X2) | FIDO2+LUKS, Awesome WM, aarch64 — Linux on X2 is young (kernel 6.19+) |
 
 Both share modules via `hosts/<name>/configuration.nix` (system) + `home.nix` (user).
 
@@ -26,6 +27,8 @@ nix eval .#nixosConfigurations.<host>.config.system.build.toplevel
 
 No switching — leave `nh os switch` / `nh home switch` to user. No test framework exists; build verification is the only check.
 
+yogabook is `aarch64-linux`: `nix eval` works from any machine, but `nh os build` / `nh home build` on an x86 host needs `system.extra-platforms = [ "aarch64-linux" ]` + qemu-user binfmt (or build on the laptop itself).
+
 ## Format & Update
 
 ```bash
@@ -36,7 +39,7 @@ nix flake update nixpkgs         # update single input
 
 ## Architecture
 
-- **flake.nix**: 2 nixosConfigurations + 2 homeConfigurations. Home-manager uses `pkgsWithOverlay` (overlay pre-applied). NixOS configs use plain `nixpkgs.legacyPackages`.
+- **flake.nix**: 3 nixosConfigurations + 3 homeConfigurations via `mkNixos`/`mkHome` helpers, parameterized by system (`x86_64-linux` pc/laptop, `aarch64-linux` yogabook). Home-manager uses per-system `pkgsFor` (overlay pre-applied). NixOS configs use plain `nixpkgs.legacyPackages`.
 | **overlays/**: `default.nix` lists overlay files to compose via `nixpkgs.lib.composeManyExtensions`. Currently: `browser-use.nix`, `ghidra-mcp.nix`, `joyshockmapper.nix`, `mdpls.nix`, `omp.nix`.
 | **pkgs/**: Custom nixpkgs derivations:
   - `pkgs/browser-use/` — 6 packages (agentmail, browser-use-sdk, bubus, cdp-use, uuid7, default)
@@ -64,6 +67,7 @@ nix flake update nixpkgs         # update single input
 - User age key: `~/.config/sops/age/keys.txt`
 - Encrypted secrets: `secrets/secrets.yaml` (`.sops.yaml` in project root defines the sole age key)
 - Decrypted at `/run/secrets/` (tmpfs)
+- sops decrypts at build time: a new host needs its age pubkey in `.sops.yaml`, then `sops updatekeys secrets/secrets.yaml` (yogabook: pending until its install generates a key)
 - 7 active secrets: `deepseek_api_key`, `cursor_api_key`, `openrouter_api_key`, `ssh_key`, `ssh_pubkey`, `cheapcompute_api_key`, `nanogpt_api_key`
   - `openrouter_api_key` enables the OpenRouter provider (default, e.g. `openrouter/~deepseek/deepseek-v4-flash-latest`), `cursor_api_key` enables the cursor-sdk extension (e.g. `cursor/kimi-k3`), `cheapcompute_api_key`  + `nanogpt_api_key` feed the omp `models.yml` custom providers
 - System secrets set as `environment.sessionVariables` (`DEEPSEEK_API_KEY`, `CURSOR_API_KEY`, `OPENROUTER_API_KEY`, `OPENAI_API_KEY`, `OPENAI_MODEL`, `OPENAI_MODEL_FOR_CHAT`, `OPENAI_ENDPOINT`)
@@ -93,7 +97,7 @@ nix flake update nixpkgs         # update single input
 
 ## oh-my-pi Agent (`modules/omp.nix`) — replaces pi
 
-- **Package**: `pkgs.omp` from `overlays/omp.nix` — fetches the `omp-linux-x64` release binary from GitHub (`can1357/oh-my-pi`), `autoPatchelf`'d for glibc. Not in nixpkgs.
+- **Package**: `pkgs.omp` from `overlays/omp.nix` — fetches the per-arch release binary (`omp-linux-x64` / `omp-linux-arm64`) from GitHub (`can1357/oh-my-pi`), `patchelf`'d for the NixOS glibc loader (`dontStrip`; autoPatchelf would mangle the embedded Bun runtime). Not in nixpkgs.
 - **Config**: `~/.omp/agent/` (YAML), tracked as dotfiles (`dotfiles/.omp/agent/`) and wired via `modules/omp.nix` (same pattern as awesome/rofi/zed). `models.yml` / theme are store-linked; `config.yml` is seeded from the dotfile by `home.activation.writeOmpConfig` into a writable copy (omp mutates it at runtime):
   - **Providers** (`models.yml`): custom OpenAI-compatible `nanogpt` + `cheapcompute`, both with `discovery: openai-models-list` (runtime `GET /models`), reading `NANOGPT_API_KEY` / `CHEAPCOMPUTE_API_KEY` (sops sessionVariables)
   - **Model roles**: default/smol `nanogpt/deepseek/deepseek-v4-flash-0731`, vision `nanogpt/qwen/qwen3.7-flash` (from the removed eyes subagent)
