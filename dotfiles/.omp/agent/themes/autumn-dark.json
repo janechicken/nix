@@ -1,4 +1,5 @@
 {
+  "$schema": "https://raw.githubusercontent.com/can1357/oh-my-pi/main/packages/coding-agent/theme-schema.json",
   "name": "autumn-dark",
   "vars": {
     "red": "#F05E48",
@@ -9,6 +10,8 @@
     "turquoise2": "#72a59e",
     "text": "#F3F2CC",
     "comment": "#626C66",
+    "bg0": "#090909",
+    "bg1": "#0e0e0e",
     "bg2": "#1a1a1a",
     "bg3": "#404040",
     "brown": "#cfba8b"
@@ -36,20 +39,6 @@
     "toolErrorBg": "#2a1a1a",
     "toolTitle": "yellow",
     "toolOutput": "",
-    "statusLineBg": "bg2",
-    "statusLineSep": "bg3",
-    "statusLineModel": "yellow",
-    "statusLinePath": "turquoise",
-    "statusLineGitClean": "green",
-    "statusLineGitDirty": "red",
-    "statusLineContext": "comment",
-    "statusLineSpend": "comment",
-    "statusLineStaged": "green",
-    "statusLineDirty": "yellow",
-    "statusLineUntracked": "comment",
-    "statusLineOutput": "comment",
-    "statusLineCost": "yellow",
-    "statusLineSubagents": "turquoise",
     "mdHeading": "yellow",
     "mdLink": "turquoise",
     "mdLinkUrl": "turquoise2",
@@ -80,24 +69,24 @@
     "thinkingXhigh": "#ff0000",
     "bashMode": "yellow",
     "pythonMode": "turquoise",
-    "boxRound": {
-      "topLeft": "border",
-      "topRight": "border",
-      "bottomLeft": "border",
-      "bottomRight": "border",
-      "horizontal": "border",
-      "vertical": "border"
-    },
-    "boxSharp": {
-      "topLeft": "border",
-      "topRight": "border",
-      "bottomLeft": "border",
-      "bottomRight": "border",
-      "cross": "border",
-      "teeDown": "border",
-      "teeUp": "border",
-      "teeRight": "border",
-      "teeLeft": "border"
-    }
+    "statusLineBg": "bg2",
+    "statusLineSep": "bg3",
+    "statusLineModel": "yellow",
+    "statusLinePath": "turquoise",
+    "statusLineGitClean": "green",
+    "statusLineGitDirty": "red",
+    "statusLineContext": "comment",
+    "statusLineSpend": "comment",
+    "statusLineStaged": "green",
+    "statusLineDirty": "yellow",
+    "statusLineUntracked": "comment",
+    "statusLineOutput": "comment",
+    "statusLineCost": "yellow",
+    "statusLineSubagents": "turquoise"
+  },
+  "export": {
+    "pageBg": "#090909",
+    "cardBg": "#1a1a1a",
+    "infoBg": "#0e0e0e"
   }
 }
