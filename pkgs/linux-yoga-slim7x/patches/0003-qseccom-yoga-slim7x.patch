@@ -1,0 +1,16 @@
+From: Konrad Dybcio <konrad.dybcio@oss.qualcomm.com>
+Subject: [PATCH 4/4] firmware: qcom: scm: Allow QSEECOM on Yoga Slim 7x
+
+diff --git a/drivers/firmware/qcom/qcom_scm.c b/drivers/firmware/qcom/qcom_scm.c
+index 6b601a4b89dbf04322730aa22fc9590d180a383c..fbcb9dddfec68e32564e3a4209c3b6f471e0fdb5 100644
+--- a/drivers/firmware/qcom/qcom_scm.c
++++ b/drivers/firmware/qcom/qcom_scm.c
+@@ -2304,6 +2304,7 @@ static const struct of_device_id qcom_scm_qseecom_allowlist[] __maybe_unused = {
+ 	{ .compatible = "lenovo,thinkpad-t14s" },
+ 	{ .compatible = "lenovo,thinkpad-x13s", },
+ 	{ .compatible = "lenovo,yoga-slim7x" },
++	{ .compatible = "lenovo,yoga-slim7x-gen11" },
+ 	{ .compatible = "medion,sprchrgd14s1" },
+ 	{ .compatible = "microsoft,arcata", },
+ 	{ .compatible = "microsoft,surface-pro-12in", },
+

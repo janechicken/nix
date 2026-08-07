@@ -4,4 +4,5 @@
   ./joyshockmapper.nix
   ./mdpls.nix
   ./omp.nix
+  ./yoga-kernel.nix
 ]

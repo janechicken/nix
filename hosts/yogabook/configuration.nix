@@ -54,8 +54,10 @@
       systemd.enable = true;
       luks.devices."cryptroot".crypttabExtraOpts = [ "fido2-device=auto" ];
     };
-    # X2 Elite SoC/GPU support requires a recent kernel.
-    kernelPackages = pkgs.linuxPackages_latest;
+    # X2 Elite SoC/GPU support requires a recent kernel — use our patched
+    # linuxPackages_latest that adds the Glymur Yoga Slim 7x board DTS (not
+    # yet upstream; see overlays/yoga-kernel.nix).
+    kernelPackages = pkgs.linuxPackages_yoga_slim7x;
     kernelParams = [
       # systemd picked the debug UART as the only console on the Yoga Slim 7x
       # (X1E); same SoC-family quirk.
@@ -70,21 +72,13 @@
     ];
   };
   boot.loader = {
-    grub = {
+    # rEFInd: ARM-native (refind_aa64), auto-detects kernels + LUKS/FIDO2
+    # cleanly on NixOS-only UEFI installs. Grub's os-prober/cryptodisk
+    # complexity is unnecessary here (no dual-boot).
+    refind = {
       enable = true;
-      enableCryptodisk = true;
-      # NixOS-only install — no os-prober.
-      efiSupport = true;
-      copyKernels = true;
-      device = "nodev";
-      extraEntries = ''
-        menuentry "Reboot" {
-            reboot
-        }
-        menuentry "Poweroff" {
-            halt
-        }
-      '';
+      # rEFInd auto-finds the ESP; only set efiDevice if it can't detect it.
+      # efiDevice = "nodev";
     };
     efi = {
       canTouchEfiVariables = true;
