@@ -39,11 +39,7 @@ beautiful.notification_max_width = 10
 --autostart
 autorun = true
 autorunApps = {
-  "discord",
-  "arrpc",
-  "signal-desktop",
   "copyq",
-  "keepassxc",
   "udiskie",
   "copyq",
   "flameshot",
