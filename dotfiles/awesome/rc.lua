@@ -43,7 +43,6 @@ autorunApps = {
   "udiskie",
   "copyq",
   "flameshot",
-  "easyeffects --gapplication-service",
 }
 
 

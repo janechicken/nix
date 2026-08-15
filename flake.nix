@@ -87,16 +87,11 @@
       # nh os switch .
       nixosConfigurations = {
         jane-pc = mkNixos "x86_64-linux" "jane-pc";
-        jane-laptop = mkNixos "x86_64-linux" "jane-laptop";
-        # Snapdragon X2 Elite (ARM) — Lenovo Yoga Slim 7 14Q8Y11
-        yogabook = mkNixos "aarch64-linux" "yogabook";
       };
 
       # nh home switch .
       homeConfigurations = {
         "jane@jane-pc" = mkHome "x86_64-linux" "jane-pc";
-        "jane@jane-laptop" = mkHome "x86_64-linux" "jane-laptop";
-        "jane@yogabook" = mkHome "aarch64-linux" "yogabook";
       };
     };
 }

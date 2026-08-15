@@ -1,16 +1,14 @@
 # AGENTS.md
 
-NixOS + Home Manager flake config. 3 hosts: 2× x86_64-linux (jane-pc, jane-laptop), 1× aarch64-linux (yogabook, Snapdragon X2 Elite).
+NixOS + Home Manager flake config. Single host: jane-pc (x86_64-linux).
 
 ## Hosts
 
 | Host | Type | GPU | Special |
 |------|------|-----|---------|
 | `jane-pc` | desktop | Intel (modesetting) | FIDO2+LUKS, Awesome WM, gaming |
-| `jane-laptop` | laptop | NVIDIA (open) | FIDO2+LUKS, TLP, lid switch handling |
-| `yogabook` | laptop | Snapdragon X2 Elite (Adreno X2) | FIDO2+LUKS, Awesome WM, aarch64 — Linux on X2 is young (kernel 6.19+) |
 
-Both share modules via `hosts/<name>/configuration.nix` (system) + `home.nix` (user).
+Shared modules via `hosts/<name>/configuration.nix` (system) + `home.nix` (user).
 
 ## Build & Verify
 
@@ -27,8 +25,6 @@ nix eval .#nixosConfigurations.<host>.config.system.build.toplevel
 
 No switching — leave `nh os switch` / `nh home switch` to user. No test framework exists; build verification is the only check.
 
-yogabook is `aarch64-linux`: `nix eval` works from any machine, but `nh os build` / `nh home build` on an x86 host needs `system.extra-platforms = [ "aarch64-linux" ]` + qemu-user binfmt (or build on the laptop itself).
-
 ## Format & Update
 
 ```bash
@@ -39,7 +35,7 @@ nix flake update nixpkgs         # update single input
 
 ## Architecture
 
-- **flake.nix**: 3 nixosConfigurations + 3 homeConfigurations via `mkNixos`/`mkHome` helpers, parameterized by system (`x86_64-linux` pc/laptop, `aarch64-linux` yogabook). Home-manager uses per-system `pkgsFor` (overlay pre-applied). NixOS configs use plain `nixpkgs.legacyPackages`.
+- **flake.nix**: 1 nixosConfiguration + 1 homeConfiguration via `mkNixos`/`mkHome` helpers, parameterized by system. Home-manager uses per-system `pkgsFor` (overlay pre-applied). NixOS configs use plain `nixpkgs.legacyPackages`.
 | **overlays/**: `default.nix` lists overlay files to compose via `nixpkgs.lib.composeManyExtensions`. Currently: `browser-use.nix`, `ghidra-mcp.nix`, `joyshockmapper.nix`, `mdpls.nix`, `omp.nix`.
 | **pkgs/**: Custom nixpkgs derivations:
   - `pkgs/browser-use/` — 6 packages (agentmail, browser-use-sdk, bubus, cdp-use, uuid7, default)
@@ -67,7 +63,7 @@ nix flake update nixpkgs         # update single input
 - User age key: `~/.config/sops/age/keys.txt`
 - Encrypted secrets: `secrets/secrets.yaml` (`.sops.yaml` in project root defines the sole age key)
 - Decrypted at `/run/secrets/` (tmpfs)
-- sops decrypts at build time: a new host needs its age pubkey in `.sops.yaml`, then `sops updatekeys secrets/secrets.yaml` (yogabook: pending until its install generates a key)
+- sops decrypts at build time: a new host needs its age pubkey in `.sops.yaml`, then `sops updatekeys secrets/secrets.yaml`
 - 7 active secrets: `deepseek_api_key`, `cursor_api_key`, `openrouter_api_key`, `ssh_key`, `ssh_pubkey`, `cheapcompute_api_key`, `nanogpt_api_key`
   - `openrouter_api_key` enables the OpenRouter provider (default, e.g. `openrouter/~deepseek/deepseek-v4-flash-latest`), `cursor_api_key` enables the cursor-sdk extension (e.g. `cursor/kimi-k3`), `cheapcompute_api_key`  + `nanogpt_api_key` feed the omp `models.yml` custom providers
 - System secrets set as `environment.sessionVariables` (`DEEPSEEK_API_KEY`, `CURSOR_API_KEY`, `OPENROUTER_API_KEY`, `OPENAI_API_KEY`, `OPENAI_MODEL`, `OPENAI_MODEL_FOR_CHAT`, `OPENAI_ENDPOINT`)
