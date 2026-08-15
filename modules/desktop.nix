@@ -71,6 +71,7 @@
 
   home.sessionVariables = {
     MAKEFLAGS = "-j$(nproc)";
+    NH_FLAKE = "${config.home.homeDirectory}/nix";
   };
 
   programs.rofi = {

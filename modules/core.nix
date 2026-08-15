@@ -19,8 +19,12 @@ let
   };
 in
 {
+  programs.nh = {
+    enable = true;
+    flake = "/home/jane/nix";
+  };
+
   environment.systemPackages = with pkgs; [
-    nh
     lsd
     jq
     openssl

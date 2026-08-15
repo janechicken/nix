@@ -7,16 +7,16 @@
 }:
 
 let
-  version = "17.2.10";
+  version = "17.3.4";
   # GitHub release assets are per-arch: omp-linux-x64 / omp-linux-arm64.
   asset = if stdenv.hostPlatform.isAarch64 then "arm64" else "x64";
   src = fetchurl {
     url = "https://github.com/can1357/oh-my-pi/releases/download/v${version}/omp-linux-${asset}";
     hash =
       if stdenv.hostPlatform.isAarch64 then
-        "sha256-yTXV0l62d6Ylk0+B9LIbD/BbZEAP656Q8C8O/jlnY4Y="
+        "sha256-jifnv+SfwPM/bLC1ASirhf5UAzMNHftbs0zx90Is3Og="
       else
-        "sha256-T+VksjSCzWJ2caJBeEJJjJey9ytfijpO+4CU5iPfejM=";
+        "sha256-P85LJWKAZLDNe/vGJF7NraMxdQ7Us0Gspr0pukR4qrU=";
   };
   # NixOS's glibc loader differs between architectures.
   loader = if stdenv.hostPlatform.isAarch64 then "ld-linux-aarch64.so.1" else "ld-linux-x86-64.so.2";
