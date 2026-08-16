@@ -26,6 +26,7 @@
     ../../modules/flatpak.nix
     ../../modules/nix-ld.nix
     ../../modules/ntsync.nix
+    ../../modules/virtualisation.nix
     ../../modules/xdg-portal.nix
     inputs.sops-nix.nixosModules.sops
     ../../secrets/sops-nix.nix
@@ -179,6 +180,7 @@
       "networkmanager"
       "audio"
       "input"
+      "libvirtd"
     ];
     shell = pkgs.zsh;
   };
