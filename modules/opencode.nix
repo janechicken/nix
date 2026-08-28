@@ -1,8 +1,5 @@
-{ pkgs, inputs, ... }:
+{ pkgs, ... }:
 
-let
-  ctfWriteupContent = builtins.readFile "${inputs.ctf-skills}/ctf-writeup/SKILL.md";
-in
 {
   programs.opencode = {
     enable = true;
@@ -28,8 +25,6 @@ in
         You are a git assistant, simply do what the user runs you with. For example if a user runs git commit, do git commit, but you are what creates the message. Be concise, in one sentence if possible, but its okay to exceed that if there are multiple changes. In the git commit message, explain what and why, not just what changed.
         Usage: /git
       '';
-      solve-challenge = ../skills/solve-challenge/SKILL.md;
-      ctf-writeup = ctfWriteupContent;
       breath = "Stop for a second. Take a breather. Give background info, your problems, your goals, your achievements, and what you've done so far. I'll give my own insight";
     };
     tui = {

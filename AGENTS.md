@@ -55,7 +55,6 @@ nix flake update nixpkgs         # update single input
 | `pkgs/` | Custom package derivations (browser-use, ghidra-mcp) |
 | `secrets/` | sops-nix encrypted secrets (`secrets.yaml`, `sops-nix.nix`, `home-secrets.nix`) |
 | `dotfiles/` | Dotfile directories synced via home-manager |
-| `skills/` | Custom skill (`solve-challenge`) |
 
 ## Secrets (sops-nix)
 
@@ -69,24 +68,10 @@ nix flake update nixpkgs         # update single input
 - System secrets set as `environment.sessionVariables` (`DEEPSEEK_API_KEY`, `CURSOR_API_KEY`, `OPENROUTER_API_KEY`, `OPENAI_API_KEY`, `OPENAI_MODEL`, `OPENAI_MODEL_FOR_CHAT`, `OPENAI_ENDPOINT`)
 - Commented out secret: `gpg_key`
 
-## Agent Skills (`modules/agent-skills.nix`)
-
-- Uses `agent-skills-nix` flake input (home-manager module from `github:Kyure-A/agent-skills-nix`)
-- **Sources**:
-  - `ctf-skills` — from `github:ljagiello/ctf-skills` flake input
-  - `local` — from `../skills/` dir with `solve-challenge`
-- **Enabled CTF skills**: `ctf-ai-ml`, `ctf-crypto`, `ctf-forensics`, `ctf-malware`, `ctf-misc`, `ctf-osint`, `ctf-pwn`, `ctf-reverse`, `ctf-web`, `ctf-writeup`
-- **Explicit skill**: `solve-challenge` (from local source)
-- **Targets**: OpenCode (`targets.opencode.enable = true`) + omp (`.omp/agent/skills`)
 
 ## OpenCode (`modules/opencode.nix`)
 
-- **Agents**: `reviewer`, `squad` (dispatcher), `student`, `general`, `general-quick`, `explore`, `eyes` (vision via qwen/qwen3.7-flash)
-- **MCP**:
-  - `browser-use` — via `uvx --from browser-use[cli] browser-use --mcp` (headless disabled, playwright from nix store)
-  - `ghidra` — GhidraMCP for reverse engineering
-- **Skills**: CTF skills from `ctf-skills` flake input + local `solve-challenge` + `rust-skills` from flake input
-- **Commands**: `/test` (build verification), `/git`, `/solve-challenge`, `/ctf-writeup`, `/breath`
+- **Commands**: `/test` (build verification), `/git`, `/breath`
 - **Theme**: gruvbox
 - **Global style**: terse caveman (set in `context` field)
 - **Auth**: `OPENROUTER_API_KEY` env var (set via sops-nix system-wide)
@@ -102,9 +87,9 @@ nix flake update nixpkgs         # update single input
   - **Permissions**: `tools.approval` auto-approves read-only tools; `bash.patterns` denies `rm -rf`, prompts `sudo`
   - **Compaction** enabled (reserve 16K, keep 20K), **retry** enabled (max 3)
   - **hideThinkingBlock**: true
-- **Agents**: `~/.omp/agent/agents/*.md` (researcher = web research)
-- **Skills**: via `modules/agent-skills.nix` target `omp` → `~/.omp/agent/skills`
+- **Skills**: none — `agent-skills.nix` module removed; deploy skills manually if needed
 - **Auth**: `OPENROUTER_API_KEY` env var (set via sops-nix system-wide)
+
 
 ## Helix Editor (`modules/helix.nix`)
 
@@ -119,10 +104,6 @@ nix flake update nixpkgs         # update single input
 ## Flake Inputs
 
 Key flake inputs beyond nixpkgs + home-manager:
-- `agent-skills-nix` — agent skills home-manager module
-- `ctf-skills` — CTF skill definitions (flake=false)
-- `cybersec-skills` — cybersecurity skills (flake=false)
-- `rust-skills` — Rust skills (flake=false)
 - `sops-nix` — secret management
 - `firefox-addons`, `nixcord` — browser extensions, Discord mod
 - `disko` — disk partitioning

@@ -1,81 +1,5 @@
 {
   "nodes": {
-    "agent-skills-nix": {
-      "inputs": {
-        "blueprint": "blueprint",
-        "home-manager": "home-manager",
-        "nixpkgs": [
-          "nixpkgs"
-        ]
-      },
-      "locked": {
-        "lastModified": 1786379373,
-        "narHash": "sha256-zrvcpGFA8zG6yRLBqQH9bNkJap8xMvLNvkuT4+7w6X8=",
-        "owner": "Kyure-A",
-        "repo": "agent-skills-nix",
-        "rev": "1594ba479be81a7cb6dd19faabefcb1ed5b3f964",
-        "type": "github"
-      },
-      "original": {
-        "owner": "Kyure-A",
-        "repo": "agent-skills-nix",
-        "type": "github"
-      }
-    },
-    "blueprint": {
-      "inputs": {
-        "nixpkgs": [
-          "agent-skills-nix",
-          "nixpkgs"
-        ],
-        "systems": "systems"
-      },
-      "locked": {
-        "lastModified": 1776249299,
-        "narHash": "sha256-Dt9t1TGRmJFc0xVYhttNBD6QsAgHOHCArqGa0AyjrJY=",
-        "owner": "numtide",
-        "repo": "blueprint",
-        "rev": "56131e8628f173d24a27f6d27c0215eff57e40dd",
-        "type": "github"
-      },
-      "original": {
-        "owner": "numtide",
-        "repo": "blueprint",
-        "type": "github"
-      }
-    },
-    "ctf-skills": {
-      "flake": false,
-      "locked": {
-        "lastModified": 1785475780,
-        "narHash": "sha256-H5kAev0I9bv9jDh+Cr4uUCYHxS85woFBnzRdFwMvvMM=",
-        "owner": "ljagiello",
-        "repo": "ctf-skills",
-        "rev": "d6662d26b5ed3caa56f5eaf6eb887964f3747162",
-        "type": "github"
-      },
-      "original": {
-        "owner": "ljagiello",
-        "repo": "ctf-skills",
-        "type": "github"
-      }
-    },
-    "cybersec-skills": {
-      "flake": false,
-      "locked": {
-        "lastModified": 1786200919,
-        "narHash": "sha256-Y9Q73Uzb7oPEBYa2/tT7cS1VzOFIXMXKVs3rJhTMEBg=",
-        "owner": "mukul975",
-        "repo": "Anthropic-Cybersecurity-Skills",
-        "rev": "4c0b700ac5d280ba46695062077f0fe922ce3602",
-        "type": "github"
-      },
-      "original": {
-        "owner": "mukul975",
-        "repo": "Anthropic-Cybersecurity-Skills",
-        "type": "github"
-      }
-    },
     "disko": {
       "inputs": {
         "nixpkgs": [
@@ -174,7 +98,7 @@
     },
     "flake-utils_2": {
       "inputs": {
-        "systems": "systems_3"
+        "systems": "systems_2"
       },
       "locked": {
         "lastModified": 1731533236,
@@ -191,27 +115,6 @@
       }
     },
     "home-manager": {
-      "inputs": {
-        "nixpkgs": [
-          "agent-skills-nix",
-          "nixpkgs"
-        ]
-      },
-      "locked": {
-        "lastModified": 1785531816,
-        "narHash": "sha256-vkMnV0JIyw+g/NmcfoajlGaAO+9a0ezia+FZohQJrik=",
-        "owner": "nix-community",
-        "repo": "home-manager",
-        "rev": "bf9ce9fec78f95f374e8dd3b503863a3ec128ebe",
-        "type": "github"
-      },
-      "original": {
-        "owner": "nix-community",
-        "repo": "home-manager",
-        "type": "github"
-      }
-    },
-    "home-manager_2": {
       "inputs": {
         "nixpkgs": [
           "nixpkgs"
@@ -408,7 +311,7 @@
       "inputs": {
         "flake-utils": "flake-utils",
         "nixpkgs": "nixpkgs_4",
-        "systems": "systems_2"
+        "systems": "systems"
       },
       "locked": {
         "lastModified": 1785903733,
@@ -447,35 +350,15 @@
     },
     "root": {
       "inputs": {
-        "agent-skills-nix": "agent-skills-nix",
-        "ctf-skills": "ctf-skills",
-        "cybersec-skills": "cybersec-skills",
         "disko": "disko",
         "firefox-addons": "firefox-addons",
-        "home-manager": "home-manager_2",
+        "home-manager": "home-manager",
         "nix-alien": "nix-alien",
         "nixcord": "nixcord",
         "nixpkgs": "nixpkgs_3",
         "nixwrap": "nixwrap",
         "renix": "renix",
-        "rust-skills": "rust-skills",
         "sops-nix": "sops-nix"
-      }
-    },
-    "rust-skills": {
-      "flake": false,
-      "locked": {
-        "lastModified": 1781477469,
-        "narHash": "sha256-B6E8JP78/wDdJYHp1l5cpEgxRuCzAhOhUtst4pueMw0=",
-        "owner": "leonardomso",
-        "repo": "rust-skills",
-        "rev": "fd2a861ab0406a4ac536a55274d14ea6fd1ca9c9",
-        "type": "github"
-      },
-      "original": {
-        "owner": "leonardomso",
-        "repo": "rust-skills",
-        "type": "github"
       }
     },
     "sops-nix": {
@@ -514,21 +397,6 @@
       }
     },
     "systems_2": {
-      "locked": {
-        "lastModified": 1681028828,
-        "narHash": "sha256-Vy1rq5AaRuLzOxct8nz4T6wlgyUR7zLU309k9mBC768=",
-        "owner": "nix-systems",
-        "repo": "default",
-        "rev": "da67096a3b9bf56a91d16901293e51ba5b49a27e",
-        "type": "github"
-      },
-      "original": {
-        "owner": "nix-systems",
-        "repo": "default",
-        "type": "github"
-      }
-    },
-    "systems_3": {
       "locked": {
         "lastModified": 1681028828,
         "narHash": "sha256-Vy1rq5AaRuLzOxct8nz4T6wlgyUR7zLU309k9mBC768=",

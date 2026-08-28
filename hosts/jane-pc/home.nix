@@ -22,7 +22,6 @@
     ../../modules/zed.nix
     ../../modules/opencode.nix
     ../../modules/omp.nix
-    ../../modules/agent-skills.nix
     ../../modules/messaging.nix
     ../../modules/syncthing.nix
     ../../modules/obsidian.nix

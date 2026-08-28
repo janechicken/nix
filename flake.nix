@@ -27,22 +27,6 @@
     };
     nixwrap.url = "github:rti/nixwrap";
     renix.url = "github:ironfisto/renix?dir=main";
-    ctf-skills = {
-      url = "github:ljagiello/ctf-skills";
-      flake = false;
-    };
-    agent-skills-nix = {
-      url = "github:Kyure-A/agent-skills-nix";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
-    cybersec-skills = {
-      url = "github:mukul975/Anthropic-Cybersecurity-Skills";
-      flake = false;
-    };
-    rust-skills = {
-      url = "github:leonardomso/rust-skills";
-      flake = false;
-    };
   };
 
   outputs =
