@@ -29,6 +29,16 @@
       force = true;
       source = ../dotfiles/.omp/agent/themes/autumn-dark.json;
     };
+
+    # --- Merge Gateway extension --------------------------------------------
+    ".omp/agent/extensions/merge-gateway/package.json" = {
+      force = true;
+      source = ../dotfiles/.omp/agent/extensions/merge-gateway/package.json;
+    };
+    ".omp/agent/extensions/merge-gateway/index.ts" = {
+      force = true;
+      source = ../dotfiles/.omp/agent/extensions/merge-gateway/index.ts;
+    };
   };
 
   home.packages = [ pkgs.omp ];

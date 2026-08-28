@@ -1,0 +1,10 @@
+{
+  "name": "merge-gateway-extension",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Registers Merge Gateway (https://api-gateway.merge.dev) as an OpenAI-compatible provider in omp/pi",
+  "omp": {
+    "extensions": ["./index.ts"]
+  }
+}
