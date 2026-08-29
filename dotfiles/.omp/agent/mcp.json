@@ -2,8 +2,9 @@
   "$schema": "https://raw.githubusercontent.com/can1357/oh-my-pi/main/packages/coding-agent/src/config/mcp-schema.json",
   "mcpServers": {
     "ida-pro-mcp": {
-      "type": "sse",
-      "url": "http://127.0.0.1:8745/sse"
+      "type": "stdio",
+      "command": "ida-pro-mcp",
+      "timeout": 1800000
     }
   }
 }

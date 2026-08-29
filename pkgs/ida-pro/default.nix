@@ -38,6 +38,7 @@
   xcbutilrenderutil,
   xcbutil,
   libdrm,
+  libsecret,
   ida-pro-mcp,
   idaInstallDir ? "~/.local/opt/ida",
 }:
@@ -66,6 +67,7 @@ let
     xcbutilrenderutil.out
     xcbutil.out
     libdrm.out
+    libsecret.out # dlopened by IDA for secret storage
   ];
 
   libDirs = lib.concatStringsSep ":" (map (p: "${p}/lib") libPaths);
@@ -82,7 +84,7 @@ stdenvNoCC.mkDerivation {
       # Shared env preamble: libdirs + install dir LAST (IDA's own bundled
       # libs must win), IDADIR for idalib/py-activate-idalib consumers.
       envPreamble = ''
-        export LD_LIBRARY_PATH="${libDirs}:${idaInstallDir}\''${LD_LIBRARY_PATH:+:\$LD_LIBRARY_PATH}"
+        export LD_LIBRARY_PATH="${libDirs}:${idaInstallDir}''${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
         export IDADIR="$HOME/.local/opt/ida"
       '';
 

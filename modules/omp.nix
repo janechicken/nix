@@ -69,4 +69,13 @@
       chmod 600 $HOME/.omp/agent/config.yml
     fi
   '';
+
+  # --- IDA MCP plugin (RPC server inside the IDA GUI, port 13337) ----------
+  # `ida-pro-mcp --install` does this imperatively but also writes configs for
+  # other tools (claude/cursor); do it declaratively instead. The python3.*
+  # glob survives nixpkgs python bumps.
+  home.activation.installIdaMcpPlugin = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
+    mkdir -p $HOME/.idapro/plugins
+    ln -sfn ${pkgs.ida-pro-mcp}/lib/python3.*/site-packages/ida_pro_mcp/mcp-plugin.py $HOME/.idapro/plugins/mcp-plugin.py
+  '';
 }
