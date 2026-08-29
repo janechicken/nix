@@ -8,7 +8,7 @@
   # (dotfiles/.omp/agent/*) and wired here — same pattern as awesome/rofi/zed.
   #
   # Build: package in pkgs/omp (overlay overlays/omp.nix) — fetches the
-  # v17.3.4 linux-x64/arm64 release asset, patchelf'd with dontStrip (stripping
+  # v18.0.10 linux-x64/arm64 release asset, patchelf'd with dontStrip (stripping
   # breaks the embedded Bun runtime) for the glibc loader.
   #
   # Provider/model note: prior config used nanogpt + cheapcompute via pi
