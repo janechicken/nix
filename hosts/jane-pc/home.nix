@@ -26,7 +26,6 @@
     ../../modules/syncthing.nix
     ../../modules/obsidian.nix
     ../../modules/renix.nix
-    ../../modules/ghidra-mcp.nix
     ../../modules/browser-use.nix
     ../../modules/mcp.nix
     ../../secrets/home-secrets.nix

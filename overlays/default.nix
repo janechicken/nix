@@ -1,6 +1,6 @@
 [
   ./browser-use.nix
-  ./ghidra-mcp.nix
+  ./ida-pro.nix
   ./joyshockmapper.nix
   ./mdpls.nix
   ./omp.nix

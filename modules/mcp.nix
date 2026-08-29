@@ -16,10 +16,6 @@
             PLAYWRIGHT_BROWSERS_PATH = "${pkgs.playwright-driver.browsers}";
           };
         };
-        ghidra = {
-          command = "${pkgs.ghidra-mcp}/bin/ghidra-mcp";
-          args = [ ];
-        };
       };
     };
   };

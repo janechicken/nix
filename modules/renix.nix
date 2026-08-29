@@ -9,5 +9,15 @@ let
     ignoreCollisions = true;
   };
 in {
-  home.packages = [ renixBundle pkgs.feroxbuster pkgs.seclists pkgs.waybackurls pkgs.katana pkgs.pwntools  pkgs.binwalk pkgs.ghidra-bin pkgs.radare2 pkgs.rizin ];
+  home.packages = [
+    renixBundle
+    pkgs.feroxbuster
+    pkgs.seclists
+    pkgs.waybackurls
+    pkgs.katana
+    pkgs.pwntools
+    pkgs.binwalk
+    pkgs.radare2
+    pkgs.rizin
+  ];
 }

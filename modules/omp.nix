@@ -24,6 +24,12 @@
       source = ../dotfiles/.omp/agent/models.yml;
     };
 
+    # --- IDA Pro MCP bridge --------------------------------------------------
+    ".omp/agent/mcp.json" = {
+      force = true;
+      source = ../dotfiles/.omp/agent/mcp.json;
+    };
+
     # --- custom theme (ported from pi autumn-dark, omp adds statusLine*) -----
     ".omp/agent/themes/autumn-dark.json" = {
       force = true;
@@ -41,7 +47,10 @@
     };
   };
 
-  home.packages = [ pkgs.omp ];
+  home.packages = [
+    pkgs.omp
+    pkgs.ida-pro # also wraps ida-pro-mcp/idalib-mcp with the IDA lib env
+  ];
 
   # Seed a writable ~/.omp/agent/config.yml only if none exists yet. omp owns
   # this file afterwards (its setup wizard + /model etc. persist to it, e.g.

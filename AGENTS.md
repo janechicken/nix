@@ -36,10 +36,9 @@ nix flake update nixpkgs         # update single input
 ## Architecture
 
 - **flake.nix**: 1 nixosConfiguration + 1 homeConfiguration via `mkNixos`/`mkHome` helpers, parameterized by system. Home-manager uses per-system `pkgsFor` (overlay pre-applied). NixOS configs use plain `nixpkgs.legacyPackages`.
-| **overlays/**: `default.nix` lists overlay files to compose via `nixpkgs.lib.composeManyExtensions`. Currently: `browser-use.nix`, `ghidra-mcp.nix`, `joyshockmapper.nix`, `mdpls.nix`, `omp.nix`.
+| **overlays/**: `default.nix` lists overlay files to compose via `nixpkgs.lib.composeManyExtensions`. Currently: `browser-use.nix`, `joyshockmapper.nix`, `mdpls.nix`, `omp.nix`.
 | **pkgs/**: Custom nixpkgs derivations:
   - `pkgs/browser-use/` — 6 packages (agentmail, browser-use-sdk, bubus, cdp-use, uuid7, default)
-  - `pkgs/ghidra-mcp/` — GhidraMCP extension
   - `pkgs/omp/` — oh-my-pi release binary package
 
 - **stateVersion**: 25.05 on all hosts.
@@ -50,9 +49,9 @@ nix flake update nixpkgs         # update single input
 | Path | Purpose |
 |------|---------|
 | `hosts/<name>/` | Per-host config: `configuration.nix`, `home.nix`, `hardware-configuration.nix` |
-| `modules/` | 45 shared modules (one file per concern, no subdirs) |
-| `overlays/` | nixpkgs overlay definitions (`default.nix` → `browser-use.nix`, `ghidra-mcp.nix`) |
-| `pkgs/` | Custom package derivations (browser-use, ghidra-mcp) |
+| `modules/` | 44 shared modules (one file per concern, no subdirs) |
+| `overlays/` | nixpkgs overlay definitions (`default.nix` → `browser-use.nix`, `joyshockmapper.nix`, `mdpls.nix`, `omp.nix`) |
+| `pkgs/` | Custom package derivations (browser-use, omp) |
 | `secrets/` | sops-nix encrypted secrets (`secrets.yaml`, `sops-nix.nix`, `home-secrets.nix`) |
 | `dotfiles/` | Dotfile directories synced via home-manager |
 
@@ -95,11 +94,6 @@ nix flake update nixpkgs         # update single input
 
 - 419-line config with full editor setup
 - Custom themes, language configs, keybindings
-
-## Ghidra MCP (`modules/ghidra-mcp.nix`)
-
-- Installs `ghidra-mcp` package from nixpkgs overlay
-- Symlinks GhidraMCP extension into `~/.ghidra/.ghidra_<version>/Extensions/`
 
 ## Flake Inputs
 

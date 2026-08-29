@@ -8,8 +8,6 @@ final: prev: {
       let
         # nativeCheckInputs stay in the drv even when doCheck = false, so
         # python-docx still pulled in behave (and behave's test suite).
-        # Only strip them on 3.12 (browser-use). Doing this on 3.14 would
-        # rebuild ghidra-mcp's python env.
         isPy312 = pyprev.python.pythonVersion == "3.12";
         skipCheck =
           pkg:

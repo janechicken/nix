@@ -47,12 +47,6 @@
             PLAYWRIGHT_BROWSERS_PATH = "${pkgs.playwright-driver.browsers}";
           };
         };
-
-        ghidra = {
-          type = "local";
-          command = [ "${pkgs.ghidra-mcp}/bin/ghidra-mcp" ];
-          enabled = true;
-        };
       };
 
       model = "deepseek/deepseek-v4-flash-latest";
