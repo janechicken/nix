@@ -24,7 +24,14 @@
       source = ../dotfiles/.omp/agent/models.yml;
     };
 
-    # --- IDA Pro MCP bridge --------------------------------------------------
+    # --- IDA MCP bridges -----------------------------------------------------
+    # ida-pro-mcp (stdio): proxy to the RPC plugin inside a running IDA GUI —
+    #   start via Edit -> Plugins -> MCP (Ctrl-Alt-M), see installIdaMcpPlugin.
+    # idalib-mcp (stdio): headless idalib via the lazy wrapper at
+    #   ~/.local/bin/idalib-lazy-mcp — starts instantly, no file needed up
+    #   front. Call its set_target(path) tool to open/switch the analyzed
+    #   binary (supports switching in-process). Auto-analysis runs on
+    #   set_target, so the first call can take a while.
     ".omp/agent/mcp.json" = {
       force = true;
       source = ../dotfiles/.omp/agent/mcp.json;

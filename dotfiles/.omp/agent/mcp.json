@@ -5,6 +5,10 @@
       "type": "stdio",
       "command": "ida-pro-mcp",
       "timeout": 1800000
+    },
+    "idalib-mcp": {
+      "command": "/home/jane/.local/bin/idalib-lazy-mcp",
+      "timeout": 1800000
     }
   }
 }
