@@ -1,11 +1,6 @@
 {
   "$schema": "https://raw.githubusercontent.com/can1357/oh-my-pi/main/packages/coding-agent/src/config/mcp-schema.json",
   "mcpServers": {
-    "ida-pro-mcp": {
-      "type": "stdio",
-      "command": "ida-pro-mcp",
-      "timeout": 1800000
-    },
     "idalib-mcp": {
       "command": "/home/jane/.local/bin/idalib-lazy-mcp",
       "timeout": 1800000

@@ -25,8 +25,7 @@
     };
 
     # --- IDA MCP bridges -----------------------------------------------------
-    # ida-pro-mcp (stdio): proxy to the RPC plugin inside a running IDA GUI —
-    #   start via Edit -> Plugins -> MCP (Ctrl-Alt-M), see installIdaMcpPlugin.
+    # Only the headless idalib server is wired up (no GUI proxy).
     # idalib-mcp (stdio): headless idalib via the lazy wrapper at
     #   ~/.local/bin/idalib-lazy-mcp — starts instantly, no file needed up
     #   front. Call its set_target(path) tool to open/switch the analyzed
