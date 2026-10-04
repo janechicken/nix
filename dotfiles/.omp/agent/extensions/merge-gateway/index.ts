@@ -1,6 +1,8 @@
+import { readFile, writeFile } from "node:fs/promises";
 import type { ExtensionAPI } from "@oh-my-pi/pi-coding-agent";
 
 const BASE_URL = "https://api-gateway.merge.dev/v1/openai";
+const CATALOG_URL = "https://api-gateway.merge.dev/v1/models";
 const API_KEY_ENV = "MERGE_GATEWAY_API_KEY";
 const MERGE_HOST = "api-gateway.merge.dev";
 
@@ -13,79 +15,136 @@ type MergeModelSpec = {
   maxTokens?: number;
 };
 
-// Curated flagships with real specs. Merge's /v1/openai/models endpoint only
-// exposes bare ids (no context/vision metadata), so anything not listed here
-// uses omp's defaults (128K context / 16K output / text-only).
-const CURATED: MergeModelSpec[] = [
-  {
-    id: "anthropic/claude-opus-4.6",
-    name: "Claude Opus 4.6 (Merge)",
-    reasoning: true,
-    input: ["text", "image"],
-    contextWindow: 1000000,
-    maxTokens: 64000,
-  },
-  {
-    id: "anthropic/claude-sonnet-4-6",
-    name: "Claude Sonnet 4.6 (Merge)",
-    reasoning: true,
-    input: ["text", "image"],
-    contextWindow: 1000000,
-    maxTokens: 64000,
-  },
-  {
-    id: "openai/gpt-5.5",
-    name: "GPT-5.5 (Merge)",
-    reasoning: true,
-    input: ["text", "image"],
-    contextWindow: 400000,
-    maxTokens: 64000,
-  },
-  {
-    id: "google/gemini-3.6-flash",
-    name: "Gemini 3.6 Flash (Merge)",
-    reasoning: true,
-    input: ["text", "image"],
-    contextWindow: 1048576,
-    maxTokens: 65536,
-  },
-  {
-    id: "google/gemini-3.5-flash",
-    name: "Gemini 3.5 Flash (Merge)",
-    reasoning: true,
-    input: ["text", "image"],
-    contextWindow: 1048576,
-    maxTokens: 65536,
-  },
-  {
-    id: "deepseek/deepseek-v4-flash",
-    name: "DeepSeek V4 Flash (Merge)",
-    reasoning: true,
-    input: ["text"],
-    contextWindow: 1000000,
-    maxTokens: 16384,
-  },
-  {
-    // z.ai GLM-5.3 Flash: 1M context, 128K output (z.ai blog + HF config),
-    // reasoning model, multimodal input.
-    id: "zai/glm-5.3-flash",
-    name: "GLM-5.3 Flash (Merge)",
-    reasoning: true,
-    input: ["text", "image"],
-    contextWindow: 1048576,
-    maxTokens: 131072,
-  },
-  {
-    // Merge's routing-policy id: Gateway picks the vendor/model per request
-    // from the key's routing policy. Remove if you don't use policies.
-    id: "default_routing",
-    name: "Routing policy (default_routing)",
-    reasoning: true,
-    input: ["text", "image"],
-    contextWindow: 200000,
-    maxTokens: 16384,
-  },
-];
+// Merge's routing-policy id: Gateway picks the vendor/model per request
+// from the key's routing policy. Not part of the /v1/models catalog.
+const ROUTING_POLICY_SPEC: MergeModelSpec = {
+  id: "default_routing",
+  name: "Routing policy (default_routing)",
+  reasoning: true,
+  input: ["text", "image"],
+  contextWindow: 200000,
+  maxTokens: 16384,
+};
+
+// ---------------------------------------------------------------------------
+// Live catalog: GET /v1/models
+//
+// Unlike /v1/openai/models (bare ids only), this endpoint carries per-vendor
+// metadata: context_window, max_output_tokens, input/output modalities,
+// supports_reasoning. It is cursor-paginated (limit + cursor + has_more).
+// ---------------------------------------------------------------------------
+
+type MergeVendorSpec = {
+  context_window?: number | null;
+  max_output_tokens?: number | null;
+  availability_status?: string;
+  capabilities?: {
+    input?: string[];
+    output?: string[];
+    supports_reasoning?: boolean;
+  };
+};
+
+type MergeCatalogEntry = {
+  model?: string;
+  display_name?: string;
+  vendors?: Record<string, MergeVendorSpec>;
+};
+
+type MergeCatalogPage = {
+  data?: MergeCatalogEntry[];
+  has_more?: boolean;
+  next_cursor?: string | null;
+};
+
+const CATALOG_PAGE_LIMIT = 100;
+const CATALOG_MAX_PAGES = 10;
+
+/** Fetch the full paginated /v1/models catalog. Throws on HTTP/network errors. */
+async function fetchCatalog(key: string): Promise<MergeCatalogEntry[]> {
+  const entries: MergeCatalogEntry[] = [];
+  const seen = new Set<string>();
+  let cursor: string | undefined;
+  for (let page = 0; page < CATALOG_MAX_PAGES; page++) {
+    const url = new URL(CATALOG_URL);
+    url.searchParams.set("limit", String(CATALOG_PAGE_LIMIT));
+    if (cursor) url.searchParams.set("cursor", cursor);
+    const res = await fetch(url, {
+      headers: { Authorization: `Bearer ${key}` },
+      signal: AbortSignal.timeout(10_000),
+    });
+    if (!res.ok) {
+      throw new Error(`GET /v1/models -> HTTP ${res.status}`);
+    }
+    const payload = (await res.json()) as MergeCatalogPage;
+    for (const entry of payload.data ?? []) {
+      if (entry.model && !seen.has(entry.model)) {
+        seen.add(entry.model);
+        entries.push(entry);
+      }
+    }
+    if (!payload.has_more || !payload.next_cursor) break;
+    cursor = payload.next_cursor;
+  }
+  return entries;
+}
+
+/**
+ * Map a catalog entry to an omp model spec, or null when the model cannot
+ * serve chat completions at all (TTS / image / video / speech endpoints
+ * reject /v1/openai/chat/completions with unsupported_endpoint_for_model).
+ *
+ * Specs take the friendliest vendor: largest context/output windows, image
+ * input if any vendor supports it, reasoning if any vendor supports it.
+ */
+function toModelSpec(entry: MergeCatalogEntry): MergeModelSpec | null {
+  let contextWindow = 0;
+  let maxTokens = 0;
+  let image = false;
+  let reasoning = false;
+  let chatCapable = false;
+  for (const vendor of Object.values(entry.vendors ?? {})) {
+    const input = vendor.capabilities?.input ?? [];
+    const output = vendor.capabilities?.output ?? [];
+    if (input.includes("text") && output.includes("text")) {
+      chatCapable = true;
+    }
+    if (input.includes("image")) image = true;
+    if (vendor.capabilities?.supports_reasoning) reasoning = true;
+    contextWindow = Math.max(contextWindow, vendor.context_window ?? 0);
+    maxTokens = Math.max(maxTokens, vendor.max_output_tokens ?? 0);
+  }
+  if (!chatCapable) return null;
+  return {
+    id: entry.model as string,
+    ...(entry.display_name ? { name: `${entry.display_name} (Merge)` } : {}),
+    ...(reasoning ? { reasoning: true } : {}),
+    ...(image ? { input: ["text", "image"] } : {}),
+    ...(contextWindow > 0 ? { contextWindow } : {}),
+    ...(maxTokens > 0 ? { maxTokens } : {}),
+  };
+}
+
+// Last-good catalog cache: on startup with no network / bad key, the provider
+// still exposes the models from the most recent successful fetch.
+const CACHE_FILE = new URL("./models-cache.json", import.meta.url);
+
+async function readCache(): Promise<MergeModelSpec[]> {
+  try {
+    const parsed: unknown = JSON.parse(await readFile(CACHE_FILE, "utf8"));
+    return Array.isArray(parsed) ? (parsed as MergeModelSpec[]) : [];
+  } catch {
+    return [];
+  }
+}
+
+async function writeCache(models: MergeModelSpec[]): Promise<void> {
+  try {
+    await writeFile(CACHE_FILE, JSON.stringify(models, null, 2));
+  } catch {
+    // cache write failure is non-fatal
+  }
+}
 
 // ---------------------------------------------------------------------------
 // Thinking-stream repair
@@ -263,27 +322,28 @@ export default async function mergeGatewayExtension(pi: ExtensionAPI) {
   pi.setLabel("Merge Gateway provider");
   installThinkingFieldRewrite();
 
-  const models: MergeModelSpec[] = [...CURATED];
   const key = process.env[API_KEY_ENV];
+  let models: MergeModelSpec[] = [];
 
   if (key) {
     try {
-      const res = await fetch(`${BASE_URL}/models`, {
-        headers: { Authorization: `Bearer ${key}` },
-        signal: AbortSignal.timeout(10_000),
-      });
-      if (res.ok) {
-        const payload = (await res.json()) as { data?: { id?: string }[] };
-        const seen = new Set(models.map((m) => m.id));
-        for (const entry of payload.data ?? []) {
-          if (!entry.id || seen.has(entry.id)) continue;
-          models.push({ id: entry.id });
-          seen.add(entry.id);
-        }
-      }
+      const catalog = await fetchCatalog(key);
+      models = catalog
+        .map(toModelSpec)
+        .filter((m): m is MergeModelSpec => m !== null);
     } catch {
-      // Catalog fetch failed (offline / bad key): curated list still loads.
+      // Network/HTTP failure: fall back to the last good catalog.
+      models = await readCache();
     }
+    if (models.length > 0) {
+      void writeCache(models);
+    }
+  } else {
+    models = await readCache();
+  }
+
+  if (!models.some((m) => m.id === ROUTING_POLICY_SPEC.id)) {
+    models.push(ROUTING_POLICY_SPEC);
   }
 
   pi.registerProvider("merge-gateway", {

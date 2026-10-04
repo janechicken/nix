@@ -41,16 +41,6 @@
       force = true;
       source = ../dotfiles/.omp/agent/themes/autumn-dark.json;
     };
-
-    # --- Merge Gateway extension --------------------------------------------
-    ".omp/agent/extensions/merge-gateway/package.json" = {
-      force = true;
-      source = ../dotfiles/.omp/agent/extensions/merge-gateway/package.json;
-    };
-    ".omp/agent/extensions/merge-gateway/index.ts" = {
-      force = true;
-      source = ../dotfiles/.omp/agent/extensions/merge-gateway/index.ts;
-    };
   };
 
   home.packages = [
@@ -74,6 +64,21 @@
       cp ${../dotfiles/.omp/agent/config.yml} $HOME/.omp/agent/config.yml
       chmod 600 $HOME/.omp/agent/config.yml
     fi
+  '';
+
+  # Seed the Merge Gateway extension (dotfiles/.omp/agent/extensions/
+  # merge-gateway). It writes its models-cache.json next to index.ts at
+  # runtime, so files must be writable regular files, not store symlinks.
+  # Refreshed from the tracked dotfiles on every activation.
+  home.activation.installMergeGatewayExtension = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
+    extDir="$HOME/.omp/agent/extensions/merge-gateway"
+    mkdir -p "$extDir"
+    # Explicit interpolation (not a shell loop): a missing file fails the
+    # build, not the activation.
+    rm -f "$extDir/package.json" "$extDir/index.ts" "$extDir/models-cache.json"
+    cp ${../dotfiles/.omp/agent/extensions/merge-gateway/package.json} "$extDir/package.json"
+    cp ${../dotfiles/.omp/agent/extensions/merge-gateway/index.ts} "$extDir/index.ts"
+    cp ${../dotfiles/.omp/agent/extensions/merge-gateway/models-cache.json} "$extDir/models-cache.json"
   '';
 
   # --- IDA MCP plugin (RPC server inside the IDA GUI, port 13337) ----------
