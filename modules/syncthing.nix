@@ -12,7 +12,7 @@
       };
       devices = {
         "phone" = {
-          id = "ZGE6ZIT-632YYAI-CJFGW4Z-VQQYQWI-XQ5BIIP-2N6OWRX-FOOZINA-AMPD6QC";
+          id = "2IXDMGV-3L364EY-ITQUK4N-763PTIW-VEBJ6MZ-HA6OSI3-U4CGWNW-LHMP6A6";
         };
       };
       folders = {
