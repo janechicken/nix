@@ -18,7 +18,7 @@
       mkdir = "mkdir -p";
       spt = "spotify_player";
     };
-    initExtra = ''
+    initContent = ''
           any-nix-shell zsh --info-right 2>/dev/null | source /dev/stdin
           export PS1=$'%{\e[255m%}%n%{\e[38;5;99m%}@%{\e[38;5;63m%}%M [%{\e[38;5;99m%}%~%{\e[38;5;63m%}]%{\e[37m%} $ %{\e[255m%}'
 
