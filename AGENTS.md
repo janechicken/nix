@@ -43,7 +43,7 @@ nix flake update nixpkgs         # update single input
 - **pkgs/**: Custom derivations:
   - `pkgs/ida-pro/` + `pkgs/ida-pro-mcp/` — IDA Pro wrapper & MCP (x86_64 only)
   - `pkgs/joyshockmapper/` — JoyShockMapper custom curve fork
-  - `pkgs/linux-mahua/` — Linux 7.4-rc3 + 10 verified Mahua/14Q8Y11 patches (`linuxPackages_mahua`)
+  - `pkgs/linux-mahua/` — Linux 7.4-rc3 + 11 verified Mahua/14Q8Y11 patches (`linuxPackages_mahua`); see `hosts/yogabook/BRINGUP.md` for hardware status, open USB-C issue, and invariants
   - `pkgs/mdpls/` — Markdown Preview Language Server
   - `pkgs/omp/` — oh-my-pi release binary (`x86_64-linux` + `aarch64-linux`)
 - **Arch gating**: Shared modules (`core.nix`, `audio.nix`, `reaper.nix`, `discord.nix`, `omp.nix`) gate x86_64-only packages (`wine`, `yabridge`, 32-bit ALSA, `discord`, `ida-pro`) via `pkgs.stdenv.hostPlatform.isx86_64` (`discord.nix` installs `vesktop` on `aarch64-linux`).
