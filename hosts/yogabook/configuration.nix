@@ -138,12 +138,6 @@
       copyKernels = true;
       device = "nodev";
       extraEntries = ''
-        menuentry "Windows Boot Manager" {
-            insmod part_gpt
-            insmod fat
-            search --no-floppy --file --set=root /EFI/Microsoft/Boot/bootmgfw.efi
-            chainloader /EFI/Microsoft/Boot/bootmgfw.efi
-        }
         menuentry "Reboot" {
             reboot
         }

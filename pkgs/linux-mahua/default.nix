@@ -133,7 +133,11 @@ buildLinux (
       BT_HCIUART = module;
       BT_HCIUART_QCA = yes;
 
-      # RemoteProc (ADSP/CDSP/SOCCP), Battery, Type-C UCSI
+      # RemoteProc (ADSP/CDSP/SOCCP), In-kernel PD Mapper (for ADSP audio_pd), Battery, Type-C UCSI
+      QRTR = yes;
+      QRTR_SMD = yes;
+      QCOM_QMI_HELPERS = yes;
+      QCOM_PD_MAPPER = yes;
       QCOM_Q6V5_PAS = module;
       QCOM_PMIC_GLINK = module;
       TYPEC = module;
