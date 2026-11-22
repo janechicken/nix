@@ -25,15 +25,14 @@
     "i2c_hid_of"
     "i2c_hid_of_elan"
     "hid_multitouch"
-    "panel_samsung_atna33xc20"
     "msm"
   ];
 
-  # Load keyboard + OLED panel in initrd so LUKS/FIDO2 prompt works on the laptop screen
+  # Load keyboard + GPU in initrd so LUKS/FIDO2 prompt works on the laptop screen
+  # (panel-samsung-atna33xc20 + backlight class device are built-in to linuxPackages_mahua)
   boot.initrd.kernelModules = [
     "i2c_hid_of"
     "hid_multitouch"
-    "panel_samsung_atna33xc20"
     "msm"
   ];
 

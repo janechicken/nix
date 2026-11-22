@@ -63,13 +63,30 @@
     name = "qcom/mahua-lenovo-yoga-slim7-14q8y11.dtb";
   };
 
-  # Qualcomm redistributable firmware + Lenovo 83QR extracted blobs at /var/lib/mahua-firmware
+  # Qualcomm redistributable firmware + wireless-regdb (regulatory.db) +
+  # Lenovo 83QR extracted blobs at /var/lib/mahua-firmware
   hardware.enableRedistributableFirmware = true;
+  hardware.firmware = [ pkgs.wireless-regdb ];
   hardware.bluetooth = {
     enable = true;
     powerOnBoot = true;
   };
   hardware.graphics.enable = true;
+
+  # NixOS's built-in `udevd` activation snippet overwrites
+  # /sys/module/firmware_class/parameters/path with the Nix store firmware dir.
+  # Point /lib/firmware at NixOS's firmware (wireless-regdb + linux-firmware) as
+  # the fallback path, and restore firmware_class.path=/var/lib/mahua-firmware so
+  # Lenovo 83QR extracted blobs (ADSP/CDSP/GPU/BT/audio topology) take priority.
+  system.activationScripts.mahuaFirmware = lib.stringAfter [ "udevd" ] ''
+    mkdir -p /lib /var/lib/mahua-firmware
+    if [ -e "$systemConfig/firmware" ]; then
+      ln -sfn "$(readlink -f "$systemConfig/firmware")" /lib/firmware
+    fi
+    if [ -e /sys/module/firmware_class/parameters/path ]; then
+      echo -n "/var/lib/mahua-firmware" > /sys/module/firmware_class/parameters/path
+    fi
+  '';
 
   boot = {
     initrd = {
@@ -84,6 +101,7 @@
     # - nokaslr + efi=novamap: required for Qualcomm EL2 UEFI stub on Lenovo 83QR
     # - arm-smmu.disable_bypass=0: preserve UEFI SMMU bypass mappings until drivers attach
     # - initcall_blacklist=scmi_driver_init,qcom_cpucp_mbox_init: avoids Mahua SCMI shmem hang
+    # - modprobe.blacklist=qcom_iris,qcom_camss: prevents video/camss coldplug hangs
     # - firmware_class.path: loads Lenovo 83QR extracted firmware before /lib/firmware
     kernelParams = [
       "clk_ignore_unused"
@@ -93,8 +111,10 @@
       "efi=novamap"
       "arm-smmu.disable_bypass=0"
       "console=tty0"
+      "console=tty1"
       "fbcon=font:TER16x32"
       "initcall_blacklist=scmi_driver_init,qcom_cpucp_mbox_init"
+      "modprobe.blacklist=qcom_iris,qcom_camss"
       "firmware_class.path=/var/lib/mahua-firmware"
     ];
 
@@ -106,6 +126,7 @@
 
     blacklistedKernelModules = [
       "qcom_iris"
+      "qcom_camss"
     ];
   };
 
@@ -113,9 +134,16 @@
     grub = {
       enable = true;
       efiSupport = true;
+      efiInstallAsRemovable = true;
       copyKernels = true;
       device = "nodev";
       extraEntries = ''
+        menuentry "Windows Boot Manager" {
+            insmod part_gpt
+            insmod fat
+            search --no-floppy --file --set=root /EFI/Microsoft/Boot/bootmgfw.efi
+            chainloader /EFI/Microsoft/Boot/bootmgfw.efi
+        }
         menuentry "Reboot" {
             reboot
         }
@@ -125,7 +153,8 @@
       '';
     };
     efi = {
-      canTouchEfiVariables = true;
+      # efi=novamap disables UEFI runtime NVRAM writes on Qualcomm EL2
+      canTouchEfiVariables = false;
     };
   };
 
@@ -139,7 +168,12 @@
   ];
 
   networking.hostName = "yogabook";
-  networking.networkmanager.enable = true;
+  # WCN7850 (ath12k_wifi7_pci) hangs/times out on scans with MAC randomization or powersave
+  networking.networkmanager = {
+    enable = true;
+    wifi.scanRandMacAddress = false;
+    wifi.powersave = false;
+  };
 
   time.timeZone = "America/New_York";
   i18n.defaultLocale = "en_US.UTF-8";

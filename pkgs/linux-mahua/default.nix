@@ -103,12 +103,16 @@ buildLinux (
       PHY_QCOM_EUSB2_REPEATER = yes;
       PHY_QCOM_EDP = yes;
 
-      # Display (Samsung ATNA40CT03-0 OLED via atna33xc20) & Adreno X2-45 GPU
+      # Display (Samsung ATNA40CT03-0 OLED via built-in atna33xc20 + DP AUX backlight) & Adreno X2-45 GPU
+      DRM = yes;
+      BACKLIGHT_CLASS_DEVICE = yes;
+      DRM_DISPLAY_HELPER = yes;
+      DRM_DISPLAY_DP_AUX_BUS = yes;
       DRM_MSM = module;
       DRM_MSM_DPU = yes;
       DRM_MSM_DP = yes;
       DRM_PANEL_EDP = module;
-      DRM_PANEL_SAMSUNG_ATNA33XC20 = module;
+      DRM_PANEL_SAMSUNG_ATNA33XC20 = yes;
       FONTS = yes;
       FONT_TER16x32 = yes;
 
