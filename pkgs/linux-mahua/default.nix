@@ -103,16 +103,18 @@ buildLinux (
       PHY_QCOM_EUSB2_REPEATER = yes;
       PHY_QCOM_EDP = yes;
 
-      # Display (Samsung ATNA40CT03-0 OLED via built-in atna33xc20 + DP AUX backlight) & Adreno X2-45 GPU
+      # Display (Samsung ATNA40CT03-0 OLED via atna33xc20) & Adreno X2-45 GPU
+      # Keep BACKLIGHT_CLASS_DEVICE=m until ATNA40CT03-0 DPCD 0x721 backlight
+      # mode is patched (CONFIG_BACKLIGHT_CLASS_DEVICE=y causes dp_aux_backlight
+      # to blank the OLED panel despite reporting 2047/2047).
       DRM = yes;
-      BACKLIGHT_CLASS_DEVICE = yes;
-      DRM_DISPLAY_HELPER = yes;
-      DRM_DISPLAY_DP_AUX_BUS = yes;
+      BACKLIGHT_CLASS_DEVICE = module;
+      DRM_DISPLAY_DP_AUX_CHARDEV = yes;
       DRM_MSM = module;
       DRM_MSM_DPU = yes;
       DRM_MSM_DP = yes;
       DRM_PANEL_EDP = module;
-      DRM_PANEL_SAMSUNG_ATNA33XC20 = yes;
+      DRM_PANEL_SAMSUNG_ATNA33XC20 = module;
       FONTS = yes;
       FONT_TER16x32 = yes;
 
