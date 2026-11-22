@@ -41,7 +41,6 @@ autorun = true
 autorunApps = {
   "copyq",
   "udiskie",
-  "copyq",
   "flameshot",
 }
 

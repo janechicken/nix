@@ -1,0 +1,45 @@
+From 42b8ce65acadece025ba081f8c7591c7523c822e Mon Sep 17 00:00:00 2001
+From: Jianping Li <jianping.li@oss.qualcomm.com>
+Date: Thu, 15 Oct 2026 15:15:09 +0800
+Subject: [PATCH 3/7] arm64: dts: qcom: glymur: Make the ADSP remote heap
+ no-map
+
+The ADSP remote heap is declared as a reusable shared DMA pool.
+Allowing the kernel to reuse this region is incompatible with handing
+the entire region over to the DSP, as HLOS allocations may then access
+memory for which HLOS no longer has access permissions.
+
+The same configuration has caused synchronous external aborts on
+other platforms when the kernel accesses pages within the ADSP remote
+heap.
+
+Replace reusable with no-map to keep the region reserved for the DSP
+and exclude it from the kernel's standard memory mapping.
+
+Fixes: 67641246eabd0 ("arm64: dts: qcom: glymur: Add memory-region for audio PD")
+Link: https://lore.kernel.org/all/20260701-glymur-audio-v1-1-2c3862d95a09@oss.qualcomm.com/
+Signed-off-by: Jianping Li <jianping.li@oss.qualcomm.com>
+Reviewed-by: Konrad Dybcio <konrad.dybcio@oss.qualcomm.com>
+Reviewed-by: Ekansh Gupta <ekansh.gupta@oss.qualcomm.com>
+Link: https://patch.msgid.link/20261015071511.977-3-jianping.li@oss.qualcomm.com
+Signed-off-by: Bjorn Andersson <andersson@kernel.org>
+---
+ arch/arm64/boot/dts/qcom/glymur.dtsi | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/arch/arm64/boot/dts/qcom/glymur.dtsi b/arch/arm64/boot/dts/qcom/glymur.dtsi
+index 65a398c0a..4b7907cf9 100644
+--- a/arch/arm64/boot/dts/qcom/glymur.dtsi
++++ b/arch/arm64/boot/dts/qcom/glymur.dtsi
+@@ -690,7 +690,7 @@ smem_mem: smem@ffe00000 {
+ 		adsp_rpc_remote_heap_mem: adsp-rpc-remote-heap {
+ 			compatible = "shared-dma-pool";
+ 			alloc-ranges = <0x0 0x80000000 0x0 0x80000000>;
+-			reusable;
++			no-map;
+ 			alignment = <0x0 0x400000>;
+ 			size = <0x0 0x800000>;
+ 		};
+-- 
+2.55.0.windows.3
+

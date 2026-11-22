@@ -9,11 +9,11 @@
   };
   sops.secrets."ssh_key" = {
     owner = config.users.users.jane.name;
-    path = "/home/jane/.ssh/id_rsa";
+    path = "${config.users.users.jane.homeDirectory}/.ssh/id_rsa";
   };
   sops.secrets."ssh_pubkey" = {
     owner = config.users.users.jane.name;
-    path = "/home/jane/.ssh/id_rsa.pub";
+    path = "${config.users.users.jane.homeDirectory}/.ssh/id_rsa.pub";
   };
   sops.secrets."cursor_api_key" = {
     owner = config.users.users.jane.name;

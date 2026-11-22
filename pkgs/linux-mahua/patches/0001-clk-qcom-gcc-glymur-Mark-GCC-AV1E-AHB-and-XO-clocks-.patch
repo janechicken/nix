@@ -1,0 +1,89 @@
+From 337a19bf2ca4ccf8ed8b2818fd447be701d745ec Mon Sep 17 00:00:00 2001
+From: Jagadeesh Kona <jagadeesh.kona@oss.qualcomm.com>
+Date: Wed, 4 Nov 2026 10:37:33 +0530
+Subject: [PATCH 1/7] clk: qcom: gcc-glymur: Mark GCC AV1E AHB and XO clocks as
+ critical
+
+The GCC AV1E AHB and XO clocks are required for AV1ECC register access.
+Hence remove their clock modelling and add them to the GCC critical
+clock list.
+
+Fixes: efe504300a17 ("clk: qcom: gcc: Add support for Global Clock Controller")
+Reviewed-by: Abel Vesa <abel.vesa@oss.qualcomm.com>
+Reviewed-by: Konrad Dybcio <konrad.dybcio@oss.qualcomm.com>
+Reviewed-by: Taniya Das <taniya.das@oss.qualcomm.com>
+Signed-off-by: Jagadeesh Kona <jagadeesh.kona@oss.qualcomm.com>
+Link: https://patch.msgid.link/20261104-glymur-av1ecc-v2-1-7c25a73fe811@oss.qualcomm.com
+Signed-off-by: Bjorn Andersson <andersson@kernel.org>
+---
+ drivers/clk/qcom/gcc-glymur.c | 32 ++------------------------------
+ 1 file changed, 2 insertions(+), 30 deletions(-)
+
+diff --git a/drivers/clk/qcom/gcc-glymur.c b/drivers/clk/qcom/gcc-glymur.c
+index be18a555f..9418a9b2b 100644
+--- a/drivers/clk/qcom/gcc-glymur.c
++++ b/drivers/clk/qcom/gcc-glymur.c
+@@ -3373,21 +3373,6 @@ static struct clk_branch gcc_aggre_usb4_2_axi_clk = {
+ 	},
+ };
+ 
+-static struct clk_branch gcc_av1e_ahb_clk = {
+-	.halt_reg = 0x9b02c,
+-	.halt_check = BRANCH_HALT_VOTED,
+-	.hwcg_reg = 0x9b02c,
+-	.hwcg_bit = 1,
+-	.clkr = {
+-		.enable_reg = 0x9b02c,
+-		.enable_mask = BIT(0),
+-		.hw.init = &(const struct clk_init_data) {
+-			.name = "gcc_av1e_ahb_clk",
+-			.ops = &clk_branch2_ops,
+-		},
+-	},
+-};
+-
+ static struct clk_branch gcc_av1e_axi_clk = {
+ 	.halt_reg = 0x9b030,
+ 	.halt_check = BRANCH_HALT_SKIP,
+@@ -3403,19 +3388,6 @@ static struct clk_branch gcc_av1e_axi_clk = {
+ 	},
+ };
+ 
+-static struct clk_branch gcc_av1e_xo_clk = {
+-	.halt_reg = 0x9b044,
+-	.halt_check = BRANCH_HALT,
+-	.clkr = {
+-		.enable_reg = 0x9b044,
+-		.enable_mask = BIT(0),
+-		.hw.init = &(const struct clk_init_data) {
+-			.name = "gcc_av1e_xo_clk",
+-			.ops = &clk_branch2_ops,
+-		},
+-	},
+-};
+-
+ static struct clk_branch gcc_boot_rom_ahb_clk = {
+ 	.halt_reg = 0x34038,
+ 	.halt_check = BRANCH_HALT_VOTED,
+@@ -7915,9 +7887,7 @@ static struct clk_regmap *gcc_glymur_clocks[] = {
+ 	[GCC_AGGRE_USB4_0_AXI_CLK] = &gcc_aggre_usb4_0_axi_clk.clkr,
+ 	[GCC_AGGRE_USB4_1_AXI_CLK] = &gcc_aggre_usb4_1_axi_clk.clkr,
+ 	[GCC_AGGRE_USB4_2_AXI_CLK] = &gcc_aggre_usb4_2_axi_clk.clkr,
+-	[GCC_AV1E_AHB_CLK] = &gcc_av1e_ahb_clk.clkr,
+ 	[GCC_AV1E_AXI_CLK] = &gcc_av1e_axi_clk.clkr,
+-	[GCC_AV1E_XO_CLK] = &gcc_av1e_xo_clk.clkr,
+ 	[GCC_BOOT_ROM_AHB_CLK] = &gcc_boot_rom_ahb_clk.clkr,
+ 	[GCC_CAMERA_HF_AXI_CLK] = &gcc_camera_hf_axi_clk.clkr,
+ 	[GCC_CAMERA_SF_AXI_CLK] = &gcc_camera_sf_axi_clk.clkr,
+@@ -8483,6 +8453,8 @@ static const u32 gcc_glymur_critical_cbcrs[] = {
+ 	0x32058, /* GCC_VIDEO_XO_CLK */
+ 	0x9b004, /* GCC_EVA_AHB_CLK */
+ 	0x9b024, /* GCC_EVA_XO_CLK */
++	0x9b02c, /* GCC_AV1E_AHB_CLK */
++	0x9b044, /* GCC_AV1E_XO_CLK */
+ };
+ 
+ static const struct regmap_config gcc_glymur_regmap_config = {
+-- 
+2.55.0.windows.3
+

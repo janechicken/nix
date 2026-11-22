@@ -1,0 +1,41 @@
+From 0e6df6799fb280253376864f593f0538f4badb3b Mon Sep 17 00:00:00 2001
+From: Mahua Bring-up <mahua@local>
+Date: Sat, 21 Nov 2026 17:27:01 -0500
+Subject: [PATCH 7/7] arm64: dts: qcom: mahua: Support GPU and GMU
+
+Override inherited Glymur X2-85 GPU / x285.1 GMU compatibles with Mahua's Adreno X2-45 (0x44060000) and GMU x285.0. Matches upstream qcom/for-next commit dbd5d590; drop when rebasing onto 7.5.
+---
+ arch/arm64/boot/dts/qcom/mahua.dtsi | 17 +++++++++++++++++
+ 1 file changed, 17 insertions(+)
+
+diff --git a/arch/arm64/boot/dts/qcom/mahua.dtsi b/arch/arm64/boot/dts/qcom/mahua.dtsi
+index a59c5ed7b..184ba8891 100644
+--- a/arch/arm64/boot/dts/qcom/mahua.dtsi
++++ b/arch/arm64/boot/dts/qcom/mahua.dtsi
+@@ -127,6 +127,23 @@ &gcc {
+ 		 <0>;				/* USB4 PHY 2 Max */
+ };
+ 
++/*
++ * Mahua's GPU is Adreno X2-45 (chip id 0x44060000, 3 slices, 15.75 MB gmem,
++ * GMU id 0x80a0000), not Glymur's X2-85 (0x44070001, 4 slices, 21 MB).
++ * Inheriting glymur.dtsi would describe the wrong hardware to the adreno
++ * driver, which indexes this string into the a8xx catalog.
++ *
++ * The GMU differs too: Mahua carries x285.0 where glymur.dtsi says x285.1.
++ * Matches upstream commit dbd5d590 ("arm64: dts: qcom: mahua: Support GPU and GMU").
++ */
++&gmu {
++	compatible = "qcom,adreno-gmu-x285.0", "qcom,adreno-gmu";
++};
++
++&gpu {
++	compatible = "qcom,adreno-44060000", "qcom,adreno";
++};
++
+ &hsc_noc {
+ 	compatible = "qcom,mahua-hscnoc";
+ };
+-- 
+2.55.0.windows.3
+

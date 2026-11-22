@@ -1,12 +1,13 @@
 # AGENTS.md
 
-NixOS + Home Manager flake config. Single host: jane-pc (x86_64-linux).
+NixOS + Home Manager flake config. 2 hosts: `jane-pc` (`x86_64-linux`) and `yogabook` (`aarch64-linux`, Snapdragon X2 Plus / Mahua).
 
 ## Hosts
 
 | Host | Type | GPU | Special |
 |------|------|-----|---------|
-| `jane-pc` | desktop | Intel (modesetting) | FIDO2+LUKS, Awesome WM, gaming |
+| `jane-pc` | desktop | Intel (modesetting) | FIDO2+LUKS, Awesome WM, gaming, IDA Pro |
+| `yogabook` | laptop | Snapdragon X2 Plus (Adreno X2-45, Mesa) | FIDO2+LUKS, Awesome WM @ 120 DPI (125%), custom Linux 7.4-rc3 Mahua kernel + v8 eDP PHY fix |
 
 Shared modules via `hosts/<name>/configuration.nix` (system) + `home.nix` (user).
 
@@ -25,6 +26,8 @@ nix eval .#nixosConfigurations.<host>.config.system.build.toplevel
 
 No switching — leave `nh os switch` / `nh home switch` to user. No test framework exists; build verification is the only check.
 
+`yogabook` is `aarch64-linux`: `nix eval` works from any machine, while `nh os build` / `nh home build` should run on the laptop itself (or via `binfmt` / remote builder).
+
 ## Format & Update
 
 ```bash
@@ -35,74 +38,28 @@ nix flake update nixpkgs         # update single input
 
 ## Architecture
 
-- **flake.nix**: 1 nixosConfiguration + 1 homeConfiguration via `mkNixos`/`mkHome` helpers, parameterized by system. Home-manager uses per-system `pkgsFor` (overlay pre-applied). NixOS configs use plain `nixpkgs.legacyPackages`.
-| **overlays/**: `default.nix` lists overlay files to compose via `nixpkgs.lib.composeManyExtensions`. Currently: `browser-use.nix`, `joyshockmapper.nix`, `mdpls.nix`, `omp.nix`.
-| **pkgs/**: Custom nixpkgs derivations:
-  - `pkgs/browser-use/` — 6 packages (agentmail, browser-use-sdk, bubus, cdp-use, uuid7, default)
-  - `pkgs/omp/` — oh-my-pi release binary package
-
-- **stateVersion**: 25.05 on all hosts.
-- **No CI** (no `.github/`).
-
-## Directory Map
-
-| Path | Purpose |
-|------|---------|
-| `hosts/<name>/` | Per-host config: `configuration.nix`, `home.nix`, `hardware-configuration.nix` |
-| `modules/` | 44 shared modules (one file per concern, no subdirs) |
-| `overlays/` | nixpkgs overlay definitions (`default.nix` → `browser-use.nix`, `joyshockmapper.nix`, `mdpls.nix`, `omp.nix`) |
-| `pkgs/` | Custom package derivations (browser-use, omp) |
-| `secrets/` | sops-nix encrypted secrets (`secrets.yaml`, `sops-nix.nix`, `home-secrets.nix`) |
-| `dotfiles/` | Dotfile directories synced via home-manager |
+- **flake.nix**: 2 `nixosConfigurations` + 2 `homeConfigurations` via `mkNixos`/`mkHome` helpers, parameterized by system. Home-manager uses per-system `pkgsFor` (overlay pre-applied). NixOS configs apply the overlay via `nixpkgs.overlays`.
+- **overlays/**: `default.nix` composes `ida-pro.nix`, `joyshockmapper.nix`, `mahua-kernel.nix`, `mdpls.nix`, `omp.nix`.
+- **pkgs/**: Custom derivations:
+  - `pkgs/ida-pro/` + `pkgs/ida-pro-mcp/` — IDA Pro wrapper & MCP (x86_64 only)
+  - `pkgs/joyshockmapper/` — JoyShockMapper custom curve fork
+  - `pkgs/linux-mahua/` — Linux 7.4-rc3 + 10 verified Mahua/14Q8Y11 patches (`linuxPackages_mahua`)
+  - `pkgs/mdpls/` — Markdown Preview Language Server
+  - `pkgs/omp/` — oh-my-pi release binary (`x86_64-linux` + `aarch64-linux`)
+- **Arch gating**: Shared modules (`core.nix`, `audio.nix`, `reaper.nix`, `discord.nix`, `omp.nix`) gate x86_64-only packages (`wine`, `yabridge`, 32-bit ALSA, `discord`, `ida-pro`) via `pkgs.stdenv.hostPlatform.isx86_64` (`discord.nix` installs `vesktop` on `aarch64-linux`).
+- **stateVersion**: `25.05` on all hosts.
 
 ## Secrets (sops-nix)
 
 - System age key: `/var/lib/sops-nix/keys.txt`
 - User age key: `~/.config/sops/age/keys.txt`
-- Encrypted secrets: `secrets/secrets.yaml` (`.sops.yaml` in project root defines the sole age key)
+- Encrypted secrets: `secrets/secrets.yaml` (`.sops.yaml` defines authorized age keys)
 - Decrypted at `/run/secrets/` (tmpfs)
-- sops decrypts at build time: a new host needs its age pubkey in `.sops.yaml`, then `sops updatekeys secrets/secrets.yaml`
-- 7 active secrets: `deepseek_api_key`, `cursor_api_key`, `openrouter_api_key`, `ssh_key`, `ssh_pubkey`, `cheapcompute_api_key`, `nanogpt_api_key`
-  - `openrouter_api_key` enables the OpenRouter provider (default, e.g. `openrouter/~deepseek/deepseek-v4-flash-latest`), `cursor_api_key` enables the cursor-sdk extension (e.g. `cursor/kimi-k3`), `cheapcompute_api_key`  + `nanogpt_api_key` feed the omp `models.yml` custom providers
-- System secrets set as `environment.sessionVariables` (`DEEPSEEK_API_KEY`, `CURSOR_API_KEY`, `OPENROUTER_API_KEY`, `OPENAI_API_KEY`, `OPENAI_MODEL`, `OPENAI_MODEL_FOR_CHAT`, `OPENAI_ENDPOINT`)
-- Commented out secret: `gpg_key`
+- New host setup: either copy existing `/var/lib/sops-nix/keys.txt`, or add new host age pubkey to `.sops.yaml` and run `sops updatekeys secrets/secrets.yaml`.
 
+## Lenovo 83QR Firmware (`yogabook`)
 
-## OpenCode (`modules/opencode.nix`)
-
-- **Commands**: `/test` (build verification), `/git`, `/breath`
-- **Theme**: gruvbox
-- **Global style**: terse caveman (set in `context` field)
-- **Auth**: `OPENROUTER_API_KEY` env var (set via sops-nix system-wide)
-
-## oh-my-pi Agent (`modules/omp.nix`) — replaces pi
-
-- **Package**: `pkgs.omp` from `overlays/omp.nix` — fetches the per-arch release binary (`omp-linux-x64` / `omp-linux-arm64`) from GitHub (`can1357/oh-my-pi`), `patchelf`'d for the NixOS glibc loader (`dontStrip`; autoPatchelf would mangle the embedded Bun runtime). Not in nixpkgs.
-- **Config**: `~/.omp/agent/` (YAML), tracked as dotfiles (`dotfiles/.omp/agent/`) and wired via `modules/omp.nix` (same pattern as awesome/rofi/zed). `models.yml` / theme are store-linked; `config.yml` is seeded from the dotfile by `home.activation.writeOmpConfig` into a writable copy (omp mutates it at runtime):
-  - **Providers** (`models.yml`): custom OpenAI-compatible `nanogpt` + `cheapcompute`, both with `discovery: openai-models-list` (runtime `GET /models`), reading `NANOGPT_API_KEY` / `CHEAPCOMPUTE_API_KEY` (sops sessionVariables)
-  - **Model roles**: default/smol `nanogpt/deepseek/deepseek-v4-flash-0731`, vision `nanogpt/qwen/qwen3.7-flash` (from the removed eyes subagent)
-  - **Theme**: custom `autumn-dark` (ported from old pi theme, `~/.omp/agent/themes/autumn-dark.json`, selected via `theme.dark`)
-  - **Rules**: caveman contract in `~/.omp/agent/APPEND_SYSTEM.md`
-  - **Permissions**: `tools.approval` auto-approves read-only tools; `bash.patterns` denies `rm -rf`, prompts `sudo`
-  - **Compaction** enabled (reserve 16K, keep 20K), **retry** enabled (max 3)
-  - **hideThinkingBlock**: true
-- **Skills**: none — `agent-skills.nix` module removed; deploy skills manually if needed
-- **Auth**: `OPENROUTER_API_KEY` env var (set via sops-nix system-wide)
-
-
-## Helix Editor (`modules/helix.nix`)
-
-- 419-line config with full editor setup
-- Custom themes, language configs, keybindings
-
-## Flake Inputs
-
-Key flake inputs beyond nixpkgs + home-manager:
-- `sops-nix` — secret management
-- `firefox-addons`, `nixcord` — browser extensions, Discord mod
-- `disko` — disk partitioning
-- `nix-alien`, `nixwrap` — non-NixOS binary compat
-- `renix` — Renoise DAW config
+Proprietary Lenovo Windows DriverStore blobs (ADSP/CDSP `.mbn`/`.jsn`/`.elf`, WCN7850 BT NV `hmtnv20.b112`, Adreno `gen80100_*`, `Lenovo-Yoga-Slim7-14Q8Y11-tplg.bin`) are intentionally **not** committed to this public repo. Copy them to `/var/lib/mahua-firmware` during install; `yogabook` loads them via `firmware_class.path=/var/lib/mahua-firmware`.
 
 ## Conventions
 
@@ -110,12 +67,12 @@ Key flake inputs beyond nixpkgs + home-manager:
 - **Imports**: `./file.nix` (same dir), `../../modules/<name>.nix` (from host configs)
 - **Indent**: 2 spaces
 - **User path**: Use `config.users.users.jane.homeDirectory`, never `/home/jane`
-- **for package lists**: `environment.systemPackages = with pkgs; [ ... ];`
+- **Package lists**: `environment.systemPackages = with pkgs; [ ... ];`
 
 ## Don'ts
 
 - No `nix-env` for system packages
-- No committing unencrypted secrets or age keys
+- No committing unencrypted secrets, age keys, or proprietary firmware blobs
 - No `nh os switch .` / `nh home switch .` — build only
 - No hardcoded `/home/jane` paths
 - No `apt`/`pip`/`npm` for system packages (use `nix-shell -p <pkg>` instead)

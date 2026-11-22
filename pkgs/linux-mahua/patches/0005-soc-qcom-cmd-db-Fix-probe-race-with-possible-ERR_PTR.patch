@@ -1,0 +1,82 @@
+From dd4019dff6d53cff98e1e3f1c76cd8952b0ccbcd Mon Sep 17 00:00:00 2001
+From: Krzysztof Kozlowski <krzysztof.kozlowski@oss.qualcomm.com>
+Date: Wed, 4 Nov 2026 16:15:51 +0100
+Subject: [PATCH 5/7] soc: qcom: cmd-db: Fix probe race with possible ERR_PTR
+ dereference
+
+cmd_db_dev_probe() stores the result of devm_memremap() directly in the
+global "cmd_db_header" variable and only afterwards validates it, which
+opens a very short window where a concurrent thread could access and
+dereference stored ERR_PTR.
+
+Theoretical (not reproduced) race condition could look like:
+
+  CPU 0                               CPU 1
+  -----                               -----
+  cmd_db_dev_probe()
+    cmd_db_header = devm_memremap();
+    // holds ERR_PTR
+                                      cmd_db_ready()
+                                        if (cmd_db_header == NULL)
+                                          // false, proceeds
+                                        cmd_db_magic_matches(cmd_db_header);
+                                          // oops on ERR_PTR
+    if (IS_ERR(cmd_db_header))
+      cmd_db_header = NULL;
+
+Reported-by: Sashiko <sashiko-bot@kernel.org>
+Closes: https://sashiko.dev/#/bug/linux-1e6d9e1c-b97d-447c-9cbc-d874a0609918
+Fixes: 0da7824734d8 ("soc: qcom: cmd-db: Use devm_memremap() to fix memory leak in cmd_db_dev_probe")
+Cc: stable@vger.kernel.org
+Signed-off-by: Krzysztof Kozlowski <krzysztof.kozlowski@oss.qualcomm.com>
+Reviewed-by: Konrad Dybcio <konrad.dybcio@oss.qualcomm.com>
+Reviewed-by: Abel Vesa <abel.vesa@oss.qualcomm.com>
+Link: https://patch.msgid.link/20261104151550.215604-2-krzysztof.kozlowski@oss.qualcomm.com
+Signed-off-by: Bjorn Andersson <andersson@kernel.org>
+---
+ drivers/soc/qcom/cmd-db.c | 16 +++++++---------
+ 1 file changed, 7 insertions(+), 9 deletions(-)
+
+diff --git a/drivers/soc/qcom/cmd-db.c b/drivers/soc/qcom/cmd-db.c
+index 3f1eee784..5d303ca0d 100644
+--- a/drivers/soc/qcom/cmd-db.c
++++ b/drivers/soc/qcom/cmd-db.c
+@@ -340,8 +340,8 @@ static const struct file_operations cmd_db_debugfs_ops = {
+ 
+ static int cmd_db_dev_probe(struct platform_device *pdev)
+ {
++	struct cmd_db_header *header;
+ 	struct reserved_mem *rmem;
+-	int ret = 0;
+ 
+ 	rmem = of_reserved_mem_lookup(pdev->dev.of_node);
+ 	if (!rmem) {
+@@ -349,19 +349,17 @@ static int cmd_db_dev_probe(struct platform_device *pdev)
+ 		return -EINVAL;
+ 	}
+ 
+-	cmd_db_header = devm_memremap(&pdev->dev, rmem->base, rmem->size, MEMREMAP_WC);
+-	if (IS_ERR(cmd_db_header)) {
+-		ret = PTR_ERR(cmd_db_header);
+-		cmd_db_header = NULL;
+-		return ret;
+-	}
++	header = devm_memremap(&pdev->dev, rmem->base, rmem->size, MEMREMAP_WC);
++	if (IS_ERR(header))
++		return PTR_ERR(header);
+ 
+-	if (!cmd_db_magic_matches(cmd_db_header)) {
++	if (!cmd_db_magic_matches(header)) {
+ 		dev_err(&pdev->dev, "Invalid Command DB Magic\n");
+-		cmd_db_header = NULL;
+ 		return -EINVAL;
+ 	}
+ 
++	cmd_db_header = header;
++
+ 	debugfs_create_file("cmd-db", 0400, NULL, NULL, &cmd_db_debugfs_ops);
+ 
+ 	device_set_pm_not_required(&pdev->dev);
+-- 
+2.55.0.windows.3
+

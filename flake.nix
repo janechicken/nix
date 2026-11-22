@@ -71,11 +71,14 @@
       # nh os switch .
       nixosConfigurations = {
         jane-pc = mkNixos "x86_64-linux" "jane-pc";
+        # Snapdragon X2 Plus (Mahua / X2P-42-100) — Lenovo Yoga Slim 7 14Q8Y11
+        yogabook = mkNixos "aarch64-linux" "yogabook";
       };
 
       # nh home switch .
       homeConfigurations = {
         "jane@jane-pc" = mkHome "x86_64-linux" "jane-pc";
+        "jane@yogabook" = mkHome "aarch64-linux" "yogabook";
       };
     };
 }

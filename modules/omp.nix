@@ -1,4 +1,8 @@
-{ config, pkgs, lib, inputs, ... }: {
+{ config, pkgs, lib, inputs, ... }:
+let
+  isX86 = pkgs.stdenv.hostPlatform.isx86_64;
+in
+{
   # ===========================================================================
   # oh-my-pi (omp) — coding agent with the IDE wired in.
   #
@@ -17,36 +21,39 @@
   # from sops-nix sessionVariables (NANOGPT_API_KEY, CHEAPCOMPUTE_API_KEY).
   # ===========================================================================
 
-  home.file = {
-    # --- custom providers (nanogpt + cheapcompute) --------------------------
-    ".omp/agent/models.yml" = {
-      force = true;
-      source = ../dotfiles/.omp/agent/models.yml;
+  home.file =
+    {
+      # --- custom providers (nanogpt + cheapcompute) --------------------------
+      ".omp/agent/models.yml" = {
+        force = true;
+        source = ../dotfiles/.omp/agent/models.yml;
+      };
+
+      # --- custom theme (ported from pi autumn-dark, omp adds statusLine*) -----
+      ".omp/agent/themes/autumn-dark.json" = {
+        force = true;
+        source = ../dotfiles/.omp/agent/themes/autumn-dark.json;
+      };
+    }
+    // lib.optionalAttrs isX86 {
+      # --- IDA MCP bridges (x86_64 only) ---------------------------------------
+      # Only the headless idalib server is wired up (no GUI proxy).
+      # idalib-mcp (stdio): headless idalib via the lazy wrapper at
+      #   ~/.local/bin/idalib-lazy-mcp — starts instantly, no file needed up
+      #   front. Call its set_target(path) tool to open/switch the analyzed
+      #   binary (supports switching in-process). Auto-analysis runs on
+      #   set_target, so the first call can take a while.
+      ".omp/agent/mcp.json" = {
+        force = true;
+        source = ../dotfiles/.omp/agent/mcp.json;
+      };
     };
 
-    # --- IDA MCP bridges -----------------------------------------------------
-    # Only the headless idalib server is wired up (no GUI proxy).
-    # idalib-mcp (stdio): headless idalib via the lazy wrapper at
-    #   ~/.local/bin/idalib-lazy-mcp — starts instantly, no file needed up
-    #   front. Call its set_target(path) tool to open/switch the analyzed
-    #   binary (supports switching in-process). Auto-analysis runs on
-    #   set_target, so the first call can take a while.
-    ".omp/agent/mcp.json" = {
-      force = true;
-      source = ../dotfiles/.omp/agent/mcp.json;
-    };
-
-    # --- custom theme (ported from pi autumn-dark, omp adds statusLine*) -----
-    ".omp/agent/themes/autumn-dark.json" = {
-      force = true;
-      source = ../dotfiles/.omp/agent/themes/autumn-dark.json;
-    };
-  };
-
-  home.packages = [
-    pkgs.omp
-    pkgs.ida-pro # also wraps ida-pro-mcp/idalib-mcp with the IDA lib env
-  ];
+  home.packages =
+    [ pkgs.omp ]
+    ++ lib.optionals isX86 [
+      pkgs.ida-pro # also wraps ida-pro-mcp/idalib-mcp with the IDA lib env
+    ];
 
   # Seed a writable ~/.omp/agent/config.yml only if none exists yet. omp owns
   # this file afterwards (its setup wizard + /model etc. persist to it, e.g.
@@ -81,12 +88,14 @@
     cp ${../dotfiles/.omp/agent/extensions/merge-gateway/models-cache.json} "$extDir/models-cache.json"
   '';
 
-  # --- IDA MCP plugin (RPC server inside the IDA GUI, port 13337) ----------
+  # --- IDA MCP plugin (RPC server inside the IDA GUI, port 13337, x86_64 only)
   # `ida-pro-mcp --install` does this imperatively but also writes configs for
   # other tools (claude/cursor); do it declaratively instead. The python3.*
   # glob survives nixpkgs python bumps.
-  home.activation.installIdaMcpPlugin = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
-    mkdir -p $HOME/.idapro/plugins
-    ln -sfn ${pkgs.ida-pro-mcp}/lib/python3.*/site-packages/ida_pro_mcp/mcp-plugin.py $HOME/.idapro/plugins/mcp-plugin.py
-  '';
+  home.activation.installIdaMcpPlugin = lib.mkIf isX86 (
+    lib.hm.dag.entryAfter [ "writeBoundary" ] ''
+      mkdir -p $HOME/.idapro/plugins
+      ln -sfn ${pkgs.ida-pro-mcp}/lib/python3.*/site-packages/ida_pro_mcp/mcp-plugin.py $HOME/.idapro/plugins/mcp-plugin.py
+    ''
+  );
 }

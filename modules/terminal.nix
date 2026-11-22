@@ -4,7 +4,7 @@
     enable = true;
     shellIntegration.enableZshIntegration = true;
     settings = {
-      connfirm_os_window_close = 0;
+      confirm_os_window_close = 0;
       enable_audio_bell = false;
       # Colors for the terminal
       color0  = "#111111";  # Normal black

@@ -1,4 +1,4 @@
-{ configs, inputs, pkgs, lib, ... }: {
+{ config, inputs, pkgs, lib, ... }: {
   home.packages = with pkgs; [ kdePackages.kleopatra gpg-tui ];
 
   services.gpg-agent = {

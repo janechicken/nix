@@ -6,6 +6,7 @@
   ...
 }:
 let
+  isX86 = pkgs.stdenv.hostPlatform.isx86_64;
   wine-wrapped = pkgs.symlinkJoin {
     name = "wine-wrapped";
     paths = [ pkgs.wineWow64Packages.staging ];
@@ -21,32 +22,35 @@ in
 {
   programs.nh = {
     enable = true;
-    flake = "/home/jane/nix";
+    flake = "${config.users.users.jane.homeDirectory}/nix";
   };
 
-  environment.systemPackages = with pkgs; [
-    lsd
-    jq
-    openssl
-    wget
-    fastfetch
-    uutils-coreutils-noprefix
-    procps
-    (lib.meta.setPrio 11 toybox)
-    bat
-    btop
-    wine-wrapped
-    winetricks
-    home-manager
-    zenity
-    appimage-run
-    p7zip-rar
-    qrrs
-    tmux
-    pandoc
-    python3Packages.weasyprint
-    inputs.nixwrap.packages.${pkgs.system}.wrap
-  ];
+  environment.systemPackages =
+    (with pkgs; [
+      lsd
+      jq
+      openssl
+      wget
+      fastfetch
+      uutils-coreutils-noprefix
+      procps
+      (lib.meta.setPrio 11 toybox)
+      bat
+      btop
+      home-manager
+      zenity
+      appimage-run
+      p7zip-rar
+      qrrs
+      tmux
+      pandoc
+      python3Packages.weasyprint
+      inputs.nixwrap.packages.${pkgs.system}.wrap
+    ])
+    ++ lib.optionals isX86 [
+      wine-wrapped
+      pkgs.winetricks
+    ];
   boot.loader.grub.configurationLimit = 3;
 
   nixpkgs.config = {

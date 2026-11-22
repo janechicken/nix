@@ -325,7 +325,6 @@ Create `hosts/NEW_HOSTNAME/configuration.nix`:
     ../../modules/core.nix
     # Add additional modules as needed
     # ../../modules/desktop.nix        # For desktop hosts
-    # ../../modules/graphics.nix      # For GPU support
     # ../../modules/audio.nix          # For audio support
     inputs.sops-nix.nixosModules.sops # For secrets management
     ../../secrets/sops-nix.nix        # If using secrets
@@ -484,10 +483,9 @@ imports = [
   ./hardware-configuration.nix
   ../../modules/core.nix
   ../../modules/desktop.nix        # Desktop environment
-  ../../modules/graphics.nix       # GPU drivers
   ../../modules/audio.nix          # Audio support
   ../../modules/steam.nix          # Gaming
-  ../../modules/opencode.nix       # Development tools
+  ../../modules/omp.nix            # Coding agent
   inputs.sops-nix.nixosModules.sops
   ../../secrets/sops-nix.nix
 ];

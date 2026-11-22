@@ -31,8 +31,6 @@
     inputs.sops-nix.nixosModules.sops
     ../../secrets/sops-nix.nix
     ../../modules/lock.nix
-    ../../modules/openvpn.nix
-    ../../modules/wireguard.nix
     ../../modules/joyshockmapper.nix
   ];
   services.joyshockmapper.enable = true;
@@ -179,7 +177,6 @@
       "input"
       "networkmanager"
       "audio"
-      "input"
       "libvirtd"
     ];
     shell = pkgs.zsh;

@@ -1,4 +1,4 @@
-{ configs, inputs, pkgs, lib, ... }: {
+{ config, inputs, pkgs, lib, ... }: {
 
   security.rtkit.enable = true;
   services.pipewire.extraConfig.pipewire."92-low-latency" = {
@@ -13,7 +13,7 @@
     enable = true;
     pulse.enable = true;
     alsa.enable = true;
-    alsa.support32Bit = true;
+    alsa.support32Bit = pkgs.stdenv.hostPlatform.isx86_64;
     jack.enable = true;
   };
   environment.variables = {

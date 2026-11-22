@@ -20,14 +20,11 @@
     ../../modules/dolphin.nix
     ../../modules/chess.nix
     ../../modules/zed.nix
-    ../../modules/opencode.nix
     ../../modules/omp.nix
     ../../modules/messaging.nix
     ../../modules/syncthing.nix
     ../../modules/obsidian.nix
     ../../modules/renix.nix
-    ../../modules/browser-use.nix
-    ../../modules/mcp.nix
     ../../secrets/home-secrets.nix
   ];
   # Home Manager needs a bit of information about you and the paths it should

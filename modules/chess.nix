@@ -1,4 +1,4 @@
-{ configs, inputs, pkgs, lib, ... }:
+{ config, inputs, pkgs, lib, ... }:
 {
   home.packages = [ pkgs.stockfish pkgs.en-croissant ];
 }

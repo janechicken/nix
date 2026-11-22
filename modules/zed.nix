@@ -26,7 +26,6 @@
       zls
       yaml-language-server
       lldb
-      prettierd
       vscode-langservers-extracted
       nil
     ];
