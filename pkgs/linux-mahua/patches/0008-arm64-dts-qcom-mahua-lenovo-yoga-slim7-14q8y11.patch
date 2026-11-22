@@ -5,6 +5,7 @@ Hardware-verified Device Tree and binding for Lenovo Yoga Slim 7 14Q8Y11
 (83QR, Snapdragon X2 Plus X2P-42-100 / Mahua):
 - 6-core Mahua SoC + Adreno X2-45 GPU capped at 915 MHz
 - Samsung ATNA40CT03-0 14.0" 1920x1200 AMOLED eDP panel (samsung,atna33xc20)
+- All 3 USB-C dual-role ports (usb_0, usb_1, usb_2 + smb2370_j/k/l eUSB2 repeaters)
 - ADSP/CDSP firmware paths for qcom/glymur/LENOVO/83QR/ + early SOCCP
 - ELAN06FA touchpad + QTEC0001 keyboard on i2c0, GXPT7936 touchscreen on i2c8
 - WCN7850 WiFi 7 + Bluetooth, Samsung NVMe on PCIe5, unused PCIe6 disabled
@@ -40,10 +41,10 @@ index 88230c4e0..99dd2304d 100644
  dtb-$(CONFIG_ARCH_QCOM)	+= monaco-arduino-monza.dtb
 diff --git a/arch/arm64/boot/dts/qcom/mahua-lenovo-yoga-slim7-14q8y11.dts b/arch/arm64/boot/dts/qcom/mahua-lenovo-yoga-slim7-14q8y11.dts
 new file mode 100644
-index 000000000..750d98aa9
+index 000000000..9ce0e79ed
 --- /dev/null
 +++ b/arch/arm64/boot/dts/qcom/mahua-lenovo-yoga-slim7-14q8y11.dts
-@@ -0,0 +1,1351 @@
+@@ -0,0 +1,1402 @@
 +// SPDX-License-Identifier: BSD-3-Clause
 +/*
 + * Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
@@ -235,6 +236,35 @@ index 000000000..750d98aa9
 +
 +					pmic_glink_ss_in1: endpoint {
 +						remote-endpoint = <&usb_1_qmpphy_out>;
++					};
++				};
++			};
++		};
++
++		/* Right-side USB-C port (ACPI QCOM0FED\2 -> usb_2) */
++		connector@2 {
++			compatible = "usb-c-connector";
++			reg = <2>;
++			power-role = "dual";
++			data-role = "dual";
++
++			ports {
++				#address-cells = <1>;
++				#size-cells = <0>;
++
++				port@0 {
++					reg = <0>;
++
++					pmic_glink_hs_in2: endpoint {
++						remote-endpoint = <&usb_2_dwc3_hs>;
++					};
++				};
++
++				port@1 {
++					reg = <1>;
++
++					pmic_glink_ss_in2: endpoint {
++						remote-endpoint = <&usb_2_qmpphy_out>;
 +					};
 +				};
 +			};
@@ -1075,6 +1105,17 @@ index 000000000..750d98aa9
 +	vdd3-supply = <&vreg_l7b_e0_2p79>;
 +};
 +
++&smb2370_l_e2 {
++	status = "okay";
++};
++
++&smb2370_l_e2_eusb2_repeater {
++	vdd18-supply = <&vreg_l15b_e0_1p8>;
++	vdd3-supply = <&vreg_l7b_e0_2p79>;
++
++	status = "okay";
++};
++
 +&tcsr {
 +	vdda-qrefrpt0-0p9-supply = <&vreg_l2f_e1_0p9>;
 +	vdda-qrefrpt1-0p9-supply = <&vreg_l2f_e1_0p9>;
@@ -1291,8 +1332,8 @@ index 000000000..750d98aa9
 +};
 +
 +&usb_0_qmpphy {
-+	vdda-phy-supply = <&vreg_l3f_e0_0p91>;
-+	vdda-pll-supply = <&vreg_l4h_e0_1p2>;
++	vdda-phy-supply = <&vreg_l4h_e0_1p2>;
++	vdda-pll-supply = <&vreg_l3f_e0_0p91>;
 +	refgen-supply = <&vreg_l2f_e0_0p94>;
 +
 +	status = "okay";
@@ -1320,8 +1361,8 @@ index 000000000..750d98aa9
 +};
 +
 +&usb_1_qmpphy {
-+	vdda-phy-supply = <&vreg_l1h_e0_0p94>;
-+	vdda-pll-supply = <&vreg_l4h_e0_1p2>;
++	vdda-phy-supply = <&vreg_l4h_e0_1p2>;
++	vdda-pll-supply = <&vreg_l1h_e0_0p94>;
 +	refgen-supply = <&vreg_l2f_e0_0p94>;
 +
 +	status = "okay";
@@ -1379,19 +1420,30 @@ index 000000000..750d98aa9
 +};
 +
 +&usb_2 {
-+	dr_mode = "host";
-+	maximum-speed = "high-speed";
-+
-+	/delete-property/ usb-role-switch;
-+	phys = <&usb_2_hsphy>;
-+	phy-names = "usb2-phy";
-+
 +	status = "okay";
++};
++
++&usb_2_dwc3_hs {
++	remote-endpoint = <&pmic_glink_hs_in2>;
 +};
 +
 +&usb_2_hsphy {
 +	vdd-supply = <&vreg_l4c_e1_0p72>;
 +	vdda12-supply = <&vreg_l4f_e1_1p2>;
 +
++	phys = <&smb2370_l_e2_eusb2_repeater>;
++
 +	status = "okay";
++};
++
++&usb_2_qmpphy {
++	vdda-phy-supply = <&vreg_l4f_e1_1p2>;
++	vdda-pll-supply = <&vreg_l4c_e1_0p72>;
++	refgen-supply = <&vreg_l1c_e1_0p82>;
++
++	status = "okay";
++};
++
++&usb_2_qmpphy_out {
++	remote-endpoint = <&pmic_glink_ss_in2>;
 +};
