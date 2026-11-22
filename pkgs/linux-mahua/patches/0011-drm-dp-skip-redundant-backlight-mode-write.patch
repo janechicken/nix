@@ -1,0 +1,66 @@
+From: Jane Chicken <janechicken@purelymail.com>
+Subject: [PATCH] drm/dp: skip redundant DPCD 0x721 backlight mode write on enable
+
+On the Samsung ATNA40CT03-0 OLED eDP panel (Lenovo Yoga Slim 7 14Q8Y11),
+UEFI leaves DPCD 0x721 (DP_EDP_BACKLIGHT_MODE_SET_REGISTER) configured to
+0x02 (DPCD brightness control) and DPCD 0x722..0x723 at 1024/2047.
+Unconditionally rewriting 0x721 with 0x02 inside drm_edp_backlight_enable()
+causes the panel TCON to blank the OLED display even though subsequent
+DPCD brightness writes succeed.
+
+Read DP_EDP_BACKLIGHT_MODE_SET_REGISTER first and skip writing it when the
+active mode already matches the target value. Also guard against a zero
+initial probed brightness level in drm_panel_dp_aux_backlight() by clamping
+to half of max brightness.
+
+Hardware-verified on Lenovo Yoga Slim 7 14Q8Y11 (ATNA40CT03-0) across
+brightness values 500, 1024, 1500, and 2047 with zero blanking.
+---
+--- a/drivers/gpu/drm/display/drm_dp_helper.c	2026-11-22 14:05:26.032706200 -0500
++++ b/drivers/gpu/drm/display/drm_dp_helper.c	2026-11-22 14:05:26.038580300 -0500
+@@ -4319,11 +4319,30 @@
+ 			dpcd_buf |= DP_EDP_BACKLIGHT_FREQ_AUX_SET_ENABLE;
+ 	}
+ 
+-	ret = drm_dp_dpcd_write_byte(aux, DP_EDP_BACKLIGHT_MODE_SET_REGISTER, dpcd_buf);
+-	if (ret < 0) {
+-		drm_dbg_kms(aux->drm_dev, "%s: Failed to write aux backlight mode: %d\n",
+-			    aux->name, ret);
+-		return ret < 0 ? ret : -EIO;
++	/*
++	 * Some Samsung AMOLED eDP TCONs (e.g. ATNA40CT03-0) blank the panel if
++	 * DP_EDP_BACKLIGHT_MODE_SET_REGISTER (0x721) is rewritten with the
++	 * mode that is already active. Read it first and only write on change.
++	 */
++	{
++		u8 cur_mode = 0xff;
++		int mode_ret = drm_dp_dpcd_read_byte(aux, DP_EDP_BACKLIGHT_MODE_SET_REGISTER,
++						     &cur_mode);
++
++		if (mode_ret < 0 || cur_mode != dpcd_buf) {
++			ret = drm_dp_dpcd_write_byte(aux, DP_EDP_BACKLIGHT_MODE_SET_REGISTER,
++						     dpcd_buf);
++			if (ret < 0) {
++				drm_dbg_kms(aux->drm_dev,
++					    "%s: Failed to write aux backlight mode: %d\n",
++					    aux->name, ret);
++				return ret < 0 ? ret : -EIO;
++			}
++		} else {
++			drm_dbg_kms(aux->drm_dev,
++				    "%s: Skipping redundant aux backlight mode write (0x%02x)\n",
++				    aux->name, cur_mode);
++		}
+ 	}
+ 
+ 	ret = drm_edp_backlight_set_level(aux, bl, level);
+@@ -4711,6 +4730,9 @@
+ 	if (ret < 0)
+ 		return ret;
+ 
++	if (current_level == 0 && bl->info.max > 0)
++		current_level = bl->info.max / 2;
++
+ 	props.type = BACKLIGHT_RAW;
+ 	props.brightness = current_level;
+ 	props.max_brightness = bl->info.max;
