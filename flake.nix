@@ -27,6 +27,10 @@
     };
     nixwrap.url = "github:rti/nixwrap";
     renix.url = "github:ironfisto/renix?dir=main";
+    pi-nix = {
+      url = "github:lukasl-dev/pi.nix";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
   outputs =
@@ -40,6 +44,7 @@
       nix-alien,
       sops-nix,
       nixwrap,
+      pi-nix,
       ...
     }:
     let

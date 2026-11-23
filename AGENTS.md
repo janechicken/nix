@@ -39,14 +39,14 @@ nix flake update nixpkgs         # update single input
 ## Architecture
 
 - **flake.nix**: 2 `nixosConfigurations` + 2 `homeConfigurations` via `mkNixos`/`mkHome` helpers, parameterized by system. Home-manager uses per-system `pkgsFor` (overlay pre-applied). NixOS configs apply the overlay via `nixpkgs.overlays`.
-- **overlays/**: `default.nix` composes `ida-pro.nix`, `joyshockmapper.nix`, `mahua-kernel.nix`, `mdpls.nix`, `omp.nix`.
+- **overlays/**: `default.nix` composes `ida-pro.nix`, `joyshockmapper.nix`, `mahua-kernel.nix`, `mdpls.nix`.
 - **pkgs/**: Custom derivations:
   - `pkgs/ida-pro/` + `pkgs/ida-pro-mcp/` — IDA Pro wrapper & MCP (x86_64 only)
   - `pkgs/joyshockmapper/` — JoyShockMapper custom curve fork
   - `pkgs/linux-mahua/` — Linux 7.4-rc3 + 11 verified Mahua/14Q8Y11 patches (`linuxPackages_mahua`); see `hosts/yogabook/BRINGUP.md` for hardware status, open USB-C issue, and invariants
   - `pkgs/mdpls/` — Markdown Preview Language Server
-  - `pkgs/omp/` — oh-my-pi release binary (`x86_64-linux` + `aarch64-linux`)
-- **Arch gating**: Shared modules (`core.nix`, `audio.nix`, `reaper.nix`, `discord.nix`, `omp.nix`) gate x86_64-only packages (`wine`, `yabridge`, 32-bit ALSA, `discord`, `ida-pro`) via `pkgs.stdenv.hostPlatform.isx86_64` (`discord.nix` installs `vesktop` on `aarch64-linux`).
+- **Agents & editors** (home-manager modules, both hosts): `pi.nix` — pi coding agent via `pi-nix` with the single local `refuseless` provider extension (`dotfiles/pi/extensions/refuseless-provider.ts`) and the x86_64-gated IDA MCP bridge; `t3code.nix` — T3 Code from nixpkgs; `antigravity.nix` — Google Antigravity IDE + ACP server from nixpkgs.
+- **Arch gating**: Shared modules (`core.nix`, `audio.nix`, `reaper.nix`, `discord.nix`, `pi.nix`) gate x86_64-only packages (`wine`, `yabridge`, 32-bit ALSA, `discord`, `ida-pro`) via `pkgs.stdenv.hostPlatform.isx86_64` (`discord.nix` installs `vesktop` on `aarch64-linux`).
 - **stateVersion**: `25.05` on all hosts.
 
 ## Secrets (sops-nix)

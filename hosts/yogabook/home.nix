@@ -18,7 +18,9 @@
     ../../modules/dolphin.nix
     ../../modules/chess.nix
     ../../modules/zed.nix
-    ../../modules/omp.nix
+    ../../modules/pi.nix
+    ../../modules/t3code.nix
+    ../../modules/antigravity.nix
     ../../modules/messaging.nix
     ../../modules/syncthing.nix
     ../../modules/obsidian.nix

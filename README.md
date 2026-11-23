@@ -485,7 +485,7 @@ imports = [
   ../../modules/desktop.nix        # Desktop environment
   ../../modules/audio.nix          # Audio support
   ../../modules/steam.nix          # Gaming
-  ../../modules/omp.nix            # Coding agent
+  ../../modules/pi.nix             # pi coding agent
   inputs.sops-nix.nixosModules.sops
   ../../secrets/sops-nix.nix
 ];
