@@ -111,7 +111,10 @@ buildLinux (
       # Display (Samsung ATNA40CT03-0 OLED via atna33xc20) & Adreno X2-45 GPU.
       # Patch 0011 skips redundant DPCD 0x721 mode writes so dp_aux_backlight
       # dims smoothly across 0..2047 without blanking the ATNA40CT03-0 TCON.
+      EFI_EARLYCON = yes;
+      SYSFB_SIMPLEFB = yes;
       DRM = yes;
+      DRM_FBDEV_EMULATION = yes;
       BACKLIGHT_CLASS_DEVICE = yes;
       DRM_DISPLAY_DP_AUX_CHARDEV = yes;
       DRM_MSM = module;
@@ -120,7 +123,10 @@ buildLinux (
       DRM_PANEL_EDP = module;
       DRM_PANEL_SAMSUNG_ATNA33XC20 = module;
       FONTS = yes;
+      FONT_8x16 = yes;
       FONT_TER16x32 = yes;
+      EXFAT_FS = yes;
+      PSTORE_RAM = yes;
 
       # I2C HID keyboard/touchpad/touchscreen
       I2C_QCOM_GENI = yes;

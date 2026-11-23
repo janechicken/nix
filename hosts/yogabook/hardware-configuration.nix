@@ -29,12 +29,12 @@
     "msm"
   ];
 
-  # Load keyboard + OLED panel + GPU in initrd so LUKS/FIDO2 prompt works on the laptop screen
+  # Load I2C HID keyboard/touchpad in initrd so LUKS/FIDO2 prompt works on the
+  # laptop screen via simpledrm/efifb; let `msm` load in stage-2 once
+  # /var/lib/mahua-firmware (Adreno GMU/SQE/AQE blobs) is mounted.
   boot.initrd.kernelModules = [
     "i2c_hid_of"
     "hid_multitouch"
-    "panel_samsung_atna33xc20"
-    "msm"
   ];
 
   boot.extraModulePackages = [ ];

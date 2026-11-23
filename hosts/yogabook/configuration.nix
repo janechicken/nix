@@ -53,11 +53,20 @@
     KERNEL=="hidraw*", KERNELS=="*2DC8:6012*", MODE="0660", GROUP="input"
   '';
 
-  system.autoUpgrade.enable = true;
-  system.autoUpgrade.allowReboot = true;
+  # Disabled during bring-up: an unattended rebuild would pull nixpkgs' stock
+  # kernel, stripping linuxPackages_mahua, and could trigger a multi-hour kernel
+  # rebuild on this machine. Upgrade manually.
+  system.autoUpgrade.enable = false;
+  system.autoUpgrade.allowReboot = false;
+
+  # OBS virtual camera compiles out-of-tree v4l2loopback against Linux 7.4-rc3,
+  # which risks aborting nixos-install on a kernel API mismatch.
+  programs.obs-studio.enableVirtualCamera = lib.mkForce false;
 
   # Hardware Device Tree for Lenovo Yoga Slim 7 14Q8Y11 (Mahua).
-  # GRUB passes this via `devicetree` for every NixOS generation.
+  # hardware.deviceTree only selects the DTB package; NixOS's install-grub.pl
+  # ignores hardware.deviceTree.name entirely, so GRUB gets the DTB through
+  # boot.loader.grub.extraFiles + extraPerEntryConfig below.
   hardware.deviceTree = {
     enable = true;
     name = "qcom/mahua-lenovo-yoga-slim7-14q8y11.dtb";
@@ -137,6 +146,12 @@
       efiInstallAsRemovable = true;
       copyKernels = true;
       device = "nodev";
+      # NixOS's install-grub.pl ignores hardware.deviceTree.name, so explicitly
+      # stage the Mahua board DTB onto /boot and emit `devicetree` per entry.
+      extraFiles."dtbs/qcom/mahua-lenovo-yoga-slim7-14q8y11.dtb" =
+        "${config.hardware.deviceTree.package}/qcom/mahua-lenovo-yoga-slim7-14q8y11.dtb";
+      extraPerEntryConfig =
+        "devicetree @bootRoot@/dtbs/qcom/mahua-lenovo-yoga-slim7-14q8y11.dtb";
       extraEntries = ''
         menuentry "Reboot" {
             reboot
@@ -204,13 +219,14 @@
     };
     logind = {
       settings.Login = {
-        HandleLidSwitch = "suspend";
+        HandleLidSwitch = "lock";
         HandleLidSwitchExternalPower = "ignore";
         HandleLidSwitchDocked = "ignore";
-        HandlePowerKey = "suspend";
+        HandlePowerKey = "poweroff";
         HandlePowerKeyLongPress = "poweroff";
       };
     };
+    openssh.enable = true;
   };
 
   programs.zsh.enable = true;
@@ -239,17 +255,13 @@
     alsa-lib
     appimage-run
     brightnessctl
+    openssh
   ];
-
-  programs.gnupg.agent = {
-    enable = true;
-    enableSSHSupport = true;
-  };
 
   networking.firewall.enable = false;
 
   systemd.sleep.settings.Sleep = {
-    SuspendState = "mem";
+    SuspendState = "freeze";
   };
 
   system.stateVersion = "25.05";
