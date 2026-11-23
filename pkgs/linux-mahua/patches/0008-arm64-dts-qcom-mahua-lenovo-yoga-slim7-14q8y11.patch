@@ -44,7 +44,7 @@ new file mode 100644
 index 000000000..9ce0e79ed
 --- /dev/null
 +++ b/arch/arm64/boot/dts/qcom/mahua-lenovo-yoga-slim7-14q8y11.dts
-@@ -0,0 +1,1402 @@
+@@ -0,0 +1,1408 @@
 +// SPDX-License-Identifier: BSD-3-Clause
 +/*
 + * Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
@@ -1315,6 +1315,8 @@ index 000000000..9ce0e79ed
 +};
 +
 +&usb_0 {
++	dr_mode = "host";
++
 +	status = "okay";
 +};
 +
@@ -1344,6 +1346,8 @@ index 000000000..9ce0e79ed
 +};
 +
 +&usb_1 {
++	dr_mode = "host";
++
 +	status = "okay";
 +};
 +
@@ -1420,6 +1424,8 @@ index 000000000..9ce0e79ed
 +};
 +
 +&usb_2 {
++	dr_mode = "host";
++
 +	status = "okay";
 +};
 +
