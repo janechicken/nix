@@ -69,9 +69,14 @@
   };
 
   home.sessionVariables = {
-    MAKEFLAGS = "-j$(nproc)";
     NH_FLAKE = "${config.home.homeDirectory}/nix";
   };
+
+  # `$(nproc)` has to be evaluated by the shell at login, so it belongs in shell
+  # init rather than in a plain session variable.
+  home.sessionVariablesExtra = ''
+    export MAKEFLAGS="-j$(nproc)"
+  '';
 
   programs.rofi = {
     enable = true;

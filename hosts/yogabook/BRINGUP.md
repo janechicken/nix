@@ -9,7 +9,7 @@ This file tracks verified hardware state, open issues, and invariants so new ses
 
 - `pkgs/linux-mahua/default.nix` — fetches upstream `torvalds/linux` `7.4-rc3` (`7b7fe306dd86b5342d3be8a3f1cbf3bb1ebf280f`) via `fetchurl`, applies 11 patches (`pkgs/linux-mahua/patches/0001`–`0011`), and sets Mahua Kconfig in `structuredExtraConfig`.
 - `overlays/mahua-kernel.nix` — exposes `pkgs.linuxPackages_mahua` and overrides `alsa-ucm-conf` with the `Lenovo-Yoga-Slim7-14Q8Y11` UCM2 profile (`2x WSA8845` speakers, `2x VA DMICs`, `2x DP audio`).
-- `hosts/yogabook/configuration.nix` — wires `boot.kernelPackages = pkgs.linuxPackages_mahua`, `hardware.deviceTree.name = "qcom/mahua-lenovo-yoga-slim7-14q8y11.dtb"`, Mahua `kernelParams`, and `/var/lib/mahua-firmware`.
+- `hosts/yogabook/configuration.nix` — wires `boot.kernelPackages = pkgs.linuxPackages_mahua`, `hardware.deviceTree.name = "qcom/mahua-lenovo-yoga-slim7-14q8y11.dtb"`, Mahua `kernelParams`, and `/var/lib/mahua-firmware`. GRUB does **not** read `hardware.deviceTree.name` (`install-grub.pl` ignores it), so the DTB reaches GRUB via `boot.loader.grub.extraFiles."dtbs/qcom/mahua-lenovo-yoga-slim7-14q8y11.dtb"` plus `extraPerEntryConfig = "devicetree @bootRoot@/dtbs/qcom/…dtb"`.
 
 To iterate on a kernel or DTS fix from NixOS: edit an existing patch or add `0012-*.patch` under `pkgs/linux-mahua/patches/`, register it in `pkgs/linux-mahua/default.nix`, `git add` it (flakes ignore untracked files), and verify with `nh os build .`.
 

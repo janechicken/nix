@@ -31,9 +31,11 @@ in
 {
   imports = [ inputs.pi-nix.homeManagerModules.default ];
 
-  # Standalone Home Manager sets osConfig = null, which causes pi-nix's
-  # `osConfig.wsl.enable or false` check to fail with a type error.
-  _module.args.osConfig = lib.mkDefault { wsl.enable = false; };
+  # Standalone Home Manager sets osConfig = lib.mkDefault null (priority 1000),
+  # which causes pi-nix's `osConfig.wsl.enable or false` check to fail with a
+  # type error. A plain definition (priority 100) cleanly overrides mkDefault null
+  # without a conflicting-definitions error.
+  _module.args.osConfig = { wsl.enable = false; };
 
   # ===========================================================================
   # pi coding agent (pi.dev)

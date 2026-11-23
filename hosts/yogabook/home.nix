@@ -2,6 +2,7 @@
   config,
   pkgs,
   inputs,
+  lib,
   ...
 }:
 
@@ -34,8 +35,6 @@
   nixpkgs.config.permittedInsecurePackages = [
     "python3.13-ecdsa-0.19.2"
     "python3.14-ecdsa-0.19.2"
-    "librewolf-bin-151.0.1-2"
-    "librewolf-bin-unwrapped-151.0.1-2"
   ];
 
   home.stateVersion = "25.05";
@@ -50,7 +49,17 @@
     QT_AUTO_SCREEN_SCALE_FACTOR = "1";
   };
 
-  home.packages = with pkgs; [ ];
+  home.packages = with pkgs; [
+    # `git push` over ssh needs the client binary; don't rely on it coming in
+    # transitively.
+    openssh
+  ];
+
+  # modules/git.nix signs every commit by default, but this host has no GPG key
+  # provisioned (sops.secrets."gpg_key" is still commented out in
+  # secrets/sops-nix.nix), so every `git commit` would fail. jane-pc has the key
+  # and keeps signing on.
+  programs.git.signing.signByDefault = lib.mkForce false;
 
   home.file = {
     ".xinitrc".text = ''

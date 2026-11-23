@@ -22,7 +22,7 @@ in
 {
   programs.nh = {
     enable = true;
-    flake = "${config.users.users.jane.homeDirectory}/nix";
+    flake = "${config.users.users.jane.home}/nix";
   };
 
   environment.systemPackages =

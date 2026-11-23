@@ -1,7 +1,8 @@
 # Replace CHANGE_ME_* UUIDs with real partition UUIDs (`blkid`) during install.
 #
 # Layout (mirrors jane-pc):
-#   /dev/nvme0n1p1  512MiB+ FAT32 ESP mounted at /boot
+#   /dev/nvme0n1p1  1024MiB FAT32 ESP mounted at /boot (1GiB: two 7.4-rc3
+#                   generations with copyKernels + initrd + Mahua DTB)
 #   /dev/nvme0n1p2  LUKS2 ("cryptroot", FIDO2 + passphrase) -> Btrfs with @ and @home subvolumes
 {
   config,
@@ -25,16 +26,20 @@
     "i2c_hid_of"
     "i2c_hid_of_elan"
     "hid_multitouch"
-    "panel_samsung_atna33xc20"
-    "msm"
   ];
 
-  # Load I2C HID keyboard/touchpad in initrd so LUKS/FIDO2 prompt works on the
-  # laptop screen via simpledrm/efifb; let `msm` load in stage-2 once
-  # /var/lib/mahua-firmware (Adreno GMU/SQE/AQE blobs) is mounted.
+  # Load only the I2C HID keyboard/touchpad in initrd so the LUKS/FIDO2 prompt
+  # works on the laptop screen via simpledrm/efifb.
   boot.initrd.kernelModules = [
     "i2c_hid_of"
     "hid_multitouch"
+  ];
+
+  # `msm` (Adreno) and the OLED panel driver load in stage 2 instead: their
+  # firmware lives in /var/lib/mahua-firmware, which is not mounted inside initrd.
+  boot.kernelModules = [
+    "msm"
+    "panel_samsung_atna33xc20"
   ];
 
   boot.extraModulePackages = [ ];

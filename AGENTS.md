@@ -66,7 +66,7 @@ Proprietary Lenovo Windows DriverStore blobs (ADSP/CDSP `.mbn`/`.jsn`/`.elf`, WC
 - **Files**: `kebab-case.nix`
 - **Imports**: `./file.nix` (same dir), `../../modules/<name>.nix` (from host configs)
 - **Indent**: 2 spaces
-- **User path**: Use `config.users.users.jane.homeDirectory`, never `/home/jane`
+- **User path**: Use `config.users.users.jane.home` (NixOS) / `config.home.homeDirectory` (Home Manager), never `/home/jane`
 - **Package lists**: `environment.systemPackages = with pkgs; [ ... ];`
 
 ## Don'ts
