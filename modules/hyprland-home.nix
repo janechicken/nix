@@ -2,7 +2,10 @@
 # look & feel (dotfiles/awesome/rc.lua + mytheme.lua + picom.conf + rofi/simple.rasi):
 #   - Pure #000000 OLED wallpaper, #111111 surfaces, #875fff purple focus, #d7ff5f urgent
 #   - Sharp corners (rounding = 0), 3px borders, 5px inner / 10px outer gaps, subtle shadows
-#   - Top Waybar mirroring Awesome's wibar (tags 1-9, window tasklist, tray, net, bat, mem, clock)
+#   - Top Waybar mirroring Awesome's wibar (tags 1-9, layout box, tasklist,
+#     tray, net, bat, mem, clock); the tasklist is a socket2-driven
+#     `custom/tasklist` (focused workspace only, width-bounded) and the layout
+#     box a clickable `custom/layout` (`[dwindle]` / `[master]`)
 #   - AwesomeWM keybinds, dwindle (spiral) <-> master (tile) toggle, sloppy focus
 #   - hyprbars titlebars on floating windows only (AwesomeWM draws them on floats)
 #   - Window minimize/restore via the hidden special:minimized workspace,
@@ -87,6 +90,426 @@ let
       -h string:x-canonical-private-synchronous:brightness \
       -t 2000 \
       "$title" "Brightness: ''${pct}"
+  '';
+
+  # Waybar tasklist: Waybar 0.16's wlr/taskbar cannot filter by Hyprland
+  # workspace, so the tasklist is a small event-driven client instead. It
+  # listens on Hyprland's `.socket2.sock` (no polling), shows only the mapped
+  # windows of the focused workspace, and bounds its own text to a character
+  # budget derived from the focused monitor's logical width so modules-left
+  # (workspaces + layout) and modules-right (tray/network/battery/memory/clock)
+  # can never be pushed off the bar.
+  tasklistScript = pkgs.writers.writePython3 "hypr-tasklist" { } ''
+    """Event-driven Waybar tasklist for Hyprland 0.57 (Lua config).
+
+    Only shows windows on the focused workspace and never lets the bar's left
+    (workspaces + layout) or right (tray/network/battery/memory/clock) groups be
+    pushed off screen: the rendered text is bounded by a character budget derived
+    from the focused monitor's logical width.
+
+    Reads events from `.socket2.sock` (no polling) and answers queries on
+    `.socket.sock` (`j/monitors`, `j/activeworkspace`, `j/clients`,
+    `j/activewindow`).
+    """
+
+    import html
+    import json
+    import os
+    import select
+    import socket
+    import sys
+    import time
+
+    # Fixed pixel reserves for the bar's left and right module groups.
+    LEFT_RESERVE = 330
+    RIGHT_RESERVE = 560
+    CHAR_PX = 9
+    MIN_TOTAL_CHARS = 18
+    MIN_ENTRY_CHARS = 12
+    SEPARATOR = " "
+
+    ACTIVE_BG = "#875fff"
+    ACTIVE_FG = "#ffffff"
+    INACTIVE_FG = "#aaaaaa"
+
+    RENDER_EVENTS = frozenset(
+        (
+            "workspace",
+            "workspacev2",
+            "createworkspace",
+            "createworkspacev2",
+            "destroyworkspace",
+            "destroyworkspacev2",
+            "focusedmon",
+            "focusedmonv2",
+            "activewindow",
+            "activewindowv2",
+            "openwindow",
+            "closewindow",
+            "movewindow",
+            "movewindowv2",
+            "windowtitle",
+            "windowtitlev2",
+            "changefloatingmode",
+            "fullscreen",
+            "configreloaded",
+            "monitoradded",
+            "monitoraddedv2",
+            "monitorremoved",
+            "monitorremovedv2",
+        )
+    )
+
+
+    def socket_dir():
+        """Directory holding the Hyprland IPC sockets for this session."""
+        runtime = os.environ.get("XDG_RUNTIME_DIR") or "/run/user/%d" % os.getuid()
+        base = os.path.join(runtime, "hypr")
+        sig = os.environ.get("HYPRLAND_INSTANCE_SIGNATURE")
+        if sig:
+            return os.path.join(base, sig)
+        try:
+            candidates = [os.path.join(base, e) for e in os.listdir(base)]
+        except OSError:
+            candidates = []
+        candidates = [c for c in candidates if os.path.isdir(c)]
+        if not candidates:
+            return os.path.join(base, "missing")
+        return max(candidates, key=os.path.getmtime)
+
+
+    def request(path, command):
+        """One request/response round trip on the Hyprland command socket."""
+        sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+        sock.settimeout(2.0)
+        try:
+            sock.connect(path)
+            sock.sendall(command.encode("utf-8", "replace"))
+            chunks = []
+            while True:
+                chunk = sock.recv(65536)
+                if not chunk:
+                    break
+                chunks.append(chunk)
+            return b"".join(chunks).decode("utf-8", "replace")
+        finally:
+            sock.close()
+
+
+    def request_json(path, command):
+        raw = request(path, command)
+        raw = raw.strip()
+        if not raw:
+            return None
+        return json.loads(raw)
+
+
+    def emit(text, tooltip=""):
+        payload = {"text": text, "tooltip": tooltip, "class": "tasklist"}
+        sys.stdout.write(json.dumps(payload) + "\n")
+        sys.stdout.flush()
+
+
+    def truncate(title, width):
+        title = " ".join(title.split())
+        if width <= 0:
+            return ""
+        if len(title) <= width:
+            return title
+        if width == 1:
+            return "…"
+        return title[: width - 1].rstrip() + "…"
+
+
+    def span(title, active):
+        escaped = html.escape(title, quote=False)
+        if active:
+            return '<span background="%s" foreground="%s"> %s </span>' % (
+                ACTIVE_BG,
+                ACTIVE_FG,
+                escaped,
+            )
+        return '<span foreground="%s"> %s </span>' % (INACTIVE_FG, escaped)
+
+
+    def logical_width(monitors):
+        for monitor in monitors or []:
+            if monitor.get("focused") and not monitor.get("disabled"):
+                width = monitor.get("width") or 0
+                scale = monitor.get("scale") or 1.0
+                if width > 0 and scale > 0:
+                    return int(width / scale)
+        for monitor in monitors or []:
+            width = monitor.get("width") or 0
+            scale = monitor.get("scale") or 1.0
+            if width > 0 and scale > 0:
+                return int(width / scale)
+        return 1920
+
+
+    def char_budget(monitors):
+        avail = logical_width(monitors) - (LEFT_RESERVE + RIGHT_RESERVE)
+        avail = max(160, avail)
+        return max(MIN_TOTAL_CHARS, avail // CHAR_PX)
+
+
+    def fit_titles(titles, budget):
+        """How many entries fit, and how many characters each one gets."""
+        total = len(titles)
+        count = total
+        while count > 1:
+            suffix = len(" +%d" % (total - count)) if count < total else 0
+            per = (budget - suffix - (count - 1)) // count - 2
+            if per >= MIN_ENTRY_CHARS:
+                return count, per
+            count -= 1
+        suffix = len(" +%d" % (total - 1)) if total > 1 else 0
+        return 1, max(1, budget - suffix - 2)
+
+
+    def render(sock_path, order):
+        monitors = request_json(sock_path, "j/monitors")
+        workspace = request_json(sock_path, "j/activeworkspace") or {}
+        clients = request_json(sock_path, "j/clients") or []
+        active = request_json(sock_path, "j/activewindow") or {}
+
+        workspace_id = workspace.get("id")
+        active_address = active.get("address")
+
+        # Mapped, visible windows on the focused workspace only. Minimized windows
+        # live on "special:minimized" and therefore drop out on their own.
+        visible = {}
+        for client in clients:
+            client_ws = client.get("workspace") or {}
+            if client_ws.get("id") != workspace_id:
+                continue
+            if not client.get("mapped", True):
+                continue
+            if client.get("hidden"):
+                continue
+            visible[client.get("address")] = client
+
+        # Stable ordering: keep the previous order, append new windows, drop gone.
+        order[:] = [a for a in order if a in visible]
+        for address in visible:
+            if address not in order:
+                order.append(address)
+
+        windows = [visible[a] for a in order]
+        if not windows:
+            emit("", "No windows on this workspace")
+            return
+
+        titles = [w.get("title") or w.get("class") or "?" for w in windows]
+        addresses = [w.get("address") for w in windows]
+
+        budget = char_budget(monitors)
+        count, per = fit_titles(titles, budget)
+        shown = list(range(count))
+        # Never hide the focused window: swap it in for the last visible entry.
+        if active_address in addresses:
+            active_index = addresses.index(active_address)
+            if active_index not in shown:
+                shown[-1] = active_index
+        shown.sort()
+
+        parts = [
+            span(truncate(titles[i], per), addresses[i] == active_address)
+            for i in shown
+        ]
+        text = SEPARATOR.join(parts)
+        if count < len(titles):
+            text += SEPARATOR + "+%d" % (len(titles) - count)
+
+        lines = []
+        for index, title in enumerate(titles):
+            marker = "▶ " if addresses[index] == active_address else "  "
+            lines.append(marker + html.escape(title, quote=False))
+        tooltip = "\n".join(lines)
+
+        emit(text, tooltip)
+
+
+    def main():
+        directory = socket_dir()
+        event_path = os.path.join(directory, ".socket2.sock")
+        sock_path = os.path.join(directory, ".socket.sock")
+
+        order = []
+        stream = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+        stream.settimeout(2.0)
+        stream.connect(event_path)
+        stream.settimeout(None)
+
+        try:
+            render(sock_path, order)
+        except Exception as exc:  # noqa: BLE001 - keep the module alive
+            emit("", "tasklist error: %s" % exc)
+
+        pending = b""
+        render_at = None
+        recheck_at = None
+
+        while True:
+            now = time.monotonic()
+            deadlines = [d for d in (render_at, recheck_at) if d is not None]
+            timeout = max(0.0, min(deadlines) - now) if deadlines else 30.0
+
+            readable, _, _ = select.select([stream], [], [], timeout)
+
+            if readable:
+                chunk = stream.recv(65536)
+                if not chunk:
+                    return 0
+                pending += chunk
+                interesting = False
+                while b"\n" in pending:
+                    line, pending = pending.split(b"\n", 1)
+                    event = line.decode("utf-8", "replace").split(">>", 1)
+                    event = event[0].strip()
+                    if event in RENDER_EVENTS:
+                        interesting = True
+                if interesting:
+                    now = time.monotonic()
+                    # Coalesce the burst of events one action emits, then render
+                    # again shortly after: Hyprland reports `activewindow` after
+                    # `workspacev2`, so the first pass can still see the old focus.
+                    render_at = now + 0.02
+                    recheck_at = now + 0.15
+
+            now = time.monotonic()
+            if render_at is not None and now >= render_at:
+                render_at = None
+                try:
+                    render(sock_path, order)
+                except Exception:  # noqa: BLE001
+                    pass
+            if recheck_at is not None and now >= recheck_at:
+                recheck_at = None
+                try:
+                    render(sock_path, order)
+                except Exception:  # noqa: BLE001
+                    pass
+
+
+    if __name__ == "__main__":
+        try:
+            sys.exit(main())
+        except (BrokenPipeError, KeyboardInterrupt):
+            sys.exit(0)
+  '';
+
+  # Waybar layout indicator: `[dwindle]` / `[master]` next to the workspaces,
+  # `toggle` flips the layout and re-runs every `signal = 8` Waybar module.
+  layoutScript = pkgs.writers.writePython3 "hypr-layout" { } ''
+    """Waybar layout indicator for Hyprland 0.57 (Lua config).
+
+    `hypr-layout` prints the active workspace's tiling layout as Waybar JSON
+    (`[dwindle]` / `[master]`); `hypr-layout toggle` flips dwindle <-> master and
+    re-runs every `signal = 8` Waybar module (SIGRTMIN+8) so the label updates
+    instantly. Also invoked by the SUPER+Space bind in hyprland.lua.
+    """
+
+    import json
+    import os
+    import socket
+    import subprocess
+    import sys
+
+    SIGNAL = "RTMIN+8"
+    PKILL = "${pkgs.procps}/bin/pkill"
+
+
+    def socket_path():
+        runtime = os.environ.get("XDG_RUNTIME_DIR") or "/run/user/%d" % os.getuid()
+        base = os.path.join(runtime, "hypr")
+        sig = os.environ.get("HYPRLAND_INSTANCE_SIGNATURE")
+        if sig:
+            return os.path.join(base, sig, ".socket.sock")
+        try:
+            candidates = [os.path.join(base, e) for e in os.listdir(base)]
+        except OSError:
+            candidates = []
+        candidates = [c for c in candidates if os.path.isdir(c)]
+        if not candidates:
+            return os.path.join(base, "missing", ".socket.sock")
+        return os.path.join(max(candidates, key=os.path.getmtime), ".socket.sock")
+
+
+    def request(command):
+        """One request/response round trip on the Hyprland command socket."""
+        sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+        sock.settimeout(2.0)
+        try:
+            sock.connect(socket_path())
+            sock.sendall(command.encode("utf-8", "replace"))
+            chunks = []
+            while True:
+                chunk = sock.recv(65536)
+                if not chunk:
+                    break
+                chunks.append(chunk)
+            return b"".join(chunks).decode("utf-8", "replace").strip()
+        finally:
+            sock.close()
+
+
+    def current_layout():
+        try:
+            workspace = json.loads(request("j/activeworkspace"))
+            layout = workspace.get("tiledLayout") or workspace.get("tiled_layout")
+            if layout:
+                return layout
+        except Exception:  # noqa: BLE001 - fall through to the option query
+            pass
+        try:
+            option = json.loads(request("j/getoption general:layout"))
+            return option.get("str") or "dwindle"
+        except Exception:  # noqa: BLE001
+            return "dwindle"
+
+
+    def set_layout(layout):
+        request('eval hl.config({ general = { layout = "%s" } })' % layout)
+
+
+    def refresh_bar():
+        subprocess.run([PKILL, "-" + SIGNAL, "waybar"], check=False)
+
+
+    def main(argv):
+        if len(argv) > 1 and argv[1] == "toggle":
+            layout = current_layout()
+            set_layout("master" if layout == "dwindle" else "dwindle")
+            refresh_bar()
+            return 0
+
+        layout = current_layout()
+        other = "dwindle" if layout == "master" else "master"
+        tooltip = "Layout: %s\nClick: switch to %s\nSUPER+Space: toggle" % (
+            layout,
+            other,
+        )
+        sys.stdout.write(
+            json.dumps(
+                {
+                    "text": "[%s]" % layout,
+                    "tooltip": tooltip,
+                    "class": layout,
+                    "alt": layout,
+                }
+            )
+            + "\n"
+        )
+        sys.stdout.flush()
+        return 0
+
+
+    if __name__ == "__main__":
+        try:
+            sys.exit(main(sys.argv))
+        except (BrokenPipeError, KeyboardInterrupt):
+            sys.exit(0)
   '';
 
   # Waybar scroll handler: the same 1..9 wrap-around as `cycle_workspace`
@@ -337,13 +760,28 @@ let
     -- Layout manipulation (dwindle <-> master, split ratio / mfact).
     -- `mfact` / `splitratio` are layout-only and take *relative* deltas, so
     -- floating windows fall back to a plain resize instead of doing nothing.
+    -- The layout actually in effect is the workspace's `tiled_layout`; the
+    -- global `general.layout` option is only the fallback for a workspace that
+    -- has not picked one yet. (Both `hl.get_config("general.layout")` and
+    -- `hl.get_config("general:layout")` resolve, but neither is per-workspace.)
+    local function current_layout()
+      local ws = hl.get_active_workspace()
+      if ws then
+        local layout = ws.tiled_layout
+        if layout and layout ~= "" then
+          return layout
+        end
+      end
+      return hl.get_config("general.layout") or "dwindle"
+    end
+
     local function adjust_split(delta)
       local win = hl.get_active_window()
       if win and win.floating then
         resize_active(math.floor(delta * 800), 0)
         return
       end
-      local layout = hl.get_config("general.layout")
+      local layout = current_layout()
       if layout == "master" then
         hl.dispatch(hl.dsp.layout(string.format("mfact %+.2f", delta)))
       else
@@ -366,10 +804,13 @@ let
     hl.bind(mainMod .. " + ALT + J", function() resize_active(0, resizeStep) end, { repeating = true, description = "resize: grow height" })
     hl.bind(mainMod .. " + ALT + Down", function() resize_active(0, resizeStep) end, { repeating = true, description = "resize: grow height" })
 
+    -- AwesomeWM's `Mod4 + space`: flip dwindle <-> master and poke Waybar's
+    -- `custom/layout` indicator (`signal = 8` = SIGRTMIN+8) so it re-reads the
+    -- layout immediately instead of showing a stale label.
     hl.bind(mainMod .. " + space", function()
-      local cur = hl.get_config("general.layout")
-      local next_layout = (cur == "dwindle") and "master" or "dwindle"
+      local next_layout = (current_layout() == "dwindle") and "master" or "dwindle"
       hl.config({ general = { layout = next_layout } })
+      hl.dispatch(hl.dsp.exec_cmd("${pkgs.procps}/bin/pkill -RTMIN+8 waybar"))
     end, { description = "toggle dwindle / master layout" })
 
     -- Client states (matching AwesomeWM: G=fullscreen, M=maximize, Ctrl+Space=float, Ctrl+Return=master, O=screen, T=pin)
@@ -385,8 +826,10 @@ let
     -- `swapwithmaster` is a master-only layoutmsg: on dwindle Hyprland answers
     -- "Unknown dwindle layoutmsg" and nothing happens. dwindle's equivalent is
     -- `movetoroot`, which promotes the focused window to the root (master) slot.
+    -- Both verified live against Hyprland 0.57.2 (each errors out in the other
+    -- layout), so pick by the workspace's actual layout.
     local function swap_with_master()
-      if hl.get_config("general.layout") == "master" then
+      if current_layout() == "master" then
         hl.dispatch(hl.dsp.layout("swapwithmaster"))
       else
         hl.dispatch(hl.dsp.layout("movetoroot"))
@@ -800,8 +1243,11 @@ in
           position = "top";
           height = 24;
           spacing = 6;
-          modules-left = [ "hyprland/workspaces" ];
-          modules-center = [ "wlr/taskbar" ];
+          modules-left = [
+            "hyprland/workspaces"
+            "custom/layout"
+          ];
+          modules-center = [ "custom/tasklist" ];
           modules-right = [
             "tray"
             "network"
@@ -824,18 +1270,32 @@ in
             };
           };
 
-          # AwesomeWM's `mytasklist`: every window of the current output as a
-          # clickable button (Waybar 0.16's wlr/taskbar has no workspace filter,
-          # `all-outputs = false` is the closest scope). Needs
-          # zwlr_foreign_toplevel_manager_v1, which Hyprland 0.57 advertises.
-          "wlr/taskbar" = {
-            format = "{icon} {title:.24}";
-            icon-size = 14;
+          # AwesomeWM's `s.mylayoutbox`, right next to the taglist: shows the
+          # active workspace's tiling layout and toggles dwindle <-> master on
+          # click (SUPER+Space does the same and pokes `signal = 8` too).
+          "custom/layout" = {
+            exec = "${layoutScript}";
+            signal = 8;
             tooltip = true;
-            tooltip-format = "{title}";
-            all-outputs = false;
-            on-click = "activate";
-            on-click-middle = "close";
+            return-type = "json";
+            escape = false;
+            on-click = "${layoutScript} toggle";
+          };
+
+          # AwesomeWM's `mytasklist`. Waybar 0.16's wlr/taskbar cannot filter by
+          # Hyprland workspace (`all-outputs = false` is only per-monitor), so
+          # this is `tasklistScript`: event-driven off Hyprland's socket2, mapped
+          # windows of the focused workspace only, self-bounded width. Click /
+          # scroll cycle the workspace's windows instead of activating by index.
+          "custom/tasklist" = {
+            exec = "${tasklistScript}";
+            return-type = "json";
+            escape = false;
+            tooltip = true;
+            on-click = "hyprctl dispatch 'hl.dsp.window.cycle_next()'";
+            on-click-right = "hyprctl dispatch 'hl.dsp.window.cycle_next({ next = false })'";
+            on-scroll-up = "hyprctl dispatch 'hl.dsp.window.cycle_next()'";
+            on-scroll-down = "hyprctl dispatch 'hl.dsp.window.cycle_next({ next = false })'";
           };
 
           tray = {
@@ -901,10 +1361,12 @@ in
 
         #workspaces {
           margin-left: 4px;
+          min-width: 0;
         }
 
         #workspaces button {
           padding: 0 6px;
+          min-width: 0;
           background-color: #111111;
           color: #aaaaaa;
         }
@@ -928,31 +1390,35 @@ in
           color: #ffffff;
         }
 
-        /* AwesomeWM mytasklist: dark surface, purple active button, dimmed minimized. */
-        #taskbar {
+        /* AwesomeWM mylayoutbox: `[dwindle]` / `[master]`, right of the tags. */
+        #custom-layout {
+          margin-left: 6px;
           padding: 0 6px;
+          min-width: 0;
+          background-color: #111111;
+          color: #aaaaaa;
+        }
+
+        #custom-layout.master {
+          color: #875fff;
+        }
+
+        #custom-layout:hover {
+          background-color: #222222;
+          color: #ffffff;
+        }
+
+        /* AwesomeWM mytasklist: event-driven, focused workspace only. `min-width:
+           0` keeps the module from ever claiming more room than the text it
+           prints (the script bounds that itself), so modules-left/right stay put. */
+        #custom-tasklist {
+          padding: 0 4px;
+          min-width: 0;
           background-color: transparent;
         }
 
-        #taskbar button {
-          padding: 0 6px;
-          background-color: #111111;
-          color: #aaaaaa;
-          border-radius: 0;
-        }
-
-        #taskbar button.active {
-          background-color: #875fff;
-          color: #ffffff;
-        }
-
-        #taskbar button.minimized {
-          color: #555555;
-        }
-
-        #taskbar button:hover {
-          background-color: #222222;
-          color: #ffffff;
+        #custom-tasklist label {
+          min-width: 0;
         }
 
         #tray,
