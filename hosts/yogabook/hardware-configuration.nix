@@ -28,13 +28,17 @@
     "hid_multitouch"
   ];
 
-  # Load only the I2C HID keyboard/touchpad in initrd so the LUKS/FIDO2 prompt
-  # works on the laptop screen via simpledrm/efifb.
+  # Load I2C HID keyboard/touchpad + the full msm/eDP/USB-C HPD bridge stack
+  # in initrd so msm_dpu binds and renders the LUKS/FIDO2 prompt on the OLED
+  # panel before switch-root (af54000/af5c000 DP controllers defer indefinitely
+  # without pmic_glink + pmic_glink_altmode creating aux_hpd_bridge).
   boot.initrd.kernelModules = [
     "i2c_hid_of"
     "hid_multitouch"
     "mdt_loader"
     "phy_qcom_qmp_combo"
+    "pmic_glink"
+    "pmic_glink_altmode"
     "aux_bridge"
     "aux_hpd_bridge"
     "drm_dp_aux_bus"
@@ -44,14 +48,12 @@
   ];
 
   boot.initrd.systemd.contents = {
-    "/var/lib/mahua-firmware/qcom/gen80100_sqe.fw".source = firmware/gen80100_sqe.fw;
-    "/var/lib/mahua-firmware/qcom/gen80100_gmu.bin".source = firmware/gen80100_gmu.bin;
-    "/var/lib/mahua-firmware/qcom/gen80100_aqe.fw".source = firmware/gen80100_aqe.fw;
-    };
+    "/var/lib/mahua-firmware/qcom/gen80100_sqe.fw".source = ./firmware/gen80100_sqe.fw;
+    "/var/lib/mahua-firmware/qcom/gen80100_gmu.bin".source = ./firmware/gen80100_gmu.bin;
+    "/var/lib/mahua-firmware/qcom/gen80100_aqe.fw".source = ./firmware/gen80100_aqe.fw;
+  };
 
-  # `msm` (Adreno) and the OLED panel driver load in stage 2 instead: their
-  # firmware lives in /var/lib/mahua-firmware, which is not mounted inside initrd.
-  boot.kernelModules = [];
+  boot.kernelModules = [ ];
 
   boot.extraModulePackages = [ ];
 

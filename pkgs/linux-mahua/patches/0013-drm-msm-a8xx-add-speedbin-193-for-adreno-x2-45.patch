@@ -1,0 +1,80 @@
+From: Mahua Bring-up <mahua@local>
+Subject: [PATCH] drm/msm/a8xx: Add speed-bin 193 (915 MHz) for Adreno X2-45
+
+On Snapdragon X2 Plus X2P-42-100 (Kalambo), REG_A8XX_CX_MISC_SW_FUSE_FREQ_LIMIT_STATUS
+returns 193 (0xc1), corresponding to the 915 MHz Fmax bin. Register speed-bin 193 as
+BIT(4) (0x10) on chip id 0x44060000 and expand opp-supported-hw from 0xf to 0x1f on
+the 310..915 MHz OPPs so the driver matches cleanly without falling back to speed-bin 0.
+---
+ arch/arm64/boot/dts/qcom/glymur.dtsi        | 12 ++++++------
+ drivers/gpu/drm/msm/adreno/a8xx_catalog.c   |  1 +
+ 2 files changed, 7 insertions(+), 6 deletions(-)
+
+diff --git a/drivers/gpu/drm/msm/adreno/a8xx_catalog.c b/drivers/gpu/drm/msm/adreno/a8xx_catalog.c
+--- a/drivers/gpu/drm/msm/adreno/a8xx_catalog.c
++++ b/drivers/gpu/drm/msm/adreno/a8xx_catalog.c
+@@ -1747,6 +1747,7 @@
+ 			{ 388, 1 },
+ 			{ 357, 2 },
+ 			{ 284, 3 },
++			{ 193, 4 },
+ 		),
+ 	}, {
+ 		.chip_ids = ADRENO_CHIP_IDS(0x44041400),
+diff --git a/arch/arm64/boot/dts/qcom/glymur.dtsi b/arch/arm64/boot/dts/qcom/glymur.dtsi
+--- a/arch/arm64/boot/dts/qcom/glymur.dtsi
++++ b/arch/arm64/boot/dts/qcom/glymur.dtsi
+@@ -4180,7 +4180,7 @@
+ 					opp-hz = /bits/ 64 <310000000>;
+ 					opp-level = <RPMH_REGULATOR_LEVEL_LOW_SVS_D1>;
+ 					opp-peak-kBps = <2136719>;
+-					opp-supported-hw = <0xf>;
++					opp-supported-hw = <0x1f>;
+ 					/* ACD is disabled */
+ 				};
+ 
+@@ -4188,7 +4188,7 @@
+ 					opp-hz = /bits/ 64 <410000000>;
+ 					opp-level = <RPMH_REGULATOR_LEVEL_LOW_SVS>;
+ 					opp-peak-kBps = <6074219>;
+-					opp-supported-hw = <0xf>;
++					opp-supported-hw = <0x1f>;
+ 					/* ACD is disabled */
+ 				};
+ 
+@@ -4196,7 +4196,7 @@
+ 					opp-hz = /bits/ 64 <572000000>;
+ 					opp-level = <RPMH_REGULATOR_LEVEL_SVS>;
+ 					opp-peak-kBps = <12449219>;
+-					opp-supported-hw = <0xf>;
++					opp-supported-hw = <0x1f>;
+ 					qcom,opp-acd-level = <0xe02d5ffd>;
+ 				};
+ 
+@@ -4204,7 +4204,7 @@
+ 					opp-hz = /bits/ 64 <760000000>;
+ 					opp-level = <RPMH_REGULATOR_LEVEL_SVS_L1>;
+ 					opp-peak-kBps = <12449219>;
+-					opp-supported-hw = <0xf>;
++					opp-supported-hw = <0x1f>;
+ 					qcom,opp-acd-level = <0xc0285ffd>;
+ 				};
+ 
+@@ -4212,7 +4212,7 @@
+ 					opp-hz = /bits/ 64 <820000000>;
+ 					opp-level = <RPMH_REGULATOR_LEVEL_SVS_L2>;
+ 					opp-peak-kBps = <16500000>;
+-					opp-supported-hw = <0xf>;
++					opp-supported-hw = <0x1f>;
+ 					qcom,opp-acd-level = <0xa82e5ffd>;
+ 				};
+ 
+@@ -4220,7 +4220,7 @@
+ 					opp-hz = /bits/ 64 <915000000>;
+ 					opp-level = <RPMH_REGULATOR_LEVEL_NOM>;
+ 					opp-peak-kBps = <16500000>;
+-					opp-supported-hw = <0xf>;
++					opp-supported-hw = <0x1f>;
+ 					qcom,opp-acd-level = <0x882d5ffd>;
+ 				};
+ 

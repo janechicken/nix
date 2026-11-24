@@ -50,6 +50,27 @@
     KERNEL=="hidraw*", ATTRS{idVendor}=="2dc8", ATTRS{idProduct}=="6012", MODE="0660", GROUP="input"
     # Bluetooth
     KERNEL=="hidraw*", KERNELS=="*2DC8:6012*", MODE="0660", GROUP="input"
+
+    # ── Suspend (s2idle) wakeup sources (Lenovo 83QR / Kalambo) ────────────
+    # Keep: PMIC pwrkey, gpio-keys (lid open), keyboard 0-003a,
+    #       qcom-battmgr-ac and qcom-battmgr-usb (charger insertion).
+
+    # PCIe root ports (0004:00:00.0 WCN7850 Wi-Fi, 0005:00:00.0 NVMe):
+    # qcom-pcie asserts PERST and powers down the PHY in .suspend_noirq, so
+    # WAKE#/CLKREQ# assertions only cause immediate spurious resumes.
+    ACTION=="add|bind", SUBSYSTEM=="pci", DRIVER=="pcieport", ATTR{power/wakeup}="disabled"
+
+    # USB dwc3-qcom controllers carry wakeup-source in glymur.dtsi and can
+    # trigger spurious resumes during USB-C link renegotiation.
+    ACTION=="add|bind", SUBSYSTEM=="platform", DRIVER=="dwc3-qcom", ATTR{power/wakeup}="disabled"
+
+    # ADSP / CDSP / SOCCP remoteprocs: APSS stays up in s2idle so SMP2P/GLINK
+    # IRQs are delivered without remoteproc wakeup armed.
+    ACTION=="add|bind", SUBSYSTEM=="platform", DRIVER=="qcom_q6v5_pas", ATTR{power/wakeup}="disabled"
+
+    # Touchpad (ELAN06FA on i2c0): prevent palm/bag spurious wakes; lid-open,
+    # power button, and keyboard remain enabled wakeup sources.
+    ACTION=="add|bind", SUBSYSTEM=="i2c", ATTR{modalias}=="of:Ntouchpad*", ATTR{power/wakeup}="disabled"
   '';
 
   # Disabled during bring-up: an unattended rebuild would pull nixpkgs' stock
@@ -113,11 +134,11 @@
 
     kernelPackages = pkgs.linuxPackages_mahua;
 
-    # Hardware-verified Mahua bring-up parameters:
-    # - clk/pd/regulator_ignore_unused: keep UEFI-enabled rails/clocks alive during early boot
+    # Hardware-verified Kalambo / Mahua bring-up parameters:
+    # - clk/pd/regulator_ignore_unused: boot-time only; keep UEFI-enabled rails/clocks alive
     # - nokaslr + efi=novamap: required for Qualcomm EL2 UEFI stub on Lenovo 83QR
     # - arm-smmu.disable_bypass=0: preserve UEFI SMMU bypass mappings until drivers attach
-    # - initcall_blacklist=scmi_driver_init,qcom_cpucp_mbox_init: avoids Mahua SCMI shmem hang
+    # - mem_sleep_default=s2idle: prevents `echo mem` from entering PSCI SYSTEM_SUSPEND (deep)
     # - modprobe.blacklist=qcom_iris,qcom_camss: prevents video/camss coldplug hangs
     # - firmware_class.path: loads Lenovo 83QR extracted firmware before /lib/firmware
     kernelParams = [
@@ -127,10 +148,10 @@
       "nokaslr"
       "efi=novamap"
       "arm-smmu.disable_bypass=0"
+      "mem_sleep_default=s2idle"
       "console=tty0"
       "console=tty1"
       "fbcon=font:TER16x32"
-      "initcall_blacklist=scmi_driver_init,qcom_cpucp_mbox_init"
       "modprobe.blacklist=qcom_iris,qcom_camss"
       "firmware_class.path=/var/lib/mahua-firmware"
     ];
@@ -248,6 +269,28 @@
 
   systemd.sleep.settings.Sleep = {
     SuspendState = "freeze";
+  };
+
+  # power_supply_register_no_ws() emits the udev add uevent before calling
+  # device_init_wakeup(), so disabling batt/wls wakeups via udev is racy.
+  # Keep qcom-battmgr-ac and qcom-battmgr-usb enabled for charger-plug wake.
+  systemd.services.mahua-wakeup-sources = {
+    description = "Disable spurious power_supply wakeup sources on Lenovo 83QR";
+    wantedBy = [ "multi-user.target" ];
+    after = [ "systemd-udev-settle.service" ];
+    wants = [ "systemd-udev-settle.service" ];
+    serviceConfig = {
+      Type = "oneshot";
+      RemainAfterExit = true;
+    };
+    script = ''
+      for ps in qcom-battmgr-bat qcom-battmgr-wls; do
+        f="/sys/class/power_supply/$ps/power/wakeup"
+        if [ -w "$f" ]; then
+          echo disabled > "$f"
+        fi
+      done
+    '';
   };
 
   system.stateVersion = "25.05";

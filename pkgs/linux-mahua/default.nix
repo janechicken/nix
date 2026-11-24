@@ -63,13 +63,25 @@ buildLinux (
         name = "drm-dp-skip-redundant-backlight-mode-write";
         patch = ./patches/0011-drm-dp-skip-redundant-backlight-mode-write.patch;
       }
+      {
+        name = "dts-qcom-add-kalambo-soc";
+        patch = ./patches/0012-arm64-dts-qcom-Add-Kalambo-SoC.patch;
+      }
+      {
+        name = "drm-msm-a8xx-speedbin-193-x2-45";
+        patch = ./patches/0013-drm-msm-a8xx-add-speedbin-193-for-adreno-x2-45.patch;
+      }
+      {
+        name = "phy-qcom-eusb2-repeater-fix-smb-power-leakage";
+        patch = ./patches/0014-phy-qcom-eusb2-repeater-fix-smb-power-leakage.patch;
+      }
     ];
 
     # Allow 7.4-rc3 Kconfig differences against nixpkgs common-config.nix
     ignoreConfigErrors = true;
 
     structuredExtraConfig = with lib.kernel; {
-      # Core Snapdragon X2 Plus (Mahua / Glymur) SoC
+      # Core Snapdragon X2 Plus (Mahua / Kalambo / Glymur) SoC
       ARCH_QCOM = yes;
       CLK_GLYMUR_GCC = yes;
       CLK_GLYMUR_TCSRCC = yes;
@@ -88,6 +100,10 @@ buildLinux (
       RESET_QCOM_PDC = yes;
       QCOM_AOSS_QMP = yes;
       QCOM_CPUCP_MBOX = yes;
+      ARM_SCMI_PROTOCOL = yes;
+      ARM_SCMI_TRANSPORT_MAILBOX = yes;
+      ARM_SCMI_PERF_DOMAIN = yes;
+      ARM_SCMI_CPUFREQ = yes;
       SPMI_MSM_PMIC_ARB = yes;
       MFD_SPMI_PMIC = yes;
       QCOM_GPI_DMA = yes;
