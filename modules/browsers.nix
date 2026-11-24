@@ -8,7 +8,15 @@
 {
   programs.librewolf = {
     enable = true;
-    package = pkgs.librewolf-bin;
+    # `librewolf-bin` is NOT usable right now: its prebuilt tarball URL
+    # (codeberg.org/api/packages/librewolf/generic/...) returns 404 for both
+    # linux-x86_64 and linux-arm64. `pkgs.librewolf` is the from-source build and
+    # is fully substituted from cache.nixos.org on both hosts — verified for
+    # aarch64-linux (yogabook) and x86_64-linux (jane-pc), so nothing compiles
+    # locally. If a nixpkgs bump ever lands before Hydra caches it, `nh home
+    # build` on yogabook would start a multi-hour Firefox build: check the
+    # dry-run first.
+    package = pkgs.librewolf;
     nativeMessagingHosts = [ pkgs.keepassxc ];
     policies = {
       SearchEngines = {
@@ -18,7 +26,7 @@
 
     profiles.jane = {
       search.force = true;
-      extensions.packages = with inputs.firefox-addons.packages.${pkgs.system}; [
+      extensions.packages = with inputs.firefox-addons.packages.${pkgs.stdenv.hostPlatform.system}; [
         keepassxc-browser
         darkreader
         sponsorblock
@@ -65,20 +73,10 @@
     };
   };
 
-  xdg = {
-    enable = true;
-    mimeApps = {
-      enable = true;
-      defaultApplications = {
-        "default-web-browser" = [ "librewolf.desktop" ];
-        "text/html" = [ "librewolf.desktop" ];
-        "x-scheme-handler/http" = [ "librewolf.desktop" ];
-        "x-scheme-handler/https" = [ "librewolf.desktop" ];
-        "x-scheme-handler/about" = [ "librewolf.desktop" ];
-        "x-scheme-handler/unknown" = [ "librewolf.desktop" ];
-      };
-    };
-  };
+  # Default browser is intentionally left non-declarative: no `xdg.mimeApps`
+  # here (`xdg.mimeApps.enable` defaults to false, so no read-only
+  # `mimeapps.list` is generated) — pick it once from the desktop's own chooser,
+  # e.g. `xdg-settings set default-web-browser librewolf.desktop`.
 
   home.packages = with pkgs; [
     brave

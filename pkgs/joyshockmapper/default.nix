@@ -112,6 +112,9 @@ stdenv.mkDerivation {
       JoyShockMapper/src/TriggerEffectGenerator.cpp
     sed -i '2i\#include <chrono>' \
       JoyShockMapper/include/Gamepad.h
+    # JoyShock.cpp uses std::setprecision without including <iomanip>
+    sed -i '1i\#include <iomanip>' \
+      JoyShockMapper/src/JoyShock.cpp
 
     # ---- StatusNotifierItem.cpp: fix use-after-move crash ----
     sed -i 's/  : thread_{ \[this, \&beforeShow\] {/  : thread_{ [this, beforeShow = std::move(beforeShow)] {/' \

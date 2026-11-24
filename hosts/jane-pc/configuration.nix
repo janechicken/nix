@@ -27,10 +27,9 @@
     ../../modules/nix-ld.nix
     ../../modules/ntsync.nix
     ../../modules/virtualisation.nix
-    ../../modules/xdg-portal.nix
+    ../../modules/hyprland.nix
     inputs.sops-nix.nixosModules.sops
     ../../secrets/sops-nix.nix
-    ../../modules/lock.nix
     ../../modules/joyshockmapper.nix
   ];
   services.joyshockmapper.enable = true;
@@ -53,8 +52,10 @@
   boot = {
     initrd = {
       kernelModules = [ "i915" ];
-      systemd.enable = true;
-      luks.devices."cryptroot".crypttabExtraOpts = [ "fido2-device=auto" ];
+      luks.devices."cryptroot".crypttabExtraOpts = [
+        "fido2-device=auto"
+        "token-timeout=2s"
+      ];
     };
     kernelPackages = pkgs.linuxPackages_latest;
   };
@@ -110,27 +111,8 @@
   #   useXkbConfig = true; # use xkb.options in tty.
   # };
 
-  # Enable the X11 windowing system.
-  services.xserver = {
-    enable = true;
-    autorun = false;
-    displayManager.startx = {
-      enable = true;
-    };
-    windowManager.awesome = {
-      enable = true;
-      luaModules = with pkgs.luaPackages; [
-        luarocks
-        luadbi-mysql
-        vicious
-      ];
-    };
-    deviceSection = ''
-      Option "TearFree" "False"
-      Option "VariableRefresh" "True"
-    '';
-    videoDrivers = [ "modesetting" ];
-  };
+  # Hyprland (Wayland) session; modules/hyprland.nix provides the compositor,
+  # xdg-desktop-portal-hyprland, hyprlock PAM/U2F and polkit.
   environment.sessionVariables = {
     LIBVA_DRIVER_NAME = "iHD";
   };
@@ -144,21 +126,8 @@
     ];
     enable32Bit = true;
   };
-  services = {
-    displayManager.defaultSession = "none+awesome";
-    picom = {
-      enable = true;
-      backend = "glx";
-      shadow = true;
-      vSync = true;
-    };
-  };
 
   programs.zsh.enable = true;
-
-  # Configure keymap in X11
-  services.xserver.xkb.layout = "us";
-  # services.xserver.xkb.options = "eurosign:e,caps:escape";
 
   # Enable CUPS to print documents.
   # services.printing.enable = true;
@@ -187,10 +156,6 @@
   # List packages installed in system profile. To search, run:
   # $ nix search wget
   environment.systemPackages = with pkgs; [
-    xorg.xorgserver
-    xorg.xf86inputevdev
-    xorg.xf86inputsynaptics
-    xorg.xf86inputlibinput
     alsa-utils
     dconf
     adwaita-icon-theme

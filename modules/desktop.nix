@@ -7,7 +7,9 @@
 }:
 
 {
-  # this assumes xorg and awesome are both already enabled in configuration.nix, this just copies the xinitrc and awesome config
+  # Shared desktop bits for both hosts (Hyprland/Wayland). The AwesomeWM and
+  # picom configs in dotfiles/ are kept for reference/X11 sessions only; the
+  # live session is configured by modules/hyprland-home.nix.
   imports = [
     ./browsers.nix
     ./terminal.nix
@@ -39,12 +41,21 @@
     pkgs.xbacklight
   ];
 
-  # Flameshot 14 defaults to xdg Screenshot portal; Awesome has none.
-  # Force Qt X11 grab instead (no gnome/xapp portal needed).
+  # Flameshot 15 on Hyprland/Wayland. Verified against the installed 15.0.0
+  # (src/utils/confighandler.cpp): capture goes through the xdg-desktop-portal
+  # `org.freedesktop.portal.Screenshot` API, provided by
+  # xdg-desktop-portal-hyprland (modules/hyprland.nix). Notes:
+  #   - useX11LegacyScreenshot is X11-only (ignored on Wayland) and the old
+  #     `useGrimAdapter` / `disabledGrimWarning` keys no longer exist at all:
+  #     Flameshot 15 has no grim backend (its nixpkgs wrapper still ships grim).
+  #   - captureActiveMonitor must stay false: on Wayland Flameshot refuses it
+  #     ("Capture Active Monitor is not supported on Wayland due to Wayland
+  #     security model") and the capture fails outright on multi-monitor hosts.
+  #     Single-monitor hosts short-circuit before that check, so this is a
+  #     no-op there.
   xdg.configFile."flameshot/flameshot.ini".text = ''
     [General]
-    useX11LegacyScreenshot=true
-    captureActiveMonitor=true
+    captureActiveMonitor=false
     contrastOpacity=188
     drawColor=#ff0000
     saveAfterCopy=true

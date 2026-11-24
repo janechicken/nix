@@ -8,6 +8,7 @@
 {
   imports = [
     ../../modules/desktop.nix
+    ../../modules/hyprland-home.nix
     ../../modules/creative.nix
     ../../modules/git.nix
     ../../modules/spotify.nix
@@ -36,8 +37,6 @@
   nixpkgs.config.permittedInsecurePackages = [
     "python3.13-ecdsa-0.19.2"
     "python3.14-ecdsa-0.19.2"
-    "librewolf-bin-151.0.1-2"
-    "librewolf-bin-unwrapped-151.0.1-2"
   ];
 
   # This value determines the Home Manager release that your configuration is
@@ -48,6 +47,36 @@
   # want to update the value, then make sure to first check the Home Manager
   # release notes.
   home.stateVersion = "25.05"; # Please read the comment before changing.
+
+  # Hyprland: same look & feel as yogabook. Monitors mirror the old .xinitrc
+  # xrandr layout (DP-3 165Hz primary at 0x0, DP-1 to its right), desktop so no
+  # backlight/swipe/battery, and VRR only in fullscreen (2) to match the old
+  # `Option "VariableRefresh" "True"` on the 165Hz panel without stuttering the
+  # 60Hz secondary. No idle lock/DPMS timeouts: jane-pc only locks on suspend.
+  custom.hyprland = {
+    monitors = [
+      {
+        output = "DP-3";
+        mode = "1920x1080@165";
+        position = "0x0";
+        scale = 1;
+      }
+      {
+        output = "DP-1";
+        # Hyprland's mode parser rejects `1920x1080@preferred` (the refresh
+        # part must be a number), and a bare `1920x1080` would pin 60Hz. The
+        # old xrandr line used `--mode 1920x1080` with no rate, i.e. the
+        # monitor's EDID-preferred mode.
+        mode = "preferred";
+        position = "1920x0";
+        scale = 1;
+      }
+    ];
+    isLaptop = false;
+    vrr = 2;
+    idleLockTimeout = null;
+    idleDpmsTimeout = null;
+  };
 
   # The home.packages option allows you to install Nix packages into your
   # environment.
@@ -62,31 +91,8 @@
   ];
 
   # Home Manager is pretty good at managing dotfiles. The primary way to manage
-  # plain files is through 'home.file'.
-  home.file = {
-    ".xinitrc".text = ''
-      #!/bin/bash
-      export XDG_CURRENT_DESKTOP=Awesome
-      export XDG_SESSION_DESKTOP=Awesome
-      export XDG_SESSION_TYPE=x11
-
-      # kill startup apps
-      killall picom 2>/dev/null || true
-      picom &
-
-      xrandr --output DP-3 --primary --mode 1920x1080 --rate 165 --pos 0x0 --output DP-1 --mode 1920x1080 --pos 1920x0
-
-      # Feed X env into systemd --user so portals/dbus activation see it.
-      systemctl --user import-environment DISPLAY XAUTHORITY XDG_CURRENT_DESKTOP XDG_SESSION_DESKTOP XDG_SESSION_TYPE
-      dbus-update-activation-environment --systemd DISPLAY XAUTHORITY XDG_CURRENT_DESKTOP XDG_SESSION_DESKTOP XDG_SESSION_TYPE
-
-      # Pull up graphical-session.target (RefuseManualStart) for gnome portal.
-      trap 'systemctl --user stop awesome-graphical-session.service' EXIT
-      systemctl --user start awesome-graphical-session.service
-
-      exec awesome
-    '';
-  };
+  # plain files is through 'home.file'. (The old X11 `.xinitrc` is gone: the
+  # session is started by Hyprland's wayland-session entry.)
 
   # Home Manager can also manage your environment variables through
   # 'home.sessionVariables'. These will be explicitly sourced when using a

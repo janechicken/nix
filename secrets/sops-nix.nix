@@ -10,9 +10,6 @@ in
   # /etc/ssh/ssh_host_ed25519_key does not exist here and only warned.
   sops.age.sshKeyPaths = [ ];
   sops.defaultSopsFile = ./secrets.yaml;
-  sops.secrets."deepseek_api_key" = {
-    owner = config.users.users.jane.name;
-  };
   sops.secrets."ssh_key" = {
     owner = config.users.users.jane.name;
     path = "${jane.home}/.ssh/id_rsa";
@@ -21,19 +18,13 @@ in
     owner = config.users.users.jane.name;
     path = "${jane.home}/.ssh/id_rsa.pub";
   };
-  sops.secrets."cursor_api_key" = {
-    owner = config.users.users.jane.name;
-  };
-  sops.secrets."cheapcompute_api_key" = {
-    owner = config.users.users.jane.name;
-  };
   sops.secrets."nanogpt_api_key" = {
     owner = config.users.users.jane.name;
   };
   sops.secrets."openrouter_api_key" = {
     owner = config.users.users.jane.name;
   };
-  sops.secrets."merge_api_key" = {
+  sops.secrets."refuseless_api_key" = {
     owner = config.users.users.jane.name;
   };
   # sops.secrets."gpg_key" = { # uncomment when needed
@@ -63,8 +54,6 @@ in
         export "$2=$(cat "/run/secrets/$1")"
       fi
     }
-    _sops_env deepseek_api_key DEEPSEEK_API_KEY
-    _sops_env cursor_api_key CURSOR_API_KEY
     _sops_env cheapcompute_api_key CHEAPCOMPUTE_API_KEY
     _sops_env nanogpt_api_key NANOGPT_API_KEY
     _sops_env openrouter_api_key OPENROUTER_API_KEY

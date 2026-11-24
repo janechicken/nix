@@ -33,8 +33,7 @@
     ../../modules/nix-ld.nix
     ../../modules/networking.nix
     ../../modules/virtualisation.nix
-    ../../modules/xdg-portal.nix
-    ../../modules/lock.nix
+    ../../modules/hyprland.nix
     ../../modules/joyshockmapper.nix
     inputs.sops-nix.nixosModules.sops
     ../../secrets/sops-nix.nix
@@ -82,6 +81,13 @@
   };
   hardware.graphics.enable = true;
 
+  # Mesa 26.3.0 ships no Adreno X2-45 (chip id 0xc144060020) entry, so both
+  # freedreno and turnip refuse to probe the GPU and Hyprland's eglInitialize()
+  # dies with EGL_NOT_INITIALIZED. Scoped here via hardware.graphics.package on
+  # purpose: overriding pkgs.mesa in overlays/ would invalidate
+  # cache.nixos.org for every GUI package in the closure.
+  hardware.graphics.package = pkgs.callPackage ../../pkgs/mesa-mahua { };
+
   # NixOS's built-in `udevd` activation snippet overwrites
   # /sys/module/firmware_class/parameters/path with the Nix store firmware dir.
   # Point /lib/firmware at NixOS's firmware (wireless-regdb + linux-firmware) as
@@ -99,8 +105,10 @@
 
   boot = {
     initrd = {
-      systemd.enable = true;
-      luks.devices."cryptroot".crypttabExtraOpts = [ "fido2-device=auto" ];
+      luks.devices."cryptroot".crypttabExtraOpts = [
+        "fido2-device=auto"
+        "token-timeout=2s"
+      ];
     };
 
     kernelPackages = pkgs.linuxPackages_mahua;
@@ -150,8 +158,7 @@
       # stage the Mahua board DTB onto /boot and emit `devicetree` per entry.
       extraFiles."dtbs/qcom/mahua-lenovo-yoga-slim7-14q8y11.dtb" =
         "${config.hardware.deviceTree.package}/qcom/mahua-lenovo-yoga-slim7-14q8y11.dtb";
-      extraPerEntryConfig =
-        "devicetree @bootRoot@/dtbs/qcom/mahua-lenovo-yoga-slim7-14q8y11.dtb";
+      extraPerEntryConfig = "devicetree @bootRoot@/dtbs/qcom/mahua-lenovo-yoga-slim7-14q8y11.dtb";
       extraEntries = ''
         menuentry "Reboot" {
             reboot
@@ -187,42 +194,19 @@
   time.timeZone = "America/New_York";
   i18n.defaultLocale = "en_US.UTF-8";
 
-  # X11 + Awesome WM matching Windows 125% scaling (120 DPI on 14" 1920x1200 OLED)
-  services.xserver = {
-    enable = true;
-    autorun = false;
-    dpi = 120;
-    videoDrivers = [ "modesetting" ];
-    displayManager.startx = {
-      enable = true;
-    };
-    windowManager.awesome = {
-      enable = true;
-      luaModules = with pkgs.luaPackages; [
-        luarocks
-        luadbi-mysql
-        vicious
-      ];
-    };
-    xkb.layout = "us";
-  };
-
   services = {
-    displayManager.defaultSession = "none+awesome";
-    libinput.enable = true;
     upower.enable = true;
-    picom = {
-      enable = true;
-      backend = "glx";
-      shadow = true;
-      vSync = true;
-    };
     logind = {
       settings.Login = {
+        # Lid close never sleeps: lock + mute + panel DPMS off (the Hyprland
+        # `switch:on:` bind in modules/hyprland-home.nix) and hypridle runs
+        # lock_cmd on logind's Lock signal.
         HandleLidSwitch = "lock";
-        HandleLidSwitchExternalPower = "ignore";
+        HandleLidSwitchExternalPower = "lock";
         HandleLidSwitchDocked = "ignore";
-        HandlePowerKey = "poweroff";
+        # Short press suspends (hypridle's before_sleep_cmd locks first), hold
+        # powers off.
+        HandlePowerKey = "suspend";
         HandlePowerKeyLongPress = "poweroff";
       };
     };
@@ -245,10 +229,6 @@
   };
 
   environment.systemPackages = with pkgs; [
-    xorg.xorgserver
-    xorg.xf86inputevdev
-    xorg.xf86inputsynaptics
-    xorg.xf86inputlibinput
     alsa-utils
     dconf
     adwaita-icon-theme
@@ -257,6 +237,12 @@
     brightnessctl
     openssh
   ];
+
+  environment.sessionVariables.ALSA_CONFIG_UCM2 = "${pkgs.alsa-ucm-conf-mahua}/share/alsa/ucm2";
+  systemd.user.services = {
+    pipewire.environment.ALSA_CONFIG_UCM2 = "${pkgs.alsa-ucm-conf-mahua}/share/alsa/ucm2";
+    wireplumber.environment.ALSA_CONFIG_UCM2 = "${pkgs.alsa-ucm-conf-mahua}/share/alsa/ucm2";
+  };
 
   networking.firewall.enable = false;
 

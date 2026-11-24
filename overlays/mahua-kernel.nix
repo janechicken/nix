@@ -10,7 +10,7 @@ final: prev: {
 
   # Add ALSA UCM2 profile for Lenovo Yoga Slim 7 14Q8Y11 (2x WSA8845 speakers,
   # 2x VA DMICs, 2x DisplayPort audio sinks) matching Lenovo-Yoga-Slim7-14Q8Y11-tplg.bin.
-  alsa-ucm-conf = prev.alsa-ucm-conf.overrideAttrs (old: {
+  alsa-ucm-conf-mahua = prev.alsa-ucm-conf.overrideAttrs (old: {
     postInstall = (old.postInstall or "") + ''
       mkdir -p $out/share/alsa/ucm2/Qualcomm/glymur $out/share/alsa/ucm2/conf.d/glymur
 

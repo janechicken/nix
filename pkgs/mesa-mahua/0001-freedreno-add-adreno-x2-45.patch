@@ -1,0 +1,53 @@
+From: Jane <jane@localhost>
+Subject: [PATCH] freedreno: add Adreno X2-45 (Snapdragon X2 Plus / Mahua)
+
+The Snapdragon X2 Plus (Mahua, e.g. Lenovo Yoga Slim 7 14Q8Y11 / 83QR)
+carries an Adreno X2-45. drm/msm reports chip id 0xc144060020 (fuse id
+0xc144, core/major/minor 44060020) and the kernel a8xx catalog already
+describes it as an A8XX gen2 part with gen80100 firmware, 15.75 MB GMEM
+and max_slices = 3, but only 2 slices / 4 CCUs are populated on this SKU.
+
+Mesa 26.3.0 has no entry for it, so both freedreno and turnip refuse to
+probe the device:
+
+  fd_pipe_new2:49: unsupported GPU id 0x0 / chip id 0xc144060020
+  tu_device.cc:1706: device (chip_id = C144060020, gpu_id = 0) is unsupported
+
+Add the 2-slice A8XX configuration, using the same sub-generation
+templates and GPU properties as the X2-85 entry. The 0xffff in bits
+47..32 is the fd_dev_info fuse-id wildcard, which makes the exact
+chip-id match work for the 0xc144060020 the kernel reports.
+
+Upstream-Status: Pending
+---
+ src/freedreno/common/freedreno_devices.py | 19 +++++++++++++++++++
+ 1 file changed, 19 insertions(+)
+
+--- a/src/freedreno/common/freedreno_devices.py
++++ b/src/freedreno/common/freedreno_devices.py
+@@ -1589,6 +1589,25 @@
+         raw_magic_regs = a8xx_base_raw_magic_regs,
+     ))
+ 
++# 2 slice configuration of Adreno X2-45 (Snapdragon X2 Plus / Mahua)
++add_gpus([
++        GPUId(chip_id=0xffff44060020, name="Adreno (TM) X2-45"),
++    ], A6xxGPUInfo(
++        CHIP.A8XX,
++        [a7xx_base, a7xx_gen3, a8xx_base, a8xx_gen2],
++        num_ccu = 4,
++        num_slices = 2,
++        tile_align_w = 64,
++        tile_align_h = 32,
++        tile_max_w = 16384,
++        tile_max_h = 16384,
++        num_vsc_pipes = 32,
++        cs_shared_mem_size = 32 * 1024,
++        wave_granularity = 2,
++        fibers_per_sp = 64 * 2 * 32,
++        raw_magic_regs = a8xx_base_raw_magic_regs,
++    ))
++
+ add_gpus([
+         GPUId(chip_id=0xffff44070031, name="Adreno (TM) X2-85"),
+         GPUId(chip_id=0xffff44060030, name="Adreno (TM) X2-85"),
