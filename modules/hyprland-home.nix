@@ -5,8 +5,8 @@
 #   - Top Waybar mirroring Awesome's wibar (tags 1-9, layout box, tasklist,
 #     tray, net, bat, mem, clock); the tasklist is a socket2-driven
 #     `custom/tasklist` (focused workspace only, width-bounded) and the layout
-#     box a clickable `custom/layout` (`[dwindle]` / `[master]`)
-#   - AwesomeWM keybinds, dwindle (spiral) <-> master (tile) toggle, sloppy focus
+#     box a clickable `custom/layout` (`[master]` / `[dwindle]`)
+#   - AwesomeWM keybinds, master (tile, default) <-> dwindle (spiral) toggle, sloppy focus
 #   - hyprbars titlebars on floating windows only (AwesomeWM draws them on floats)
 #   - Window minimize/restore via the hidden special:minimized workspace,
 #     keyboard + mouse resizing (resizeactive on tiled and floating windows)
@@ -127,10 +127,168 @@ let
     MIN_TOTAL_CHARS = 18
     MIN_ENTRY_CHARS = 12
     SEPARATOR = " "
+    # Character cells an icon plus its trailing space occupy. JetBrains Mono is
+    # monospaced and every glyph below is single-cell, so that is exactly two
+    # characters of the bar's width budget.
+    ICON_CHARS = 2
 
     ACTIVE_BG = "#875fff"
     ACTIVE_FG = "#ffffff"
     INACTIVE_FG = "#aaaaaa"
+
+    # Nerd Font app icons. Waybar's `custom/*` modules cannot render GTK pixbuf
+    # icons (there is no icon/`format-icons` support in a `custom` module, only
+    # text or Pango markup), and `wlr/taskbar` -- which can render them -- is
+    # driven by `wlr-foreign-toplevel`, which carries no workspace id. It would
+    # therefore show every window on every workspace and could no longer be
+    # width-bounded, pushing the workspaces off the bar. So: Nerd Font glyphs,
+    # drawn by the `font-family: "JetBrainsMono Nerd Font"` the bar already uses.
+    #
+    # Every codepoint below was checked against
+    # JetBrainsMonoNerdFont-Regular.ttf (nerd-fonts 3.5.0, see modules/fonts.nix)
+    # so none of them falls back to a tofu box.
+    #
+    # Matched case-insensitively as a substring of `class` then `initialClass`,
+    # first match wins -- so specific apps come before their category, and
+    # categories come before the generic fallback.
+    ICON_ROBOT = "\U000F06A9"  # md-robot
+    ICON_VSCODE = "\U000F0A1E"  # md-microsoft_visual_studio_code
+    ICON_DISCORD = "\uf1ff"  # fa-discord
+    ICON_SPOTIFY = "\uf1bc"  # fa-spotify
+    ICON_STEAM = "\uf1b6"  # fa-steam
+    ICON_KEY = "\uf084"  # fa-key
+    ICON_NOTE = "\U000F039E"  # md-note_text
+    ICON_GAMEPAD = "\uf11b"  # fa-gamepad
+    ICON_CHESS = "\ued63"  # fa-chess_knight
+    ICON_CUBE = "\uf1b2"  # fa-cube
+    ICON_MUSIC = "\uf001"  # fa-music
+    ICON_VOLUME = "\uf028"  # fa-volume_up
+    ICON_HEADPHONES = "\uf025"  # fa-headphones
+    ICON_CHIP = "\uf2db"  # fa-microchip
+    ICON_GRID = "\uf00a"  # fa-th
+    ICON_BUG = "\uf188"  # fa-bug
+    ICON_PALETTE = "\uefcc"  # fa-palette
+    ICON_VIDEO_CAMERA = "\uf03d"  # fa-video_camera
+    ICON_CAMERA = "\uf030"  # fa-camera
+    ICON_PASTE = "\uf0ea"  # fa-paste
+    ICON_NEOVIM = "\ue83a"  # dev-neovim
+    ICON_EMACS = "\ue7cf"  # dev-emacs
+    ICON_DATABASE = "\uf1c0"  # fa-database
+    ICON_DOCKER = "\uf21f"  # fa-docker
+    ICON_CLOUD = "\uf0c2"  # fa-cloud
+    ICON_ENVELOPE = "\uf0e0"  # fa-envelope
+    ICON_TERMINAL = "\uf120"  # fa-terminal
+    ICON_CODE = "\uf121"  # fa-code
+    ICON_FIREFOX = "\uf269"  # fa-firefox
+    ICON_GLOBE = "\uf0ac"  # fa-globe
+    ICON_COMMENTS = "\uf086"  # fa-comments
+    ICON_FOLDER = "\uf07b"  # fa-folder
+    ICON_FILM = "\uf008"  # fa-film
+    ICON_DOCUMENT = "\U000F0219"  # md-file_document
+    ICON_COG = "\uf013"  # fa-cog
+    ICON_IMAGE = "\uf03e"  # fa-image
+
+    APP_ICONS = (
+        # --- named apps ----------------------------------------------------
+        (("t3code", "t3tools", "t3 code"), ICON_ROBOT),
+        (("antigravity",), ICON_VSCODE),
+        (("vesktop", "discord", "armcord", "webcord"), ICON_DISCORD),
+        (("spotify",), ICON_SPOTIFY),
+        (("steam",), ICON_STEAM),
+        (("keepass", "bitwarden", "1password", "seahorse"), ICON_KEY),
+        (("obsidian", "logseq", "joplin", "notion"), ICON_NOTE),
+        (
+            ("dolphin-emu", "cemu", "pcsx2", "retroarch",
+             "ryujinx", "yuzu", "duckstation"),
+            ICON_GAMEPAD,
+        ),
+        (("en-croissant", "stockfish", "chess"), ICON_CHESS),
+        (("minecraft", "prismlauncher", "multimc"), ICON_CUBE),
+        (("reaper", "ardour", "bitwig", "lmms", "carla"), ICON_MUSIC),
+        (
+            ("pavucontrol", "easyeffects", "qpwgraph",
+             "qjackctl", "helvum"),
+            ICON_VOLUME,
+        ),
+        (("mumble",), ICON_HEADPHONES),
+        (("ida",), ICON_CHIP),
+        (("imhex", "hexyl"), ICON_GRID),
+        (
+            ("ghidra", "radare", "rizin", "cutter",
+             "binwalk", "binaryninja"),
+            ICON_BUG,
+        ),
+        (
+            ("inkscape", "gimp", "krita", "blender",
+             "kdenlive", "shotcut"),
+            ICON_PALETTE,
+        ),
+        (("obs", "wlrobs"), ICON_VIDEO_CAMERA),
+        (("flameshot", "spectacle", "screenshot"), ICON_CAMERA),
+        (("copyq", "clipman", "cliphist"), ICON_PASTE),
+        (("neovide", "neovim", "nvim"), ICON_NEOVIM),
+        (("emacs",), ICON_EMACS),
+        (
+            ("dbeaver", "postgres", "mysql", "sqlite",
+             "redis", "mongo"),
+            ICON_DATABASE,
+        ),
+        (("docker", "podman"), ICON_DOCKER),
+        (("syncthing", "nextcloud"), ICON_CLOUD),
+        (("thunderbird", "evolution"), ICON_ENVELOPE),
+        # --- categories ----------------------------------------------------
+        (
+            ("kitty", "ghostty", "alacritty", "wezterm", "foot",
+             "konsole", "xterm", "urxvt", "rxvt", "terminator",
+             "tilix", "termite", "tabby", "warp", "hyper", "eterm"),
+            ICON_TERMINAL,
+        ),
+        (
+            ("code", "codium", "cursor", "windsurf", "vscode",
+             "sublime", "jetbrains", "idea", "pycharm", "clion",
+             "goland", "webstorm", "rustrover", "phpstorm",
+             "datagrip", "android-studio"),
+            ICON_VSCODE,
+        ),
+        (
+            ("zed", "helix", "lapce", "kate", "gedit",
+             "gnome-text-editor", "mousepad"),
+            ICON_CODE,
+        ),
+        (("firefox", "librewolf", "waterfox", "zen-browser"), ICON_FIREFOX),
+        (
+            ("brave", "chrom", "vivaldi", "edge", "opera",
+             "qutebrowser", "epiphany", "tor browser", "browser"),
+            ICON_GLOBE,
+        ),
+        (
+            ("element", "signal", "telegram", "whatsapp", "slack",
+             "gajim", "hexchat", "fractal", "matrix", "chat",
+             "messenger"),
+            ICON_COMMENTS,
+        ),
+        (
+            ("nemo", "nautilus", "thunar", "pcmanfm", "caja",
+             "ranger", "yazi", "dolphin", "ark", "file-roller",
+             "xarchiver", "gparted", "gnome-disks"),
+            ICON_FOLDER,
+        ),
+        (("mpv", "vlc", "celluloid", "totem", "haruna", "parole"), ICON_FILM),
+        (
+            ("libreoffice", "soffice", "onlyoffice", "zathura",
+             "evince", "okular", "pdf", "calibre"),
+            ICON_DOCUMENT,
+        ),
+        (
+            ("gnome-control-center", "systemsettings", "gnome-tweaks",
+             "lxappearance", "nwg-look", "dconf", "settings"),
+            ICON_COG,
+        ),
+        (("feh", "eog", "gwenview", "imv", "viewer", "image"), ICON_IMAGE),
+    )
+
+    # Generic "application window" glyph for anything not listed above.
+    FALLBACK_ICON = "\uf2d0"  # fa-window_maximize
 
     RENDER_EVENTS = frozenset(
         (
@@ -253,18 +411,42 @@ let
         return max(MIN_TOTAL_CHARS, avail // CHAR_PX)
 
 
+    def icon_for(client):
+        """Nerd Font glyph for a client, matched on `class` then `initialClass`."""
+        names = (
+            (client.get("class") or "").lower(),
+            (client.get("initialClass") or "").lower(),
+            (client.get("initial_class") or "").lower(),
+        )
+        for patterns, icon in APP_ICONS:
+            for name in names:
+                if not name:
+                    continue
+                for pattern in patterns:
+                    if pattern in name:
+                        return icon
+        return FALLBACK_ICON
+
+
     def fit_titles(titles, budget):
-        """How many entries fit, and how many characters each one gets."""
+        """How many entries fit, and how many title characters each one gets.
+
+        Every entry also carries its icon plus a space (`ICON_CHARS`) and the
+        two padding spaces of its Pango span, so that overhead is charged
+        against the budget before the title length is chosen -- the bar's left
+        and right groups can still never be pushed off screen.
+        """
         total = len(titles)
         count = total
+        overhead = 2 + ICON_CHARS
         while count > 1:
             suffix = len(" +%d" % (total - count)) if count < total else 0
-            per = (budget - suffix - (count - 1)) // count - 2
+            per = (budget - suffix - (count - 1)) // count - overhead
             if per >= MIN_ENTRY_CHARS:
                 return count, per
             count -= 1
         suffix = len(" +%d" % (total - 1)) if total > 1 else 0
-        return 1, max(1, budget - suffix - 2)
+        return 1, max(1, budget - suffix - overhead)
 
 
     def render(sock_path, order):
@@ -314,7 +496,10 @@ let
         shown.sort()
 
         parts = [
-            span(truncate(titles[i], per), addresses[i] == active_address)
+            span(
+                icon_for(windows[i]) + " " + truncate(titles[i], per),
+                addresses[i] == active_address,
+            )
             for i in shown
         ]
         text = SEPARATOR.join(parts)
@@ -399,13 +584,13 @@ let
             sys.exit(0)
   '';
 
-  # Waybar layout indicator: `[dwindle]` / `[master]` next to the workspaces,
+  # Waybar layout indicator: `[master]` / `[dwindle]` next to the workspaces,
   # `toggle` flips the layout and re-runs every `signal = 8` Waybar module.
   layoutScript = pkgs.writers.writePython3 "hypr-layout" { } ''
     """Waybar layout indicator for Hyprland 0.57 (Lua config).
 
     `hypr-layout` prints the active workspace's tiling layout as Waybar JSON
-    (`[dwindle]` / `[master]`); `hypr-layout toggle` flips dwindle <-> master and
+    (`[master]` / `[dwindle]`); `hypr-layout toggle` flips master <-> dwindle and
     re-runs every `signal = 8` Waybar module (SIGRTMIN+8) so the label updates
     instantly. Also invoked by the SUPER+Space bind in hyprland.lua.
     """
@@ -464,9 +649,9 @@ let
             pass
         try:
             option = json.loads(request("j/getoption general:layout"))
-            return option.get("str") or "dwindle"
+            return option.get("str") or "master"
         except Exception:  # noqa: BLE001
-            return "dwindle"
+            return "master"
 
 
     def set_layout(layout):
@@ -601,7 +786,10 @@ let
         resize_on_border = true,
         extend_border_grab_area = 15,
         allow_tearing = false,
-        layout = "dwindle",
+        -- Default layout: master (AwesomeWM `tile`). SUPER+Space / the Waybar
+        -- layout box flip to dwindle, and the `dwindle` block below still
+        -- applies while dwindle is active.
+        layout = "master",
       },
 
       decoration = {
@@ -656,6 +844,10 @@ let
           natural_scroll = true,
           tap_to_click = true,
           disable_while_typing = true,
+          -- Hyprland's default (1.0) scrolls far too fast on the ELAN06FA
+          -- precision touchpad. 0.4 keeps ~2.5x more scroll distance per swipe
+          -- without touching `natural_scroll` or the scroll method.
+          scroll_factor = 0.4,
         },
       },
     })
@@ -697,6 +889,110 @@ let
       end
       hl.dispatch(hl.dsp.focus({ workspace = ((id - 1 + delta) % WORKSPACE_COUNT) + 1 }))
     end
+
+    ------------------------------
+    ---- FLOATING WINDOW LAYOUT ----
+    ------------------------------
+    -- Hyprland only *translates* an oversized floating window back on-screen
+    -- (`misc:new_float_force_onscreen`), it never shrinks it, and its `center`
+    -- dispatcher centres on the monitor's logical box *without* the Waybar
+    -- reserve. A big window toggled to floating therefore kept its tiled size
+    -- (e.g. 1510x910 on a 1536x936 work area) and its titlebar ended up behind
+    -- the bar. Cap floating windows at 80% of the usable work area and centre
+    -- them inside it, where "usable" is the monitor's logical size (pixels /
+    -- `scale`) minus `monitor.reserved` (Waybar's top bar).
+    -- Windows are never *enlarged*: small dialogs/calculators/PiP keep their own
+    -- size, and they are only re-positioned when they actually reach into the
+    -- reserved strip or off the work area.
+    local FLOAT_MAX_FRACTION = 0.8
+
+    local function work_area(mon)
+      if not mon then
+        return nil
+      end
+      local scale = mon.scale or 1.0
+      if scale <= 0 then
+        scale = 1.0
+      end
+      local res = mon.reserved or {}
+      local left, top = res.left or 0, res.top or 0
+      local right, bottom = res.right or 0, res.bottom or 0
+      local w = mon.width / scale - left - right
+      local h = mon.height / scale - top - bottom
+      if w <= 0 or h <= 0 then
+        return nil
+      end
+      return { x = mon.x + left, y = mon.y + top, w = w, h = h }
+    end
+
+    -- Fit/centre a floating window inside the work area. `center` forces the
+    -- re-centre (used when a window *becomes* floating); otherwise the window is
+    -- only moved when it would sit under the bar or outside the work area.
+    local function fit_floating(win, center)
+      if not win or not win.floating then
+        return
+      end
+      -- `win.fullscreen` is an integer mode (0 = none, and 0 is truthy in Lua).
+      local fs = win.fullscreen
+      if fs and fs ~= 0 then
+        return
+      end
+
+      local area = work_area(win.monitor or hl.get_active_monitor())
+      if not area then
+        return
+      end
+
+      local maxw = math.floor(area.w * FLOAT_MAX_FRACTION)
+      local maxh = math.floor(area.h * FLOAT_MAX_FRACTION)
+
+      local size, pos = win.size, win.at
+      local w, h = math.floor(size.x), math.floor(size.y)
+      local x, y = math.floor(pos.x), math.floor(pos.y)
+      -- Never upscale: only clamp windows that are bigger than the cap.
+      local neww, newh = math.min(w, maxw), math.min(h, maxh)
+
+      local newx, newy = x, y
+      local outside = x < area.x or y < area.y or (x + neww) > (area.x + area.w) or (y + newh) > (area.y + area.h)
+      if center or outside then
+        newx = math.floor(area.x + (area.w - neww) / 2)
+        newy = math.floor(area.y + (area.h - newh) / 2)
+      end
+
+      if neww == w and newh == h and newx == x and newy == y then
+        return
+      end
+
+      if neww ~= w or newh ~= h then
+        hl.dispatch(hl.dsp.window.resize({ window = win, x = neww, y = newh, relative = false }))
+      end
+      if newx ~= x or newy ~= y then
+        hl.dispatch(hl.dsp.window.move({ window = win, x = newx, y = newy, relative = false }))
+      end
+    end
+
+    -- Newly opened floating windows (window rules with `float = true`, dialogs,
+    -- PiP). Small windows already fit, so they are left untouched; empty-class
+    -- XWayland windows are drag proxies/menus and are skipped entirely.
+    hl.on("window.open", function(win)
+      if not win or win.pinned then
+        return
+      end
+      if win.xwayland and (win.class or "") == "" then
+        return
+      end
+      fit_floating(win, false)
+    end)
+
+    -- Windows that become floating later: SUPER+CTRL+Space, Flameshot pins,
+    -- `setprop floating`, plugin/mouse rules. Pinned windows (Flameshot's
+    -- screenshots) place themselves and are left alone.
+    hl.on("window.update_state", function(win, changes)
+      if not win or not changes.float or win.pinned then
+        return
+      end
+      fit_floating(win, true)
+    end)
 
     ---------------------
     ---- KEYBINDINGS ----
@@ -757,7 +1053,7 @@ let
       hl.dispatch(hl.dsp.window.resize({ x = dx, y = dy, relative = true }))
     end
 
-    -- Layout manipulation (dwindle <-> master, split ratio / mfact).
+    -- Layout manipulation (master <-> dwindle, split ratio / mfact).
     -- `mfact` / `splitratio` are layout-only and take *relative* deltas, so
     -- floating windows fall back to a plain resize instead of doing nothing.
     -- The layout actually in effect is the workspace's `tiled_layout`; the
@@ -772,7 +1068,7 @@ let
           return layout
         end
       end
-      return hl.get_config("general.layout") or "dwindle"
+      return hl.get_config("general.layout") or "master"
     end
 
     local function adjust_split(delta)
@@ -804,7 +1100,7 @@ let
     hl.bind(mainMod .. " + ALT + J", function() resize_active(0, resizeStep) end, { repeating = true, description = "resize: grow height" })
     hl.bind(mainMod .. " + ALT + Down", function() resize_active(0, resizeStep) end, { repeating = true, description = "resize: grow height" })
 
-    -- AwesomeWM's `Mod4 + space`: flip dwindle <-> master and poke Waybar's
+    -- AwesomeWM's `Mod4 + space`: flip master <-> dwindle and poke Waybar's
     -- `custom/layout` indicator (`signal = 8` = SIGRTMIN+8) so it re-reads the
     -- layout immediately instead of showing a stale label.
     hl.bind(mainMod .. " + space", function()
@@ -818,10 +1114,7 @@ let
     hl.bind(mainMod .. " + M", hl.dsp.window.fullscreen({ mode = "maximized" }), { description = "toggle maximize" })
     hl.bind(mainMod .. " + CONTROL + space", function()
       hl.dispatch(hl.dsp.window.float({ action = "toggle" }))
-      local win = hl.get_active_window()
-      if win and win.floating then
-        hl.dispatch(hl.dsp.window.center())
-      end
+      fit_floating(hl.get_active_window(), true)
     end, { description = "toggle floating (centered)" })
     -- `swapwithmaster` is a master-only layoutmsg: on dwindle Hyprland answers
     -- "Unknown dwindle layoutmsg" and nothing happens. dwindle's equivalent is
@@ -1271,7 +1564,7 @@ in
           };
 
           # AwesomeWM's `s.mylayoutbox`, right next to the taglist: shows the
-          # active workspace's tiling layout and toggles dwindle <-> master on
+          # active workspace's tiling layout and toggles master <-> dwindle on
           # click (SUPER+Space does the same and pokes `signal = 8` too).
           "custom/layout" = {
             exec = "${layoutScript}";
@@ -1390,7 +1683,7 @@ in
           color: #ffffff;
         }
 
-        /* AwesomeWM mylayoutbox: `[dwindle]` / `[master]`, right of the tags. */
+        /* AwesomeWM mylayoutbox: `[master]` / `[dwindle]`, right of the tags. */
         #custom-layout {
           margin-left: 6px;
           padding: 0 6px;
