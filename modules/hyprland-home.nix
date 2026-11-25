@@ -1646,7 +1646,7 @@ let
 
     -- Waybar's TUI launchers (`kitty --class waybar-tui`, see the network,
     -- bluetooth and volume modules): one centred floating terminal, large
-    -- enough for nmtui / bluetui / wiremix and small enough for the 1536x960
+    -- enough for nmtui / bluetui and small enough for the 1536x960
     -- logical panel (1920x1200 @ 1.25) as well as any 1080p external.
     hl.window_rule({
       name = "waybar-tui",
@@ -1863,9 +1863,8 @@ in
         # xdg-desktop-portal) but is kept for ad-hoc screencopy/scripting.
         grim
         libnotify
-        # Waybar TUI launchers: click on volume / bluetooth opens these in a
-        # floating `kitty --class waybar-tui` (window rule below).
-        wiremix
+        # Waybar TUI launcher: click on bluetooth opens this in a
+        # floating `kitty --class waybar-tui` (window rule above).
         bluetui
       ]
       ++ lib.optional cfg.isLaptop brightnessctl;
@@ -2034,7 +2033,7 @@ in
             format-bluetooth-muted = "[󰂲 MUTE]";
             tooltip-format = "{node_name} — {volume}%";
             scroll-step = 5;
-            on-click = "${pkgs.kitty}/bin/kitty --class waybar-tui --title Audio -e ${pkgs.wiremix}/bin/wiremix";
+            on-click = "${pkgs.pavucontrol}/bin/pavucontrol";
             on-click-right = "${pkgs.wireplumber}/bin/wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle";
           };
 
@@ -2419,7 +2418,7 @@ in
               }
               {
                 label = "󰕾"; # md-volume_high
-                command = "${pkgs.kitty}/bin/kitty --class waybar-tui --title Audio -e ${pkgs.wiremix}/bin/wiremix";
+                command = "${pkgs.pavucontrol}/bin/pavucontrol";
               }
             ];
           };
