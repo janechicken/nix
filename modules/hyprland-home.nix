@@ -1523,14 +1523,6 @@ let
       restore_window(pop_minimized(ws_id), ws_id)
     end
 
-    -- hyprbars buttons run a shell command, so the titlebar minimize button
-    -- carries its own self-contained copy of `minimize_active`.
-    local HYPRBARS_MINIMIZE = "hyprctl dispatch 'function() local w = hl.get_active_window() if not w then return end "
-      .. "local ws = hl.get_active_workspace() if ws.special then ws = hl.get_last_workspace() end if not ws then return end "
-      .. "hl.dispatch(hl.dsp.window.clear_tags({ window = w })) "
-      .. "hl.dispatch(hl.dsp.window.tag({ tag = \"minimized-ws-\" .. tostring(ws.id), window = w })) "
-      .. "hl.dispatch(hl.dsp.window.move({ workspace = \"special:minimized\", follow = false, window = w })) end'"
-
     hl.bind(mainMod .. " + N", minimize_active, { description = "minimize window" })
     hl.bind(mainMod .. " + CONTROL + N", restore_minimized, { description = "restore minimized window" })
     hl.bind(
@@ -1678,47 +1670,14 @@ let
             bar_text_font = "JetBrainsMono Nerd Font",
             bar_text_size = 11,
             bar_text_weight = "bold",
-            bar_text_align = "left",
-            bar_buttons_alignment = "right",
+            bar_text_align = "center",
             bar_padding = 8,
-            bar_button_padding = 6,
             bar_part_of_window = true,
             bar_blur = false,
-            -- 0 (fully transparent) disables hyprbars' inactive-button recolouring,
-            -- so the buttons keep their own (transparent) background and only the
-            -- glyph is drawn on both the focused and the unfocused bar.
-            inactive_button_color = "rgba(00000000)",
             on_double_click = "hyprctl dispatch 'hl.dsp.window.fullscreen({ mode = \"maximized\" })'",
           },
         },
       })
-
-      -- Buttons are drawn right to left, so the first entry is the rightmost one.
-      -- `size` is the button box (the glyph is drawn at ~0.62 * size), and a
-      -- transparent background keeps only the glyph visible.
-      if hl.plugin.hyprbars and hl.plugin.hyprbars.add_button then
-        hl.plugin.hyprbars.add_button({
-          bg_color = "rgba(00000000)",
-          fg_color = "rgb(ffffff)",
-          size = 18,
-          icon = "×",
-          action = "hyprctl dispatch 'hl.dsp.window.close()'",
-        })
-        hl.plugin.hyprbars.add_button({
-          bg_color = "rgba(00000000)",
-          fg_color = "rgb(ffffff)",
-          size = 18,
-          icon = "□",
-          action = "hyprctl dispatch 'hl.dsp.window.fullscreen({ mode = \"maximized\" })'",
-        })
-        hl.plugin.hyprbars.add_button({
-          bg_color = "rgba(00000000)",
-          fg_color = "rgb(ffffff)",
-          size = 18,
-          icon = "—",
-          action = HYPRBARS_MINIMIZE,
-        })
-      end
 
       -- AwesomeWM draws titlebars on floating clients only: hyprbars decorates
       -- every window, so tiled clients, Flameshot's capture overlay / pinned
