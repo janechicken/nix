@@ -325,16 +325,18 @@ let
   # the leading glyph is the Material Design battery / charging-battery ramp,
   # elided here for readability:
   #
-  #   [ 67%]     discharging: Nerd Font battery ramp + level
-  #   [ 67% 3h5m] discharging with a runtime estimate appended (hours+minutes)
-  #   [PD 67%]   USB-PD, >= 5.5 V or >= 15 W            (class: fast-charging)
-  #   [PPS 67%]  USB-PD PPS                             (class: fast-charging)
-  #   [PD5 67%]  USB-PD negotiated at 5 V (slow charger)
-  #   [QC 67%]   Quick Charge / vendor fast charge, non-PD
-  #   [AC 67%]   mains / DCP / CDP wall charger
-  #   [USB 67%]  SDP or plain 5 V USB port (slow)
-  #   [WLS 67%]  wireless charging
+  #   [ 59% 16.5W 2h30m] discharging: ramp + level + live draw + runtime left
+  #   [ 59% 16.5W]       ... runtime unknown, or draw below 0.05 W (no `0.0W`)
+  #   [PD 59% +18.2W 1h12m] USB-PD, >= 5.5 V or >= 15 W  (class: fast-charging)
+  #   [PPS 59% +30.1W 42m]  USB-PD PPS                   (class: fast-charging)
+  #   [PD5 59% +7.5W]   USB-PD negotiated at 5 V (slow charger)
+  #   [QC 59% +15.0W]   Quick Charge / vendor fast charge, non-PD
+  #   [AC 59% +45.0W]   mains / DCP / CDP wall charger
+  #   [USB 59% +2.5W]   SDP or plain 5 V USB port (slow)
+  #   [WLS 59% +5.0W]   wireless charging
   #   [ PD 100%] plugged in, full   /  [ 80%] plugged in, not charging
+  #   (watts are the battery's own draw; the time-to-full part only appears
+  #   while charging and when the estimate is plausible)
   #
   # Tooltip: status, protocol (incl. PD revision + PPS capability), charger V/A
   # and negotiated watts, battery power, time to full/empty, health, cycles,
@@ -350,18 +352,26 @@ let
     `text`, which Waybar 0.16 hides (`hide-empty-text` / empty formatted text).
 
     Bar text (`[...]` matches the rest of the bar):
-        [ 67%]        discharging: Nerd Font battery ramp glyph + capacity
-        [ 67% 3h5m]   ... plus the remaining runtime, when the battery reports
-                      both an energy level and a power draw (`42m` below 1 h)
-        [PD 67%]      USB-PD charging, >= 5.5 V or >= 15 W (fast)
-        [PPS 67%]     USB-PD PPS charging (fast)
-        [PD5 67%]     USB-PD at 5 V (slow charger)
-        [QC 67%]      Quick Charge / vendor fast charge (non-PD)
-        [AC 67%]      mains / DCP / CDP wall charger
-        [USB 67%]     SDP / plain 5 V USB port (slow)
-        [WLS 67%]     wireless charging
-        [ PD 100%]    plugged in, full (tag = negotiated protocol)
-        [ 80%]        plugged in, not charging (charge threshold)
+        [ 59% 16.5W 2h30m]  discharging: Nerd Font battery ramp glyph,
+                      capacity, live draw in watts and the remaining runtime
+                      (`42m` below 1 h). Each part is dropped when unknown, and
+                      a draw under 0.05 W is not shown (no bogus `0.0W`).
+        [PD 59% +18.2W 1h12m]  USB-PD charging, >= 5.5 V or >= 15 W (fast):
+                      charging ramp glyph, protocol tag, capacity, signed draw
+                      and time to full
+        [PPS 59% +30.1W 42m]   USB-PD PPS charging (fast)
+        [PD5 59% +7.5W]       USB-PD at 5 V (slow charger)
+        [QC 59% +15.0W]       Quick Charge / vendor fast charge (non-PD)
+        [AC 59% +45.0W]       mains / DCP / CDP wall charger
+        [USB 59% +2.5W]       SDP / plain 5 V USB port (slow)
+        [WLS 59% +5.0W]       wireless charging
+        [ PD 100%]            plugged in, full (tag = negotiated protocol)
+        [ 80%]                plugged in, not charging (charge threshold)
+
+    Watts come from the battery's own `power_now` (microwatts), falling back to
+    `current_now` * `voltage_now` (microamps * microvolts / 1e12) when the driver
+    reports no power; the absolute value is used because several drivers report
+    a negative current while discharging.
 
     `BATTERY_SYSFS_ROOT` (default `/sys/class`) points discovery at another tree;
     that is how the mock-sysfs tests exercise every branch.
@@ -603,6 +613,20 @@ let
         return first_positive(supply, ("power_now",))
 
 
+    def battery_power_uw(battery):
+        """Battery draw in microwatts (signed), `power_now` or I*V fallback."""
+        if battery["power_now"] is not None:
+            return battery["power_now"]
+        current = battery["current_now"]
+        voltage = first_positive(
+            battery, ("voltage_now", "voltage_min", "voltage_max_design")
+        )
+        if current is not None and voltage:
+            # uA * uV = pW, so / 1e6 lands on microwatts.
+            return current * voltage / 1e6
+        return None
+
+
     def capacity_of(battery):
         if battery["capacity"] is not None:
             return max(0, min(100, battery["capacity"]))
@@ -658,12 +682,23 @@ let
 
 
     def fmt_power(microwatts, charging):
+        """Tooltip watts: `-16.5 W` / `+18.2 W`; None when 0 or unavailable."""
         if microwatts is None:
             return None
         watts = abs(microwatts) / 1e6
         if watts < 0.05:
-            return "0.0 W"
+            return None
         return "%s%.1f W" % ("+" if charging else "-", watts)
+
+
+    def fmt_watts(microwatts, charging):
+        """Compact bar watts: `6.4W`, `+18.2W`; None when 0 or unavailable."""
+        if microwatts is None:
+            return None
+        watts = abs(microwatts) / 1e6
+        if watts < 0.05:
+            return None
+        return "%s%.1fW" % ("+" if charging else "", watts)
 
 
     def fmt_duration(seconds):
@@ -739,7 +774,7 @@ let
         if charger_power is None and voltage and current:
             charger_power = voltage * current
 
-        battery_power = battery["power_now"]
+        battery_power = battery_power_uw(battery)
         now, full, unit, now_wh, full_wh = energy_state(battery)
         rate = abs(battery_power) / 1e6 if battery_power else 0.0
         # Remaining runtime on battery, appended to the bar text as `3h5m`.
@@ -775,6 +810,19 @@ let
         else:
             percent = "%d%%" % capacity
 
+        # Live draw in the bar, but only while the pack is actually moving
+        # charge: `full` / `not charging` would only ever print a bogus 0.0 W.
+        watts = ""
+        if charging or not plugged:
+            watts = fmt_watts(battery_power, charging) or ""
+
+        # Time to full while charging, same compact `3h5m` shape as the ETA.
+        fill = ""
+        if charging and rate > 0.5 and now_wh is not None and full_wh is not None:
+            hours = (full_wh - now_wh) / rate
+            if 0 < hours < 100:
+                fill = fmt_eta(hours * 3600)
+
         if charging:
             head = charge_glyph(capacity) + tag
         elif plugged:
@@ -782,7 +830,7 @@ let
         else:
             head = discharge_glyph(capacity)
         text = "[%s]" % " ".join(
-            part for part in (head, percent, eta) if part
+            part for part in (head, percent, watts, eta, fill) if part
         )
 
         classes = []
@@ -850,10 +898,10 @@ let
                 charger = "%s V (current not reported)" % fmt_float(voltage / 1e6)
             lines.append("Charger: %s" % charger)
 
+        power = fmt_power(battery_power, charging)
+        if power:
+            lines.append("Battery power: %s" % power)
         if now is not None:
-            power = fmt_power(battery_power, charging)
-            if power:
-                lines.append("Battery power: %s" % power)
             if rate > 0.5 and now_wh is not None and full_wh is not None:
                 hours = None
                 if charging:
