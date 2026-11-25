@@ -21,7 +21,7 @@
   # GPU-accelerated Wayland lock screen + systemd user hypridle service.
   # Add FIDO2/U2F PAM support matching modules/fido.nix.
   programs.hyprlock.enable = true;
-  security.pam.services.hyprlock.u2fAuth = true;
+  security.pam.services.hyprlock.u2f.enable = true;
 
   # Polkit for GUI privilege elevation (paired with hyprpolkitagent in HM).
   security.polkit.enable = true;

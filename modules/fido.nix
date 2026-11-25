@@ -28,7 +28,14 @@
   };
 
   security.pam.services = {
-    login.u2fAuth = true;
-    sudo.u2fAuth = true;
+    # TTY `login` stays password-only: pam_u2f is `sufficient`, so a successful
+    # touch returns success right there and pam_unix never runs - PAM_AUTHTOK
+    # stays unset, and pam_gnome_keyring (optional, part of the `unix-early`
+    # block that nixpkgs emits when enableGnomeKeyring is set) then has no
+    # password to unlock the login keyring with. The YubiKey still guards
+    # `sudo` (below), `hyprlock` (modules/hyprland.nix) and LUKS/FIDO2
+    # (boot.initrd.luks.devices in the host config).
+    login.u2f.enable = false;
+    sudo.u2f.enable = true;
   };
 }
