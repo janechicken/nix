@@ -381,23 +381,41 @@
     openssh
   ];
 
-  # Keep the ADSP `q6apm` playback graph alive across pauses. WirePlumber's
-  # default 5 s ALSA idle suspend tears the graph down and rebuilds it on every
-  # pause/play; `q6apm_dai_prepare()` / `q6apm_graph_close()` ignore APM errors,
-  # so a teardown that races a still-open port desyncs host and DSP and wedges
-  # audio for the rest of the boot (`q6apm-dai ... -16` then a permanent
-  # `qcom-apm ... CMD timeout` + `-110` loop). Disabling idle suspend removes
-  # that churn (and costs a little idle power on this board only).
+  # Keep the ADSP `q6apm` graphs alive across pauses, on playback *and* capture.
+  # WirePlumber's default 5 s ALSA idle suspend tears a graph down and rebuilds
+  # it on every pause/play; `q6apm_dai_prepare()` / `q6apm_graph_close()` ignore
+  # APM errors, so a teardown that races a still-open port desyncs host and DSP
+  # and wedges audio for the rest of the boot (`q6apm-dai ... -16` then a
+  # permanent `qcom-apm ... CMD timeout` + `-110` loop). Both `hw:0,0`
+  # (`alsa_output.*`) and `hw:0,1` (`alsa_input.*`) hang off the same card, so
+  # both directions must stay out of idle suspend (costs a little idle power on
+  # this board only).
+  #
+  # `session.dont-restore-off-profile` is a *device* property read by
+  # `scripts/device/state-profile.lua` in the `find-stored-profile` hook (not a
+  # `wireplumber.settings` key): if the persisted `default-profile` state is an
+  # `off` profile, WirePlumber keeps the card off on every boot instead of
+  # falling back to the default profile.
   services.pipewire.wireplumber.extraConfig."51-mahua-no-alsa-suspend" = {
     "monitor.alsa.rules" = [
       {
         matches = [
-          { "node.name" = "~alsa_output.*"; }
+          { "node.name" = "~alsa_(output|input).*"; }
         ];
         actions = {
           update-props = {
             "node.pause-on-idle" = false;
             "session.suspend-timeout-seconds" = 0;
+          };
+        };
+      }
+      {
+        matches = [
+          { "device.name" = "~alsa_card.*"; }
+        ];
+        actions = {
+          update-props = {
+            "session.dont-restore-off-profile" = true;
           };
         };
       }
