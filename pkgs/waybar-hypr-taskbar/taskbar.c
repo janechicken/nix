@@ -28,9 +28,12 @@
  *   with the workspace they were minimized from (see the SUPER+N bind in
  *   modules/hyprland-home.nix). Windows minimized from another workspace are
  *   never listed.
- * - Enforces a hard width budget derived from the focused monitor's logical
- *   width so modules-left (workspaces + layout) and modules-right (tray/net/
- *   bat/mem/clock) can never be pushed off-screen.
+ * - Lays out across the *whole* span GTK allocates to the module: Waybar gives
+ *   `cffi/taskbar` every pixel between modules-left (workspaces + layout) and
+ *   modules-right (tray/net/bat/mem/clock) via `expand = true`, and the bar
+ *   splits that span into equal, homogeneous slots (overflow collapses into a
+ *   trailing `+N` chip). The focused monitor's logical width is only a fallback
+ *   for the first frame, before the module has been allocated.
  * - Left-click focuses a visible window and restores + focuses a minimized
  *   one; middle-click minimizes a visible one; scroll cycles windows.
  * -------------------------------------------------------------------------- */
@@ -38,9 +41,9 @@
 static const int LEFT_RESERVE_PX = 340;
 static const int RIGHT_RESERVE_PX = 560;
 static const int MIN_AVAIL_PX = 180;
-static const int MIN_SLOT_PX = 110;
-static const int MAX_SLOT_PX = 250;
-static const int OVERFLOW_PX = 42;
+static const int MIN_SLOT_PX = 52;
+/* Horizontal chrome (CSS padding of `#hypr-taskbar`) that eats into the span. */
+static const int TASKBAR_CHROME_PX = 8;
 static const int DEFAULT_ICON_SIZE = 18;
 
 /* Minimized windows are parked here by modules/hyprland-home.nix. */
@@ -64,8 +67,14 @@ typedef struct {
    * buttons *and* over the gaps between them) before Waybar's own root event
    * box, whose `AModule::handleScroll` is connected earlier and consumes it. */
   GtkWidget *scroll_box;
+  /* Waybar's container for this module: the widget whose allocation is the
+   * full span we get to fill. */
+  GtkWidget *root;
   GtkBox *box;
   int icon_size;
+
+  /* Last full-span width reported by `size-allocate` (0 = not yet known). */
+  int span_px;
 
   /* Workspace of the last render; click handlers restore/minimize into it. */
   int active_ws_id;
@@ -87,7 +96,10 @@ typedef struct {
   GList *desktop_apps;    /* GList of GAppInfo* */
   gulong theme_changed_id;
   gulong scroll_id;
+  gulong root_alloc_id;
 } TaskbarMod;
+
+static void schedule_render(TaskbarMod *mod);
 
 static void client_info_free(gpointer data) {
   ClientInfo *c = (ClientInfo *)data;
@@ -676,6 +688,27 @@ static void clear_container(GtkContainer *container) {
   g_list_free(children);
 }
 
+/* Width GTK actually gave this module, minus the CSS chrome that `#hypr-taskbar`
+ * adds. -1 while the bar has not allocated us yet. */
+static int root_span_px(TaskbarMod *mod) {
+  if (!mod || !mod->root) return -1;
+  int w = gtk_widget_get_allocated_width(mod->root);
+  return w > 1 ? w - TASKBAR_CHROME_PX : -1;
+}
+
+/* Re-render whenever the bar grows/shrinks (monitor switch, tray items coming
+ * and going, font changes), so the slot count follows the real span instead of
+ * a stale estimate. Renders that do not change the span are ignored. */
+static void on_root_size_allocate(GtkWidget *widget, GtkAllocation *allocation,
+                                  gpointer data) {
+  (void)widget;
+  TaskbarMod *mod = (TaskbarMod *)data;
+  if (!mod || !allocation) return;
+  if (allocation->width <= 1) return;
+  if (allocation->width - TASKBAR_CHROME_PX == mod->span_px) return;
+  schedule_render(mod);
+}
+
 static void render_taskbar(TaskbarMod *mod) {
   if (!mod || !mod->box || !mod->sock_path) return;
 
@@ -781,16 +814,33 @@ static void render_taskbar(TaskbarMod *mod) {
   /* Rebuild GTK widgets cleanly. */
   clear_container(GTK_CONTAINER(mod->box));
 
+  /* Record the span even for an empty workspace: `on_root_size_allocate` only
+   * re-renders when the span *changes*, so an empty taskbar that skipped this
+   * would keep re-scheduling renders on every allocation. */
+  int span_px = root_span_px(mod);
+  if (span_px > 0) mod->span_px = span_px;
+
   guint total = mod->order->len;
   if (total > 0) {
-    int avail_px = logical_w - LEFT_RESERVE_PX - RIGHT_RESERVE_PX;
-    if (avail_px < MIN_AVAIL_PX) avail_px = MIN_AVAIL_PX;
+    /* Until GTK allocates us, fall back to the focused monitor's logical width
+     * minus a reserve for the neighbouring modules. */
+    if (span_px < MIN_SLOT_PX) {
+      span_px = logical_w - LEFT_RESERVE_PX - RIGHT_RESERVE_PX;
+      if (span_px < MIN_AVAIL_PX) span_px = MIN_AVAIL_PX;
+    }
 
-    guint max_vis = (guint)(avail_px / MIN_SLOT_PX);
-    if (max_vis < 1) max_vis = 1;
+    guint slots = (guint)(span_px / MIN_SLOT_PX);
+    if (slots < 1) slots = 1;
 
-    guint shown = MIN(total, max_vis);
+    guint shown = MIN(total, slots);
     guint hidden = total - shown;
+
+    /* Reserve the last slot for the `+N` chip, but never let the chip replace
+     * the entire list on a very narrow bar. */
+    if (hidden > 0 && slots > 1) {
+      shown = slots - 1;
+      hidden = total - shown;
+    }
 
     /* Select visible list and ensure focused window is always visible. */
     GPtrArray *vis = g_ptr_array_new();
@@ -810,17 +860,6 @@ static void render_taskbar(TaskbarMod *mod) {
     if (active_info && !active_in_vis && vis->len > 0) {
       g_ptr_array_index(vis, vis->len - 1) = active_info;
     }
-
-    int usable_px = avail_px - (hidden > 0 ? OVERFLOW_PX : 0);
-    if (usable_px < MIN_SLOT_PX) usable_px = MIN_SLOT_PX;
-    int per_btn_px = usable_px / (int)vis->len;
-    if (per_btn_px > MAX_SLOT_PX) per_btn_px = MAX_SLOT_PX;
-    if (per_btn_px < MIN_SLOT_PX) per_btn_px = MIN_SLOT_PX;
-
-    /* JetBrainsMono at 13.5px is ~8.4px/char; subtract icon + inner padding. */
-    int text_px = per_btn_px - mod->icon_size - 24;
-    int max_chars = text_px / 9;
-    if (max_chars < 5) max_chars = 5;
 
     for (guint i = 0; i < vis->len; i++) {
       ClientInfo *ci = (ClientInfo *)g_ptr_array_index(vis, i);
@@ -849,15 +888,19 @@ static void render_taskbar(TaskbarMod *mod) {
       GtkWidget *inner = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 6);
       GtkWidget *icon = make_icon_widget(mod, ci->wclass, ci->initial_class);
       GtkWidget *label = gtk_label_new(ci->title);
+      /* Let the label shrink to nothing and ellipsize inside its slot: the
+       * width is dictated by the homogeneous box, not by the text. */
       gtk_label_set_ellipsize(GTK_LABEL(label), PANGO_ELLIPSIZE_END);
-      gtk_label_set_max_width_chars(GTK_LABEL(label), max_chars);
       gtk_label_set_single_line_mode(GTK_LABEL(label), TRUE);
+      gtk_label_set_width_chars(GTK_LABEL(label), 1);
+      gtk_label_set_max_width_chars(GTK_LABEL(label), 1);
+      gtk_widget_set_hexpand(label, TRUE);
       gtk_widget_set_halign(label, GTK_ALIGN_START);
 
       gtk_box_pack_start(GTK_BOX(inner), icon, FALSE, FALSE, 0);
-      gtk_box_pack_start(GTK_BOX(inner), label, FALSE, FALSE, 0);
+      gtk_box_pack_start(GTK_BOX(inner), label, TRUE, TRUE, 0);
       gtk_container_add(GTK_CONTAINER(btn), inner);
-      gtk_box_pack_start(mod->box, btn, FALSE, FALSE, 0);
+      gtk_box_pack_start(mod->box, btn, TRUE, TRUE, 0);
     }
 
     if (hidden > 0) {
@@ -866,7 +909,7 @@ static void render_taskbar(TaskbarMod *mod) {
       g_free(ov_txt);
       gtk_style_context_add_class(gtk_widget_get_style_context(ov),
                                   "task-overflow");
-      gtk_box_pack_start(mod->box, ov, FALSE, FALSE, 2);
+      gtk_box_pack_start(mod->box, ov, TRUE, TRUE, 0);
     }
 
     g_ptr_array_unref(vis);
@@ -1087,19 +1130,30 @@ void *wbcffi_init(const wbcffi_init_info *init_info,
     return NULL;
   }
 
-  mod->box = GTK_BOX(gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 3));
+  /* Homogeneous: every task button gets an identical share of the full span,
+   * so the row reads like AwesomeWM's tasklist rather than a shrink-wrapped
+   * strip in the middle of the bar. */
+  mod->box = GTK_BOX(gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0));
+  gtk_box_set_homogeneous(mod->box, TRUE);
   /* CSS keeps targeting `#hypr-taskbar`, which stays on the inner box. */
   gtk_widget_set_name(GTK_WIDGET(mod->box), "hypr-taskbar");
-  gtk_widget_set_hexpand(GTK_WIDGET(mod->box), FALSE);
+  gtk_widget_set_hexpand(GTK_WIDGET(mod->box), TRUE);
+  gtk_widget_set_halign(GTK_WIDGET(mod->box), GTK_ALIGN_FILL);
 
   mod->scroll_box = gtk_event_box_new();
   gtk_event_box_set_visible_window(GTK_EVENT_BOX(mod->scroll_box), FALSE);
   gtk_event_box_set_above_child(GTK_EVENT_BOX(mod->scroll_box), FALSE);
   gtk_widget_add_events(mod->scroll_box,
                         GDK_SCROLL_MASK | GDK_SMOOTH_SCROLL_MASK);
-  gtk_widget_set_hexpand(mod->scroll_box, FALSE);
+  gtk_widget_set_hexpand(mod->scroll_box, TRUE);
   gtk_container_add(GTK_CONTAINER(mod->scroll_box), GTK_WIDGET(mod->box));
   gtk_container_add(root, mod->scroll_box);
+
+  mod->root = GTK_WIDGET(root);
+  gtk_widget_set_hexpand(mod->root, TRUE);
+  gtk_widget_set_halign(mod->root, GTK_ALIGN_FILL);
+  mod->root_alloc_id = g_signal_connect(mod->root, "size-allocate",
+                                        G_CALLBACK(on_root_size_allocate), mod);
 
   mod->scroll_id = g_signal_connect(mod->scroll_box, "scroll-event",
                                     G_CALLBACK(on_taskbar_scroll), mod);
@@ -1133,6 +1187,10 @@ void wbcffi_deinit(void *instance) {
 
   if (mod->scroll_box && mod->scroll_id) {
     g_signal_handler_disconnect(mod->scroll_box, mod->scroll_id);
+  }
+
+  if (mod->root && mod->root_alloc_id) {
+    g_signal_handler_disconnect(mod->root, mod->root_alloc_id);
   }
 
   if (mod->desktop_apps) g_list_free_full(mod->desktop_apps, g_object_unref);

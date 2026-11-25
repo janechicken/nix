@@ -1720,11 +1720,16 @@ in
           position = "top";
           height = 32;
           spacing = 6;
+          # The taskbar lives in `modules-left` and `expand = true`, so Waybar
+          # stretches it across every pixel between the tags/layout box and the
+          # tray instead of letting `modules-center` shrink-wrap it.
+          expand-left = true;
+          no-center = true;
           modules-left = [
             "hyprland/workspaces"
             "custom/layout"
+            "cffi/taskbar"
           ];
-          modules-center = [ "cffi/taskbar" ];
           modules-right = [
             "tray"
             "network"
@@ -1767,6 +1772,7 @@ in
           "cffi/taskbar" = {
             module_path = "${waybarHyprTaskbar}/lib/libwaybar-hypr-taskbar.so";
             icon_size = 18;
+            expand = true;
           };
 
           tray = {
