@@ -1,7 +1,9 @@
 # Home Manager module for Hyprland (0.57+ Lua config) matching the AwesomeWM
 # look & feel (dotfiles/awesome/rc.lua + mytheme.lua + picom.conf + rofi/simple.rasi):
 #   - Pure #000000 OLED wallpaper, #111111 surfaces, #875fff purple focus, #d7ff5f urgent
-#   - Sharp corners (rounding = 0), 3px borders, 5px inner / 10px outer gaps, subtle shadows
+#   - Subtle 6px rounding + crisp 150-180 ms micro-animations (`speed` is in
+#     deciseconds); blur stays off (OLED power) and the wallpaper stays #000000
+#   - 3px borders, 5px inner / 10px outer gaps, subtle shadows
 #   - Top Waybar mirroring Awesome's wibar (tags 1-9, layout box, tasklist,
 #     tray, net, battery, mem, clock); the tasklist is a socket2-driven
 #     `cffi/taskbar` (focused workspace only, visible *and* minimized windows,
@@ -16,10 +18,12 @@
 #     per originating workspace (`minimized-ws-<N>`) so the taskbar can list a
 #     workspace's minimized windows; keyboard + mouse resizing (resizeactive on
 #     tiled and floating windows)
-#   - Mako bottom-right notifications, Hyprlock (#000000 + U2F), Hypridle lid/sleep lock
+#   - Swaync notifications + control center (its `swaync-client -swb` state drives
+#     the Waybar bell), SwayOSD volume/brightness/caps-lock OSD, Hyprsunset night
+#     light (automatic 18:00-08:00), Hyprlock (#000000 + U2F), Hypridle lid/sleep lock
 #
 # Shared by every Hyprland host (hosts/<host>/home.nix). Hosts configure
-# `custom.hyprland.*`; everything else (keybinds, Waybar, Mako, Hyprlock) is
+# `custom.hyprland.*`; everything else (keybinds, Waybar, Swaync, Hyprlock) is
 # byte-identical so the two machines look and behave the same. Only these
 # hardware facts differ:
 #   monitors / isLaptop / batteryName / vrr / idleLockTimeout / idleDpmsTimeout
@@ -36,21 +40,23 @@ let
   # Workspaces are bounded to 1..9, matching AwesomeWM's tags 1-9.
   workspaceCount = 9;
 
+  # Volume (PipeWire/WirePlumber) with a SwayOSD progress bar. `wpctl` keeps the
+  # 100 % cap (`-l 1`) and the OSD is a layer surface, so volume changes never
+  # touch the notification daemon (`swaync`). `swayosd-client --output-volume`
+  # would go through libpulse and bypass the cap, hence the explicit
+  # `--custom-progress` path.
   volumeScript = pkgs.writeShellScript "hypr-volume" ''
     set -euo pipefail
     action="''${1:-}"
     case "$action" in
       up)
         ${pkgs.wireplumber}/bin/wpctl set-volume -l 1 @DEFAULT_AUDIO_SINK@ 5%+
-        title="Volume up"
         ;;
       down)
         ${pkgs.wireplumber}/bin/wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%-
-        title="Volume down"
         ;;
       mute)
         ${pkgs.wireplumber}/bin/wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle
-        title="Toggle mute"
         ;;
       *)
         exit 1
@@ -58,18 +64,25 @@ let
     esac
 
     out="$(${pkgs.wireplumber}/bin/wpctl get-volume @DEFAULT_AUDIO_SINK@)"
+    pct="$(echo "$out" | awk '{ printf "%d", ($2 * 100) + 0.5 }')"
     if echo "$out" | grep -q '\[MUTED\]'; then
-      body="Muted"
+      icon="audio-volume-muted-symbolic"
+      text="MUTE"
+    elif [ "$pct" -ge 60 ]; then
+      icon="audio-volume-high-symbolic"
+      text="''${pct}%"
+    elif [ "$pct" -ge 25 ]; then
+      icon="audio-volume-medium-symbolic"
+      text="''${pct}%"
     else
-      pct="$(echo "$out" | awk '{ printf "%d", ($2 * 100) + 0.5 }')"
-      body="Volume: ''${pct}%"
+      icon="audio-volume-low-symbolic"
+      text="''${pct}%"
     fi
 
-    ${pkgs.libnotify}/bin/notify-send \
-      -a volume \
-      -h string:x-canonical-private-synchronous:volume \
-      -t 2000 \
-      "$title" "$body"
+    exec ${pkgs.swayosd}/bin/swayosd-client \
+      --custom-icon "$icon" \
+      --custom-progress "$(awk -v p="$pct" 'BEGIN { printf "%.2f", p / 100 }')" \
+      --custom-progress-text "$text"
   '';
 
   # Right click on the Waybar bluetooth module: toggle the adapter's power.
@@ -85,30 +98,100 @@ let
     fi
   '';
 
+  # Panel backlight with a SwayOSD progress bar. The ATNA40CT03-0 OLED eDP
+  # backlight must NEVER reach 0 %: `-n5%` floors every step at 5 %, and the OSD
+  # reports the percentage brightnessctl actually clamped to.
   brightnessScript = pkgs.writeShellScript "hypr-brightness" ''
     set -euo pipefail
     action="''${1:-}"
-    # Floor at 5% (-n5%) to prevent ATNA40CT03-0 OLED eDP backlight from ever hitting 0.
     case "$action" in
       up)
         ${pkgs.brightnessctl}/bin/brightnessctl -e4 -n5% set 5%+ >/dev/null
-        title="Brightness up"
         ;;
       down)
         ${pkgs.brightnessctl}/bin/brightnessctl -e4 -n5% set 5%- >/dev/null
-        title="Brightness down"
         ;;
       *)
         exit 1
         ;;
     esac
 
-    pct="$(${pkgs.brightnessctl}/bin/brightnessctl -m | cut -d, -f4)"
-    ${pkgs.libnotify}/bin/notify-send \
-      -a brightness \
-      -h string:x-canonical-private-synchronous:brightness \
-      -t 2000 \
-      "$title" "Brightness: ''${pct}"
+    pct="$(${pkgs.brightnessctl}/bin/brightnessctl -m | cut -d, -f4 | tr -d '%')"
+
+    exec ${pkgs.swayosd}/bin/swayosd-client \
+      --custom-icon display-brightness-symbolic \
+      --custom-progress "$(awk -v p="$pct" 'BEGIN { printf "%.2f", p / 100 }')" \
+      --custom-progress-text "''${pct}%"
+  '';
+
+  # Night light quick toggle (Swaync's "Night Light" button). Hyprsunset's own
+  # IPC answers the state query: `hyprctl hyprsunset identity get` prints
+  # "true" while the matrix is neutral, "false" while a temperature is applied.
+  # `status` feeds Swaync's `update-command` (warm == toggle active).
+  nightLightScript = pkgs.writeShellScript "hypr-night-light" ''
+    set -euo pipefail
+    hyprctl=${pkgs.hyprland}/bin/hyprctl
+    case "''${1:-toggle}" in
+      status)
+        if [ "$($hyprctl hyprsunset identity get 2>/dev/null)" = "true" ]; then
+          echo false
+        else
+          echo true
+        fi
+        ;;
+      toggle)
+        if [ "$($hyprctl hyprsunset identity get 2>/dev/null)" = "true" ]; then
+          $hyprctl hyprsunset temperature 4000 >/dev/null
+        else
+          $hyprctl hyprsunset identity true >/dev/null
+        fi
+        ;;
+      *)
+        exit 1
+        ;;
+    esac
+  '';
+
+  # SwayOSD stylesheet (AwesomeWM palette, 6px corners, purple progress).
+  swayosdStyle = pkgs.writeText "swayosd-style.css" ''
+    window#osd {
+      border-radius: 6px;
+      border: 1px solid #875fff;
+      background: #111111;
+    }
+
+    window#osd #container {
+      margin: 10px 14px;
+    }
+
+    window#osd image,
+    window#osd label {
+      color: #ffffff;
+    }
+
+    window#osd progressbar,
+    window#osd segmentedprogress {
+      min-height: 6px;
+      border-radius: 6px;
+      border: none;
+      background: transparent;
+    }
+
+    window#osd trough,
+    window#osd segment {
+      min-height: inherit;
+      border-radius: inherit;
+      border: none;
+      background: #2a2a2a;
+    }
+
+    window#osd progress,
+    window#osd segment.active {
+      min-height: inherit;
+      border-radius: inherit;
+      border: none;
+      background: #875fff;
+    }
   '';
 
   # Waybar active-workspace taskbar (CFFI GTK3 module): Waybar 0.16's built-in
@@ -936,7 +1019,9 @@ let
       },
 
       decoration = {
-        rounding = 0,
+        -- Subtle rounding: enough to read as "modern", never bubbly.
+        rounding = 6,
+        rounding_power = 2,
         active_opacity = 1.0,
         inactive_opacity = 1.0,
         shadow = {
@@ -946,12 +1031,13 @@ let
           color = "rgba(000000bb)",
         },
         blur = {
+          -- Blur stays off: pure #000000 wallpaper + OLED battery life.
           enabled = false,
         },
       },
 
       animations = {
-        enabled = false,
+        enabled = true,
       },
 
       dwindle = {
@@ -1007,6 +1093,31 @@ let
         },
       },
     })
+
+    ----------------------
+    ---- ANIMATIONS ----
+    ----------------------
+    -- `speed` is in deciseconds (1 = 100 ms), so 1.5-1.8 is a 150-180 ms
+    -- transition: crisp and snappy, no sluggish easing. The curves are defined
+    -- here because the packaged default config (which declares them) is only
+    -- used when no config exists - our file replaces it.
+    hl.curve("easeOutQuint", { type = "bezier", points = { { 0.23, 1 }, { 0.32, 1 } } })
+    hl.curve("almostLinear", { type = "bezier", points = { { 0.5, 0.5 }, { 0.75, 1 } } })
+
+    hl.animation({ leaf = "windows", enabled = true, speed = 1.8, bezier = "easeOutQuint" })
+    hl.animation({ leaf = "windowsIn", enabled = true, speed = 1.5, bezier = "easeOutQuint", style = "popin 95%" })
+    hl.animation({ leaf = "windowsOut", enabled = true, speed = 1.5, bezier = "easeOutQuint", style = "popin 95%" })
+    hl.animation({ leaf = "fade", enabled = true, speed = 1.5, bezier = "easeOutQuint" })
+    hl.animation({ leaf = "fadeIn", enabled = true, speed = 1.5, bezier = "easeOutQuint" })
+    hl.animation({ leaf = "fadeOut", enabled = true, speed = 1.5, bezier = "easeOutQuint" })
+    hl.animation({ leaf = "workspaces", enabled = true, speed = 1.8, bezier = "easeOutQuint", style = "fade" })
+    -- Layers: Waybar's tray drawer, the Swaync control center and the SwayOSD
+    -- popup are layer surfaces.
+    hl.animation({ leaf = "layers", enabled = true, speed = 1.5, bezier = "easeOutQuint" })
+    hl.animation({ leaf = "layersIn", enabled = true, speed = 1.5, bezier = "easeOutQuint", style = "fade" })
+    hl.animation({ leaf = "layersOut", enabled = true, speed = 1.5, bezier = "easeOutQuint", style = "fade" })
+    hl.animation({ leaf = "border", enabled = true, speed = 1.5, bezier = "easeOutQuint" })
+
     ${lib.optionalString cfg.isLaptop ''
       -- 3-finger horizontal swipe to switch workspaces on the touchpad.
       -- workspace_swipe_create_new would otherwise create workspace 10, 11, ...
@@ -1023,7 +1134,6 @@ let
     ---- AUTOSTART ----
     -------------------
     hl.on("hyprland.start", function()
-      hl.exec_cmd("mako")
       hl.exec_cmd("copyq")
       hl.exec_cmd("udiskie --tray")
       -- Flameshot daemon (tray icon + the screenshot backend used by Print)
@@ -1172,6 +1282,13 @@ let
     hl.bind(mainMod .. " + R", hl.dsp.exec_cmd("rofi -show run -disable-history -show-icons"), { description = "rofi run" })
     hl.bind(mainMod .. " + E", hl.dsp.exec_cmd("rofi -show emoji -modi emoji -emoji-mode copy"), { description = "rofi emoji" })
     hl.bind(mainMod .. " + CONTROL + L", hl.dsp.exec_cmd("pidof hyprlock || hyprlock"), { description = "lock screen" })
+    -- Swaync control center (notification daemon runs as a systemd user unit,
+    -- see services.swaync). SUPER+N is taken by minimize.
+    hl.bind(
+      mainMod .. " + A",
+      hl.dsp.exec_cmd("${pkgs.swaynotificationcenter}/bin/swaync-client -t -sw"),
+      { description = "toggle notification center" }
+    )
 
     -- Workspace navigation, bounded to 1..9 (wrapping like AwesomeWM's tags)
     hl.bind(mainMod .. " + Left", function() cycle_workspace(-1) end, { description = "previous workspace" })
@@ -1437,6 +1554,14 @@ let
     hl.bind("XF86AudioLowerVolume", hl.dsp.exec_cmd("${volumeScript} down"), { locked = true, repeating = true })
     hl.bind("XF86AudioMute", hl.dsp.exec_cmd("${volumeScript} mute"), { locked = true })
     hl.bind("XF86AudioMicMute", hl.dsp.exec_cmd("wpctl set-mute @DEFAULT_AUDIO_SOURCE@ toggle"), { locked = true })
+    -- Caps Lock OSD. `swayosd-client --caps-lock` reads the kernel LED
+    -- (/sys/class/leds/*capslock), so no root libinput daemon is needed;
+    -- `non_consuming` keeps the lock itself reaching the focused window.
+    hl.bind(
+      "Caps_Lock",
+      hl.dsp.exec_cmd("${pkgs.swayosd}/bin/swayosd-client --caps-lock"),
+      { locked = true, non_consuming = true, description = "caps lock OSD" }
+    )
     ${lib.optionalString cfg.isLaptop ''
       -- Panel backlight (laptops only; desktops have no brightness device)
       hl.bind("XF86MonBrightnessUp", hl.dsp.exec_cmd("${brightnessScript} up"), { locked = true, repeating = true })
@@ -1798,6 +1923,7 @@ in
           ++ lib.optional hasBattery "custom/battery"
           ++ [
             "clock"
+            "custom/notification"
           ];
 
           "hyprland/workspaces" = {
@@ -1916,6 +2042,32 @@ in
             interval = 1;
             format = "{:%a %b %d %H:%M:%S}";
             tooltip-format = "<tt>{calendar}</tt>";
+          };
+
+          # Swaync bell, far right. `swaync-client -swb` streams Waybar JSON
+          # (`alt` = notification / none / dnd-* / inhibited-*, `text` = count,
+          # `tooltip` = "N Notifications"), so the icon follows the daemon state
+          # without polling. Left click toggles the control center, right click
+          # toggles Do Not Disturb. The count is shown in the tooltip: a custom
+          # module renders `{text}` verbatim, so embedding it in the glyph would
+          # print "0" when the list is empty.
+          "custom/notification" = {
+            exec = "${pkgs.swaynotificationcenter}/bin/swaync-client -swb";
+            return-type = "json";
+            tooltip = true;
+            format = "{icon}";
+            format-icons = {
+              notification = "[󰂚]"; # md-bell
+              none = "[󰂜]"; # md-bell_outline
+              dnd-notification = "[󰂛]"; # md-bell_off
+              dnd-none = "[󰂛]";
+              inhibited-notification = "[󰂚]";
+              inhibited-none = "[󰂜]";
+              dnd-inhibited-notification = "[󰂛]";
+              dnd-inhibited-none = "[󰂛]";
+            };
+            on-click = "${pkgs.swaynotificationcenter}/bin/swaync-client -t -sw";
+            on-click-right = "${pkgs.swaynotificationcenter}/bin/swaync-client -d -sw";
           };
         }
         # Desktops have no battery: no module, no config block.
@@ -2068,6 +2220,7 @@ in
         #bluetooth,
         #wireplumber,
         #custom-battery,
+        #custom-notification,
         #clock {
           padding: 0 4px;
           color: #aaaaaa;
@@ -2111,6 +2264,34 @@ in
           margin-right: 6px;
         }
 
+        /* Swaync bell: dim when empty, purple with unread notifications,
+           urgent yellow while Do Not Disturb is on (same signal colours as the
+           workspace buttons). */
+        #custom-notification {
+          margin-right: 6px;
+        }
+
+        #custom-notification:hover {
+          background-color: #222222;
+          color: #ffffff;
+        }
+
+        #custom-notification.notification,
+        #custom-notification.inhibited-notification {
+          color: #875fff;
+        }
+
+        #custom-notification.dnd-none,
+        #custom-notification.dnd-notification,
+        #custom-notification.dnd-inhibited-none,
+        #custom-notification.dnd-inhibited-notification {
+          color: #d7ff5f;
+        }
+
+        #custom-notification.cc-open {
+          color: #875fff;
+        }
+
         /* Battery (`custom/battery`): the module's own classes say *why* it is
            charging, so the bar keeps one accent (purple) for anything powered by
            a real charger and dims "plugged but idle" states. */
@@ -2149,26 +2330,501 @@ in
       '';
     };
 
-    # Mako notifications matching AwesomeWM naughty + mytheme.lua
-    services.mako = {
+    # Swaync notification daemon + control center (replaces mako). The HM module
+    # ships a `Type=dbus` user unit (BusName=org.freedesktop.Notifications) bound
+    # to graphical-session.target, so there is deliberately no
+    # `hl.exec_cmd("swaync")` - that would start a second daemon.
+    services.swaync = {
       enable = true;
       settings = {
-        font = "JetBrainsMono Nerd Font 11";
-        anchor = "bottom-right";
-        background-color = "#111111";
-        text-color = "#ffffff";
-        border-color = "#875fff";
-        border-size = 3;
-        border-radius = 0;
-        padding = "8,10";
-        margin = "10";
-        max-icon-size = 32;
-        default-timeout = 10000;
-        "urgency=critical" = {
-          background-color = "#900000";
-          border-color = "#d7ff5f";
-          default-timeout = 0;
+        # The stylesheet below owns the whole look (AwesomeWM palette), so the
+        # GTK theme must not leak in.
+        ignore-gtk-theme = true;
+        positionX = "right";
+        positionY = "top";
+        layer = "overlay";
+        control-center-layer = "top";
+        layer-shell = true;
+        cssPriority = "user";
+        # Sit under the 32px Waybar instead of covering it.
+        control-center-margin-top = 40;
+        control-center-margin-bottom = 10;
+        control-center-margin-right = 10;
+        control-center-margin-left = 10;
+        control-center-width = 380;
+        control-center-height = 640;
+        notification-window-width = 380;
+        notification-icon-size = 48;
+        notification-body-image-height = 100;
+        notification-body-image-width = 200;
+        notification-2fa-action = true;
+        notification-inline-replies = true;
+        notification-grouping = true;
+        timeout = 8;
+        timeout-low = 4;
+        timeout-critical = 0;
+        transition-time = 180;
+        hide-on-clear = false;
+        hide-on-action = true;
+        text-empty = "No notifications";
+        keyboard-shortcuts = true;
+        image-visibility = "when-available";
+        fit-to-screen = true;
+        relative-timestamps = true;
+        widgets = [
+          "title"
+          "dnd"
+          "buttons-grid"
+          "mpris"
+          "notifications"
+        ];
+        widget-config = {
+          title = {
+            text = "Notifications";
+            clear-all-button = true;
+            button-text = "Clear All";
+          };
+          dnd = {
+            text = "Do Not Disturb";
+          };
+          notifications = {
+            vexpand = true;
+          };
+          mpris = {
+            blacklist = [ ];
+            autohide = true;
+            show-album-art = "always";
+            loop-carousel = false;
+          };
+          buttons-grid = {
+            buttons-per-row = 4;
+            actions = [
+              # Night Light: warm 4000K <-> neutral. `update-command` asks
+              # hyprsunset itself, so the button also follows the automatic
+              # 18:00-08:00 schedule.
+              {
+                label = "󰖔"; # md-weather_night
+                type = "toggle";
+                active = false;
+                command = "${nightLightScript} toggle";
+                update-command = "${nightLightScript} status";
+              }
+              {
+                label = "󰖩"; # md-wifi
+                command = "${pkgs.kitty}/bin/kitty --class waybar-tui --title Network -e ${pkgs.networkmanager}/bin/nmtui";
+              }
+              {
+                label = "󰂯"; # md-bluetooth
+                command = "${pkgs.kitty}/bin/kitty --class waybar-tui --title Bluetooth -e ${pkgs.bluetui}/bin/bluetui";
+              }
+              {
+                label = "󰕾"; # md-volume_high
+                command = "${pkgs.kitty}/bin/kitty --class waybar-tui --title Audio -e ${pkgs.wiremix}/bin/wiremix";
+              }
+            ];
+          };
         };
+      };
+      style = ''
+        /* Swaync: AwesomeWM mytheme.lua palette (#000000 canvas, #111111
+           surfaces, #875fff accent, #d7ff5f urgent), 6px corners,
+           JetBrainsMono Nerd Font. */
+        :root {
+          --cc-bg: #111111;
+          --noti-border-color: #222222;
+          --noti-bg: 17, 17, 17;
+          --noti-bg-alpha: 1;
+          --noti-bg-darker: rgb(10, 10, 10);
+          --noti-bg-hover: rgb(34, 34, 34);
+          --noti-bg-focus: rgba(135, 95, 255, 0.25);
+          --noti-close-bg: rgb(34, 34, 34);
+          --noti-close-bg-hover: rgb(135, 95, 255);
+          --text-color: rgb(255, 255, 255);
+          --text-color-disabled: rgb(120, 120, 120);
+          --bg-selected: rgb(135, 95, 255);
+          --notification-icon-size: 48px;
+          --notification-app-icon-size: 16px;
+          --notification-group-icon-size: 24px;
+          --border: 1px solid var(--noti-border-color);
+          --border-radius: 6px;
+          --notification-shadow: none;
+          --font-size-body: 12px;
+          --font-size-summary: 13px;
+          --hover-transition: background 150ms ease-out;
+          --mpris-album-art-overlay: rgba(0, 0, 0, 0.55);
+          --mpris-button-hover: rgba(0, 0, 0, 0.5);
+          --mpris-album-art-icon-size: 80px;
+          --mpris-album-art-shadow: none;
+        }
+
+        * {
+          font-family: "JetBrainsMono Nerd Font", monospace;
+          font-size: 12px;
+          outline: none;
+          text-shadow: none;
+        }
+
+        notificationwindow,
+        blankwindow {
+          background: transparent;
+        }
+
+        /* ---- control center ---- */
+        .control-center {
+          background: var(--cc-bg);
+          border: var(--border);
+          border-radius: var(--border-radius);
+          padding: 4px;
+        }
+
+        .control-center-list {
+          background: transparent;
+        }
+
+        .control-center-list-placeholder {
+          opacity: 0.5;
+          color: var(--text-color-disabled);
+        }
+
+        .floating-notifications {
+          background: transparent;
+        }
+
+        .floating-notifications .notification {
+          box-shadow: var(--notification-shadow);
+        }
+
+        /* ---- notifications ---- */
+        .notification-row {
+          background: none;
+          outline: none;
+        }
+
+        .notification-row .notification-background {
+          padding: 4px 6px;
+        }
+
+        .notification-row .notification-background .notification {
+          background: var(--noti-bg-darker);
+          border: var(--border);
+          border-radius: var(--border-radius);
+          padding: 0;
+          transition: var(--hover-transition);
+        }
+
+        .notification-row .notification-background .notification.critical {
+          border-color: #d7ff5f;
+        }
+
+        .notification-row .notification-background .notification .notification-default-action {
+          background: transparent;
+          border: none;
+          border-radius: var(--border-radius);
+          box-shadow: none;
+          color: var(--text-color);
+          margin: 0;
+          padding: 6px;
+          transition: var(--hover-transition);
+        }
+
+        .notification-row .notification-background .notification .notification-default-action:hover {
+          background: var(--noti-bg-hover);
+        }
+
+        .notification-row .notification-background .notification .notification-default-action:not(:only-child) {
+          border-bottom-left-radius: 0;
+          border-bottom-right-radius: 0;
+        }
+
+        .notification-row .notification-background .notification .notification-default-action .notification-content {
+          background: transparent;
+          border-radius: var(--border-radius);
+          padding: 0;
+        }
+
+        .notification-row .notification-background .notification .notification-default-action .notification-content .image {
+          -gtk-icon-filter: none;
+          -gtk-icon-size: var(--notification-icon-size);
+          border-radius: var(--border-radius);
+          margin: 4px;
+        }
+
+        .notification-row .notification-background .notification .notification-default-action .notification-content .app-icon {
+          -gtk-icon-filter: none;
+          -gtk-icon-size: var(--notification-app-icon-size);
+          margin: 6px;
+        }
+
+        .notification-row .notification-background .notification .notification-default-action .notification-content .text-box label {
+          filter: none;
+        }
+
+        .notification-row .notification-background .notification .notification-default-action .notification-content .text-box .summary {
+          background: transparent;
+          color: var(--text-color);
+          font-size: var(--font-size-summary);
+          font-weight: bold;
+        }
+
+        .notification-row .notification-background .notification .notification-default-action .notification-content .text-box .time {
+          background: transparent;
+          color: var(--text-color-disabled);
+          font-size: var(--font-size-summary);
+          font-weight: bold;
+          margin-right: 30px;
+        }
+
+        .notification-row .notification-background .notification .notification-default-action .notification-content .text-box .body {
+          background: transparent;
+          color: var(--text-color);
+          font-size: var(--font-size-body);
+          font-weight: normal;
+        }
+
+        .notification-row .notification-background .notification .notification-default-action .notification-content progressbar {
+          margin-top: 4px;
+        }
+
+        .notification-row .notification-background .notification .notification-default-action .notification-content .inline-reply {
+          margin-top: 4px;
+        }
+
+        .notification-row .notification-background .notification .notification-default-action .notification-content .inline-reply .inline-reply-entry {
+          background: #111111;
+          border: var(--border);
+          border-radius: var(--border-radius);
+          caret-color: var(--text-color);
+          color: var(--text-color);
+        }
+
+        .notification-row .notification-background .notification .notification-default-action .notification-content .inline-reply .inline-reply-button {
+          background: var(--noti-bg-hover);
+          border: var(--border);
+          border-radius: var(--border-radius);
+          color: var(--text-color);
+          margin-left: 4px;
+        }
+
+        .notification-row .notification-background .notification .notification-alt-actions {
+          background: none;
+          border-bottom-left-radius: var(--border-radius);
+          border-bottom-right-radius: var(--border-radius);
+          padding: 4px;
+        }
+
+        .notification-row .notification-background .notification .notification-action {
+          margin: 4px;
+          padding: 0;
+        }
+
+        .notification-row .notification-background .notification .notification-action > button {
+          border-radius: var(--border-radius);
+          color: var(--text-color);
+        }
+
+        .notification-group {
+          transition: opacity 180ms ease-out;
+        }
+
+        .notification-group:focus {
+          background: var(--noti-bg-focus);
+        }
+
+        .notification-group.collapsed.not-expanded {
+          opacity: 0.4;
+        }
+
+        .notification-group.collapsed .notification-row .notification {
+          background-color: rgba(var(--noti-bg), 1);
+        }
+
+        .notification-group.collapsed .notification-row:not(:last-child) .notification-action,
+        .notification-group.collapsed .notification-row:not(:last-child) .notification-default-action {
+          opacity: 0;
+        }
+
+        .notification-group.collapsed:hover .notification-row:not(:only-child) .notification {
+          background-color: var(--noti-bg-hover);
+        }
+
+        .notification-group .notification-group-buttons,
+        .notification-group .notification-group-headers {
+          color: var(--text-color);
+          margin: 0 12px;
+        }
+
+        .notification-group .notification-group-headers .notification-group-icon {
+          -gtk-icon-size: var(--notification-group-icon-size);
+          color: var(--text-color);
+        }
+
+        .notification-group .notification-group-headers .notification-group-header {
+          color: var(--text-color);
+        }
+
+        .notification-group .notification-group-close-button .close-button {
+          margin: 10px 16px;
+        }
+
+        .close-button {
+          background: var(--noti-close-bg);
+          border: none;
+          border-radius: var(--border-radius);
+          box-shadow: none;
+          color: var(--text-color-disabled);
+          margin: 6px;
+          min-height: 20px;
+          min-width: 20px;
+          padding: 0;
+          transition: var(--hover-transition);
+        }
+
+        .close-button:hover {
+          background: var(--noti-close-bg-hover);
+          color: var(--text-color);
+        }
+
+        /* ---- widgets ---- */
+        .widget {
+          background: transparent;
+          border-radius: var(--border-radius);
+          margin: 4px;
+          padding: 4px;
+        }
+
+        .widget-title > label {
+          color: #875fff;
+          font-size: 1.2rem;
+          margin-right: 6px;
+        }
+
+        .widget-title > button {
+          background: #1b1b1b;
+          border: 1px solid #262626;
+          border-radius: var(--border-radius);
+          color: var(--text-color);
+          margin-left: 6px;
+          padding: 2px 10px;
+          transition: var(--hover-transition);
+        }
+
+        .widget-title > button:hover {
+          background: #875fff;
+          border-color: #875fff;
+        }
+
+        .widget-dnd > label {
+          color: var(--text-color);
+          font-size: 1rem;
+          margin-right: 6px;
+        }
+
+        .widget-dnd > switch {
+          background: #222222;
+          border-radius: var(--border-radius);
+        }
+
+        .widget-dnd > switch:checked {
+          background: #875fff;
+        }
+
+        .widget-dnd > switch slider {
+          background: #ffffff;
+          border-radius: var(--border-radius);
+          min-height: 16px;
+          min-width: 16px;
+        }
+
+        .widget-buttons-grid > flowbox > flowboxchild > button {
+          background: #1b1b1b;
+          border: 1px solid #262626;
+          border-radius: var(--border-radius);
+          color: #dddddd;
+          min-height: 32px;
+          padding: 6px 2px;
+          transition: var(--hover-transition);
+        }
+
+        .widget-buttons-grid > flowbox > flowboxchild > button:hover {
+          background: #222222;
+          color: var(--text-color);
+        }
+
+        .widget-buttons-grid > flowbox > flowboxchild > button.toggle:checked {
+          background: #875fff;
+          border-color: #875fff;
+          color: var(--text-color);
+        }
+
+        .widget-mpris {
+          padding: 0;
+        }
+
+        .widget-mpris .widget-mpris-player {
+          border-radius: var(--border-radius);
+          box-shadow: var(--mpris-album-art-shadow);
+          margin: 8px;
+        }
+
+        .widget-mpris .widget-mpris-player .mpris-overlay {
+          background-color: var(--mpris-album-art-overlay);
+          padding: 10px;
+        }
+
+        .widget-mpris .widget-mpris-player .mpris-overlay button:hover {
+          background: var(--noti-bg-hover);
+        }
+
+        .widget-mpris .widget-mpris-player .mpris-overlay .widget-mpris-album-art {
+          -gtk-icon-size: var(--mpris-album-art-icon-size);
+          border-radius: var(--border-radius);
+          box-shadow: var(--mpris-album-art-shadow);
+        }
+
+        .widget-mpris .widget-mpris-player .mpris-overlay .widget-mpris-title {
+          color: var(--text-color);
+          font-size: 1.1rem;
+          font-weight: bold;
+        }
+
+        .widget-mpris .widget-mpris-player .mpris-overlay .widget-mpris-subtitle {
+          color: var(--text-color-disabled);
+          font-size: 0.95rem;
+        }
+
+        .widget-mpris .widget-mpris-player .mpris-overlay > box > button:hover {
+          background-color: var(--mpris-button-hover);
+        }
+      '';
+    };
+
+    # SwayOSD: volume / brightness / caps-lock on-screen display. The server is a
+    # systemd user unit from the HM module (graphical-session.target), the
+    # clients are called from volumeScript, brightnessScript and the Caps_Lock
+    # bind - no `hl.exec_cmd` needed here either.
+    services.swayosd = {
+      enable = true;
+      stylePath = swayosdStyle;
+    };
+
+    # Hyprsunset: automatic night light. The HM module writes
+    # `~/.config/hypr/hyprsunset.conf` and runs hyprsunset as a user unit, which
+    # applies the profile for the current time on start and re-applies it at
+    # every boundary. 18:00-08:00 is warm (4000K), the rest of the day neutral.
+    services.hyprsunset = {
+      enable = true;
+      settings = {
+        max-gamma = 100;
+        profile = [
+          {
+            time = "08:00";
+            identity = true;
+          }
+          {
+            time = "18:00";
+            temperature = 4000;
+          }
+        ];
       };
     };
 
@@ -2217,7 +2873,8 @@ in
             check_color = "rgb(215, 255, 95)";
             fail_color = "rgb(240, 94, 72)";
             fade_on_empty = false;
-            rounding = 0;
+            # Matches decoration.rounding (subtle 6px).
+            rounding = 6;
             placeholder_text = "Password / Touch YubiKey";
             position = "0, 0";
             halign = "center";
