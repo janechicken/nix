@@ -37,21 +37,17 @@
       bindkey $'\b' backward-kill-word        # Ctrl+Backspace (^H/0x08)
 
       clear
-      # Responsive fastfetch logo. Measured output widths of this config are
-      # 108 columns with the full NixOS logo, 79 with `nixos_small` and 61
-      # with no logo at all, so pick the widest one that still fits the
-      # terminal (a half-screen tiled kitty lands in the `nixos_small`
-      # bucket). `--disable-linewrap` turns the terminal's auto-wrap off
-      # (DECAWM) for the duration of the run, so a long info line can never
-      # wrap back over the logo.
+      # Responsive fastfetch logo: always keep the NixOS icon, switching to
+      # `nixos_small` below 110 columns (measured full-logo width is ~108 cols;
+      # a half-screen tiled kitty at 1.25x is ~75-78 cols). `--disable-linewrap`
+      # turns off terminal auto-wrap (DECAWM) for the run so long info lines
+      # clip neatly at the right edge instead of wrapping back over the logo.
       cols="''${COLUMNS:-$(tput cols 2>/dev/null || echo 80)}"
       [[ "$cols" == <-> ]] || cols=80
       if [ "$cols" -ge 110 ]; then
         fastfetch --disable-linewrap
-      elif [ "$cols" -ge 80 ]; then
-        fastfetch -l nixos_small --disable-linewrap
       else
-        fastfetch -l none --disable-linewrap
+        fastfetch -l nixos_small --disable-linewrap
       fi
     '';
     completionInit = "autoload -U compinit && compinit -u";
