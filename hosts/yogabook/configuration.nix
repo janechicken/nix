@@ -34,6 +34,7 @@
     ../../modules/flatpak.nix
     ../../modules/nix-ld.nix
     ../../modules/networking.nix
+    ../../modules/tailscale.nix
     ../../modules/virtualisation.nix
     ../../modules/hyprland.nix
     ../../modules/joyshockmapper.nix

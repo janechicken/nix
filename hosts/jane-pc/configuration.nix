@@ -26,6 +26,7 @@
     ../../modules/flatpak.nix
     ../../modules/nix-ld.nix
     ../../modules/ntsync.nix
+    ../../modules/tailscale.nix
     ../../modules/virtualisation.nix
     ../../modules/hyprland.nix
     inputs.sops-nix.nixosModules.sops
