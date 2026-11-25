@@ -144,44 +144,15 @@
   # hardware.deviceTree only selects the DTB package; NixOS's install-grub.pl
   # ignores hardware.deviceTree.name entirely, so GRUB gets the DTB through
   # boot.loader.grub.extraFiles + extraPerEntryConfig below.
+  # No DT overlays: the previous "Option A'" overlay (`regulator-always-on` on
+  # `VREG_EDP_3P3`) was dropped. `VREG_EDP_3P3` already carries
+  # `regulator-boot-on` + `regulator_ignore_unused`, so the overlay was a
+  # Stage-1 no-op (the LUKS prompt stayed black with it live in the booted DT)
+  # while `regulator-always-on` additionally blocks the panel 3.3 V rail from
+  # powering down in `s2idle`. See hosts/yogabook/BRINGUP.md.
   hardware.deviceTree = {
     enable = true;
     name = "qcom/mahua-lenovo-yoga-slim7-14q8y11.dtb";
-
-    # "Option A'": force VREG_EDP_3P3 (the panel's 3.3 V eDP rail) on for the
-    # whole boot. The board DTS only sets `regulator-boot-on` on it, so once
-    # `atna33xc20` runtime-autosuspends (which it does whenever `msm_dpu`
-    # defers on the stage-2 pmic_glink_altmode) the rail is dropped, the TCON
-    # goes to DPCD D3 and the panel stays dark. `regulator-always-on` keeps
-    # the rail enabled and the panel out of D3.
-    #
-    # Applied as a DT overlay (nixpkgs apply_overlays.py + libfdt), so it costs
-    # one tiny derivation and **no** kernel/DTS rebuild. `target-path` (not a
-    # `&label` reference) is used on purpose: it resolves the node by its
-    # literal path, so it keeps working even if the base DTB were ever built
-    # without `-@`/`__symbols__`.
-    #
-    # NOTE: the overlay's `filter` is a plain *substring* test on the DTB's
-    # path inside the dtbs output (apply_overlays.py: `filter not in
-    # str(rel_path)`), NOT a glob - a leading `*` would never match.
-    overlays = [
-      {
-        name = "vreg-edp-3p3-always-on";
-        filter = "mahua-lenovo-yoga-slim7-14q8y11.dtb";
-        dtsText = ''
-          /dts-v1/;
-          /plugin/;
-
-          / {
-            compatible = "lenovo,yoga-slim7-14q8y11";
-          };
-
-          &{/regulator-edp-3p3} {
-            regulator-always-on;
-          };
-        '';
-      }
-    ];
   };
 
   # Qualcomm redistributable firmware + wireless-regdb (regulatory.db) +
@@ -409,6 +380,29 @@
     brightnessctl
     openssh
   ];
+
+  # Keep the ADSP `q6apm` playback graph alive across pauses. WirePlumber's
+  # default 5 s ALSA idle suspend tears the graph down and rebuilds it on every
+  # pause/play; `q6apm_dai_prepare()` / `q6apm_graph_close()` ignore APM errors,
+  # so a teardown that races a still-open port desyncs host and DSP and wedges
+  # audio for the rest of the boot (`q6apm-dai ... -16` then a permanent
+  # `qcom-apm ... CMD timeout` + `-110` loop). Disabling idle suspend removes
+  # that churn (and costs a little idle power on this board only).
+  services.pipewire.wireplumber.extraConfig."51-mahua-no-alsa-suspend" = {
+    "monitor.alsa.rules" = [
+      {
+        matches = [
+          { "node.name" = "~alsa_output.*"; }
+        ];
+        actions = {
+          update-props = {
+            "node.pause-on-idle" = false;
+            "session.suspend-timeout-seconds" = 0;
+          };
+        };
+      }
+    ];
+  };
 
   environment.sessionVariables.ALSA_CONFIG_UCM2 = "${pkgs.alsa-ucm-conf-mahua}/share/alsa/ucm2";
   systemd.user.services = {
