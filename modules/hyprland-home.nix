@@ -3,10 +3,13 @@
 #   - Pure #000000 OLED wallpaper, #111111 surfaces, #875fff purple focus, #d7ff5f urgent
 #   - Sharp corners (rounding = 0), 3px borders, 5px inner / 10px outer gaps, subtle shadows
 #   - Top Waybar mirroring Awesome's wibar (tags 1-9, layout box, tasklist,
-#     tray, net, bat, mem, clock); the tasklist is a socket2-driven
+#     tray, net, battery, mem, clock); the tasklist is a socket2-driven
 #     `cffi/taskbar` (focused workspace only, visible *and* minimized windows,
 #     width-bounded) and the layout box a clickable `custom/layout`
-#     (`[master]` / `[dwindle]`)
+#     (`[master]` / `[dwindle]`); the battery is a `custom/battery` script that
+#     reports the charging protocol (`PD` / `PPS` / `QC` / `AC` / `USB` / `WLS`)
+#     next to a Nerd Font level ramp, on any laptop, and hides itself when the
+#     machine has no battery
 #   - AwesomeWM keybinds, master (tile, default) <-> dwindle (spiral) toggle, sloppy focus
 #   - hyprbars titlebars on floating windows only (AwesomeWM draws them on floats)
 #   - Window minimize/restore via the hidden special:minimized workspace, tagged
@@ -215,6 +218,587 @@ let
             sys.exit(main(sys.argv))
         except (BrokenPipeError, KeyboardInterrupt):
             sys.exit(0)
+  '';
+
+  # Waybar battery module (`custom/battery`): one self-contained Python script
+  # (stdlib only) that auto-discovers every `/sys/class/power_supply` device, so
+  # the same code drives `BAT0`/`AC`/`ucsi-source-psy-*` on an Intel/AMD laptop
+  # and `qcom-battmgr-{bat,ac,usb,wls}` + `ucsi-source-psy-pmic_glink.ucsi.*` on
+  # the Snapdragon X2 - no hardcoded sysfs names. It replaces Waybar's built-in
+  # `battery` module, which cannot report the charging protocol. Bar text below;
+  # the leading glyph is the Material Design battery / charging-battery ramp,
+  # elided here for readability:
+  #
+  #   [ 67%]     discharging: Nerd Font battery ramp + level
+  #   [PD 67%]   USB-PD, >= 5.5 V or >= 15 W            (class: fast-charging)
+  #   [PPS 67%]  USB-PD PPS                             (class: fast-charging)
+  #   [PD5 67%]  USB-PD negotiated at 5 V (slow charger)
+  #   [QC 67%]   Quick Charge / vendor fast charge, non-PD
+  #   [AC 67%]   mains / DCP / CDP wall charger
+  #   [USB 67%]  SDP or plain 5 V USB port (slow)
+  #   [WLS 67%]  wireless charging
+  #   [ PD 100%] plugged in, full   /  [ 80%] plugged in, not charging
+  #
+  # Tooltip: status, protocol (incl. PD revision + PPS capability), charger V/A
+  # and negotiated watts, battery power, time to full/empty, health, cycles,
+  # temperature and the charge threshold. No battery (desktop) -> empty `text`,
+  # which Waybar 0.16 hides (`hide-empty-text`).
+  batteryScript = pkgs.writers.writePython3 "waybar-battery" { } ''
+    """Waybar battery indicator (`custom/battery`) for the Hyprland bar.
+
+    Discovery is name-agnostic: every `/sys/class/power_supply` device is
+    inspected, so the same script drives `BAT0` + `AC` + `ucsi-source-psy-*` on an
+    Intel/AMD laptop and `qcom-battmgr-{bat,ac,usb,wls}` +
+    `ucsi-source-psy-pmic_glink.ucsi.*` on the Snapdragon X2. No battery -> empty
+    `text`, which Waybar 0.16 hides (`hide-empty-text` / empty formatted text).
+
+    Bar text (`[...]` matches the rest of the bar):
+        [ 67%]        discharging: Nerd Font battery ramp glyph + capacity
+        [PD 67%]      USB-PD charging, >= 5.5 V or >= 15 W (fast)
+        [PPS 67%]     USB-PD PPS charging (fast)
+        [PD5 67%]     USB-PD at 5 V (slow charger)
+        [QC 67%]      Quick Charge / vendor fast charge (non-PD)
+        [AC 67%]      mains / DCP / CDP wall charger
+        [USB 67%]     SDP / plain 5 V USB port (slow)
+        [WLS 67%]     wireless charging
+        [ PD 100%]    plugged in, full (tag = negotiated protocol)
+        [ 80%]        plugged in, not charging (charge threshold)
+
+    `BATTERY_SYSFS_ROOT` (default `/sys/class`) points discovery at another tree;
+    that is how the mock-sysfs tests exercise every branch.
+    """
+
+    import json
+    import os
+    import re
+    import traceback
+
+    # Discovery roots (see module docstring).
+    SYSFS_ROOT = os.environ.get("BATTERY_SYSFS_ROOT") or "/sys/class"
+    POWER_SUPPLY = os.path.join(SYSFS_ROOT, "power_supply")
+    TYPEC = os.path.join(SYSFS_ROOT, "typec")
+
+    # Optional preferred battery name (`custom.hyprland.batteryName`). Discovery
+    # still works when the name is wrong or absent.
+    PREFERRED_BATTERY = ${if cfg.batteryName == null then "None" else builtins.toJSON cfg.batteryName}
+
+    # Nerd Font Material Design glyphs (present in JetBrainsMono Nerd Font 3.5.0).
+    DISCHARGE_GLYPHS = {
+        "outline": "\U000f008e",  # md-battery_outline
+        "10": "\U000f007a",  # md-battery_10
+        "20": "\U000f007b",
+        "30": "\U000f007c",
+        "40": "\U000f007d",
+        "50": "\U000f007e",
+        "60": "\U000f007f",
+        "70": "\U000f0080",
+        "80": "\U000f0081",
+        "90": "\U000f0082",
+        "full": "\U000f0079",  # md-battery
+    }
+    # Material Design only ships a charging ramp at 20/30/40/60/80/90/100.
+    CHARGE_GLYPHS = {
+        "20": "\U000f0086",  # md-battery_charging_20
+        "30": "\U000f0087",
+        "40": "\U000f0088",
+        "60": "\U000f0089",
+        "80": "\U000f008a",
+        "90": "\U000f008b",
+        "100": "\U000f0085",  # md-battery_charging_100
+    }
+    PLUG_GLYPH = "\uf1e6"  # fa-plug
+
+    PROTO_RANK = {"PPS": 6, "PD": 5, "QC": 4, "AC": 3, "USB": 2, "WLS": 1}
+    PROTO_NAMES = {
+        "PPS": "USB-PD PPS",
+        "PD": "USB-PD",
+        "QC": "Quick Charge",
+        "AC": "mains",
+        "USB": "USB",
+        "WLS": "wireless",
+    }
+    FAST_PROTOCOLS = ("PPS", "PD", "QC")
+    FAST_POWER_W = 15.0
+    FAST_VOLTAGE_V = 5.5
+
+    INT_KEYS = (
+        "online",
+        "present",
+        "capacity",
+        "voltage_now",
+        "voltage_max",
+        "voltage_min",
+        "voltage_max_design",
+        "current_now",
+        "current_max",
+        "power_now",
+        "energy_now",
+        "energy_full",
+        "energy_full_design",
+        "charge_now",
+        "charge_full",
+        "charge_full_design",
+        "cycle_count",
+        "temp",
+        "charge_control_end_threshold",
+    )
+    STR_KEYS = ("type", "scope", "status", "usb_type", "charge_type", "model_name")
+    BRACKET = re.compile(r"\[([^\]]+)\]")
+
+
+    def read(path):
+        try:
+            with open(path, "r", encoding="utf-8", errors="replace") as handle:
+                return handle.read().strip()
+        except OSError:
+            return ""
+
+
+    def read_int(path):
+        try:
+            return int(read(path))
+        except ValueError:
+            return None
+
+
+    def read_supply(path):
+        supply = {"path": path, "name": os.path.basename(path)}
+        for key in INT_KEYS:
+            supply[key] = read_int(os.path.join(path, key))
+        for key in STR_KEYS:
+            supply[key] = read(os.path.join(path, key))
+        return supply
+
+
+    def all_supplies():
+        try:
+            names = sorted(os.listdir(POWER_SUPPLY))
+        except OSError:
+            return []
+        return [
+            read_supply(os.path.join(POWER_SUPPLY, name))
+            for name in names
+            if os.path.isdir(os.path.join(POWER_SUPPLY, name))
+        ]
+
+
+    def pick_battery(supplies):
+        """The system battery: `type == Battery`, `scope != Device`, present."""
+        candidates = [
+            s
+            for s in supplies
+            if s["type"] == "Battery" and s["scope"] != "Device"
+        ]
+        present = [
+            s for s in candidates if s["present"] is None or s["present"] != 0
+        ]
+        if not present:
+            return None
+        if PREFERRED_BATTERY:
+            for supply in present:
+                if supply["name"] == PREFERRED_BATTERY:
+                    return supply
+        return max(present, key=lambda s: s["energy_now"] or s["charge_now"] or 0)
+
+
+    def parse_usb_type(value):
+        """`C [PD] PD_PPS` -> active `PD`, supported [C, PD, PD_PPS]."""
+        value = value or ""
+        match = BRACKET.search(value)
+        active = match.group(1).strip() if match else ""
+        supported = value.replace("[", " ").replace("]", " ").split()
+        return active, supported
+
+
+    def supply_protocol(supply):
+        """Charging protocol reported by one (online) supply, or None."""
+        active, _supported = parse_usb_type(supply["usb_type"])
+        if active.startswith("PD_PPS"):
+            return "PPS"
+        if active.startswith("PD"):
+            return "PD"
+        if active.startswith("QC"):
+            return "QC"
+        if active in ("DCP", "CDP", "ACA"):
+            return "AC"
+        if active in ("C", "SDP"):
+            return "USB"
+
+        charge_type = (supply["charge_type"] or "").lower()
+        if charge_type == "fast":
+            return "QC"
+
+        kind = (supply["type"] or "").lower()
+        if kind == "wireless":
+            return "WLS"
+        if kind in ("mains", "usb_c"):
+            return "AC"
+        if kind == "usb" and charge_type in (
+            "standard",
+            "adaptive",
+            "slow",
+            "trickle",
+        ):
+            return "USB"
+        return None
+
+
+    def typec_pd():
+        """Type-C PD facts for the port currently acting as a PD sink."""
+        info = {"pd": False, "revision": None, "partner": None}
+        try:
+            names = sorted(os.listdir(TYPEC))
+        except OSError:
+            return info
+        for name in names:
+            path = os.path.join(TYPEC, name)
+            if (
+                not name.startswith("port")
+                or name.endswith("-partner")
+                or not os.path.isdir(path)
+            ):
+                continue
+            mode = read(os.path.join(path, "power_operation_mode"))
+            role = read(os.path.join(path, "power_role"))
+            if mode != "usb_power_delivery" or "[sink]" not in role:
+                continue
+            info["pd"] = True
+            info["revision"] = (
+                read(os.path.join(path, "usb_power_delivery_revision")) or None
+            )
+            partner = path + "-partner"
+            if os.path.isdir(partner):
+                supports = read(
+                    os.path.join(partner, "supports_usb_power_delivery")
+                )
+                if supports == "yes":
+                    info["partner"] = (
+                        read(os.path.join(partner, "usb_power_delivery_revision"))
+                        or "yes"
+                    )
+        return info
+
+
+    def first_positive(supply, keys):
+        for key in keys:
+            value = supply[key]
+            if value is not None and value > 0:
+                return value
+        return None
+
+
+    def supply_voltage(supply):
+        return first_positive(supply, ("voltage_now", "voltage_max"))
+
+
+    def supply_current(supply):
+        return first_positive(supply, ("current_now", "current_max"))
+
+
+    def supply_power(supply):
+        """Negotiated charger power in microwatts (0 when the driver hides it)."""
+        voltage = supply_voltage(supply)
+        current = supply_current(supply)
+        if voltage and current:
+            return voltage * current / 1e6
+        return first_positive(supply, ("power_now",))
+
+
+    def capacity_of(battery):
+        if battery["capacity"] is not None:
+            return max(0, min(100, battery["capacity"]))
+        pairs = (("energy_now", "energy_full"), ("charge_now", "charge_full"))
+        for now, full in pairs:
+            if battery[now] and battery[full]:
+                percent = int(round(100.0 * battery[now] / battery[full]))
+                return max(0, min(100, percent))
+        return None
+
+
+    def energy_state(battery):
+        """(now, full, unit, now_wh, full_wh); Wh is None without a voltage."""
+        if battery["energy_now"] and battery["energy_full"]:
+            now = battery["energy_now"] / 1e6
+            full = battery["energy_full"] / 1e6
+            return now, full, "Wh", now, full
+        if battery["charge_now"] and battery["charge_full"]:
+            now = battery["charge_now"] / 1e6
+            full = battery["charge_full"] / 1e6
+            volts = first_positive(
+                battery, ("voltage_now", "voltage_min", "voltage_max_design")
+            )
+            if volts:
+                return now, full, "Ah", now * volts / 1e6, full * volts / 1e6
+            return now, full, "Ah", None, None
+        return None, None, None, None, None
+
+
+    def discharge_glyph(capacity):
+        if capacity is None or capacity <= 5:
+            return DISCHARGE_GLYPHS["outline"]
+        if capacity >= 96:
+            return DISCHARGE_GLYPHS["full"]
+        bucket = max(10, min(90, int(capacity / 10.0 + 0.5) * 10))
+        return DISCHARGE_GLYPHS[str(bucket)]
+
+
+    def charge_glyph(capacity):
+        if capacity is None or capacity <= 25:
+            return CHARGE_GLYPHS["20"]
+        if capacity <= 35:
+            return CHARGE_GLYPHS["30"]
+        if capacity <= 45:
+            return CHARGE_GLYPHS["40"]
+        if capacity <= 70:
+            return CHARGE_GLYPHS["60"]
+        if capacity <= 85:
+            return CHARGE_GLYPHS["80"]
+        if capacity <= 95:
+            return CHARGE_GLYPHS["90"]
+        return CHARGE_GLYPHS["100"]
+
+
+    def fmt_power(microwatts, charging):
+        if microwatts is None:
+            return None
+        watts = abs(microwatts) / 1e6
+        if watts < 0.05:
+            return "0.0 W"
+        return "%s%.1f W" % ("+" if charging else "-", watts)
+
+
+    def fmt_duration(seconds):
+        seconds = int(round(seconds))
+        if seconds < 60:
+            return "less than a minute"
+        hours, remainder = divmod(seconds, 3600)
+        minutes = remainder // 60
+        if hours:
+            return "%dh %02dm" % (hours, minutes)
+        return "%dm" % minutes
+
+
+    def fmt_float(value, digits=2):
+        return ("%." + str(digits) + "f") % value
+
+
+    def classify(supplies):
+        """Full display model, or None when the machine has no battery."""
+        battery = pick_battery(supplies)
+        if battery is None:
+            return None
+
+        status = battery["status"] or "Unknown"
+        capacity = capacity_of(battery)
+        charging = status.lower() == "charging"
+        online = [s for s in supplies if s["online"] == 1]
+        typec = typec_pd()
+
+        best_rank = 0
+        proto = None
+        best_supply = None
+        for supply in online:
+            candidate = supply_protocol(supply)
+            if candidate is None:
+                continue
+            rank = PROTO_RANK[candidate]
+            if rank > best_rank:
+                best_rank, proto, best_supply = rank, candidate, supply
+        if proto is None and typec["pd"] and (online or charging):
+            proto = "PD"
+
+        plugged = bool(online) or status.lower() in (
+            "charging",
+            "full",
+            "not charging",
+        )
+
+        voltage = supply_voltage(best_supply) if best_supply else None
+        current = supply_current(best_supply) if best_supply else None
+        if voltage is None:
+            for supply in online:
+                voltage = supply_voltage(supply)
+                if voltage:
+                    break
+        if current is None:
+            for supply in online:
+                current = supply_current(supply)
+                if current:
+                    break
+        charger_power = supply_power(best_supply) if best_supply else None
+        if charger_power is None and voltage and current:
+            charger_power = voltage * current
+
+        battery_power = battery["power_now"]
+        fast = False
+        if charging:
+            if proto in ("PPS", "QC", "AC"):
+                fast = True
+            elif proto == "PD":
+                fast = bool(
+                    (voltage and voltage > FAST_VOLTAGE_V * 1e6)
+                    or (charger_power and charger_power >= FAST_POWER_W * 1e6)
+                    or (battery_power and abs(battery_power) >= FAST_POWER_W * 1e6)
+                )
+
+        slow_pd = bool(charging and proto == "PD" and not fast)
+        tag = ""
+        if proto == "PD":
+            tag = "PD5" if slow_pd else "PD"
+        elif proto is not None:
+            tag = proto
+
+        if capacity is None:
+            percent = ""
+        else:
+            percent = "%d%%" % capacity
+
+        if charging:
+            head = charge_glyph(capacity) + tag
+        elif plugged:
+            head = PLUG_GLYPH + tag
+        else:
+            head = discharge_glyph(capacity)
+        text = "[%s]" % " ".join(part for part in (head, percent) if part)
+
+        classes = []
+        if charging:
+            classes.append("charging")
+        if fast:
+            classes.append("fast-charging")
+        if proto == "PPS":
+            classes.extend(["pd", "pps"])
+        elif proto == "PD":
+            classes.append("pd")
+        elif proto == "QC":
+            classes.append("qc")
+        elif proto == "WLS":
+            classes.append("wireless")
+        elif proto == "AC":
+            classes.append("ac")
+        if plugged and not charging:
+            classes.append("plugged")
+        if status.lower() == "full":
+            classes.append("full")
+        if not plugged and capacity is not None:
+            if capacity <= 25:
+                classes.append("warning")
+            if capacity <= 15:
+                classes.append("critical")
+
+        # ---- tooltip -----------------------------------------------------------
+        lines = []
+        if proto is not None:
+            supply_type = best_supply["type"] if best_supply is not None else ""
+            active, supported = ("", [])
+            if best_supply is not None:
+                active, supported = parse_usb_type(best_supply["usb_type"])
+            label = PROTO_NAMES[proto]
+            if proto == "AC":
+                label = "mains" if supply_type == "Mains" else "USB charger"
+            if proto == "PD" and typec["revision"]:
+                label += " %s" % typec["revision"]
+            notes = []
+            if proto in ("PD", "PPS") and "PD_PPS" in supported and proto != "PPS":
+                notes.append("PPS capable")
+            if slow_pd:
+                notes.append("5 V, slow")
+            if active and proto in ("AC", "USB"):
+                notes.append(active)
+            if notes:
+                label += " (%s)" % ", ".join(notes)
+            if proto == "PD" and typec["partner"]:
+                label += " / partner PD %s" % typec["partner"]
+            lines.append("%s \u2014 %s" % (status, label))
+        else:
+            lines.append(status)
+
+        if voltage or current:
+            if voltage and current:
+                charger = "%s V / %s A (%s W)" % (
+                    fmt_float(voltage / 1e6),
+                    fmt_float(current / 1e6),
+                    fmt_float(voltage * current / 1e12, 0),
+                )
+            elif current:
+                charger = "%s A (voltage not reported)" % fmt_float(current / 1e6)
+            else:
+                charger = "%s V (current not reported)" % fmt_float(voltage / 1e6)
+            lines.append("Charger: %s" % charger)
+
+        now, full, unit, now_wh, full_wh = energy_state(battery)
+        if now is not None:
+            power = fmt_power(battery_power, charging)
+            if power:
+                lines.append("Battery power: %s" % power)
+            rate = abs(battery_power) / 1e6 if battery_power else 0.0
+            if rate > 0.5 and now_wh is not None and full_wh is not None:
+                hours = None
+                if charging:
+                    hours = (full_wh - now_wh) / rate
+                    label = "Time to full"
+                elif plugged:
+                    hours = None
+                    label = ""
+                else:
+                    hours = now_wh / rate
+                    label = "Time to empty"
+                if hours is not None and 0 < hours < 100:
+                    lines.append("%s: %s" % (label, fmt_duration(hours * 3600)))
+            lines.append(
+                "Battery: %s \u2014 %s / %s %s"
+                % (percent or "?", fmt_float(now, 1), fmt_float(full, 1), unit)
+            )
+
+        design = battery["energy_full_design"]
+        if design and full:
+            health = 100.0 * full * 1e6 / design
+            lines.append(
+                "Health: %s%% (%s Wh design)"
+                % (fmt_float(health, 0), fmt_float(design / 1e6, 1))
+            )
+        elif battery["charge_full_design"] and battery["charge_full"]:
+            health = 100.0 * battery["charge_full"] / battery["charge_full_design"]
+            design_ah = battery["charge_full_design"] / 1e6
+            lines.append(
+                "Health: %s%% (%s Ah design)"
+                % (fmt_float(health, 0), fmt_float(design_ah, 2))
+            )
+
+        extras = []
+        if battery["cycle_count"]:
+            extras.append("Cycles: %d" % battery["cycle_count"])
+        if battery["temp"]:
+            extras.append("%s\u00b0C" % fmt_float(battery["temp"] / 10.0, 1))
+        if extras:
+            lines.append(" \u00b7 ".join(extras))
+        if battery["charge_control_end_threshold"]:
+            limit = battery["charge_control_end_threshold"]
+            lines.append("Charge limit: %d%%" % limit)
+
+        return {
+            "text": text,
+            "tooltip": "\n".join(lines),
+            "class": classes,
+            "alt": tag or status,
+            "percentage": capacity if capacity is not None else 0,
+        }
+
+
+    def main():
+        result = classify(all_supplies())
+        if result is None:
+            # No battery (desktop): empty text, Waybar hides the module.
+            result = {"text": "", "tooltip": "", "class": [], "alt": ""}
+        print(json.dumps(result))
+
+
+    if __name__ == "__main__":
+        try:
+            main()
+        except Exception:  # noqa: BLE001 - a bar module must never crash the bar
+            traceback.print_exc()
+            print(json.dumps({"text": "", "tooltip": "", "class": [], "alt": ""}))
   '';
 
   # Waybar scroll handler: the same 1..9 wrap-around as `cycle_workspace`
@@ -1054,8 +1638,10 @@ in
       type = lib.types.nullOr lib.types.str;
       default = null;
       description = ''
-        Battery device name for Waybar (`bat`). When null and `isLaptop` is
-        false, no battery module is shown at all.
+        Preferred battery device name for the Waybar `custom/battery` module.
+        Discovery is dynamic (`type == Battery`), so this is only a tie-breaker
+        when several batteries exist; it is not required for the module to work.
+        When null and `isLaptop` is false, no battery module is shown at all.
       '';
     };
 
@@ -1143,7 +1729,7 @@ in
             "tray"
             "network"
           ]
-          ++ lib.optional hasBattery "battery"
+          ++ lib.optional hasBattery "custom/battery"
           ++ [
             "memory"
             "clock"
@@ -1211,21 +1797,17 @@ in
         }
         # Desktops have no battery: no module, no config block.
         // lib.optionalAttrs hasBattery {
-          # `bat` is only pinned where the kernel device name is non-standard.
-          battery = {
-            interval = 5;
-            states = {
-              warning = 20;
-              critical = 10;
-            };
-            format = "[{capacity}% BAT]";
-            format-charging = "[{capacity}% BAT ↑]";
-            format-discharging = "[{capacity}% BAT ↓]";
-            format-plugged = "[{capacity}% BAT]";
-            tooltip-format = "{timeTo} ({power}W)";
-          }
-          // lib.optionalAttrs (cfg.batteryName != null) {
-            bat = cfg.batteryName;
+          # Waybar's `battery` module cannot report the charging protocol, so the
+          # bar uses a `custom` module instead (see `batteryScript`). It emits the
+          # text, CSS classes and tooltip itself and prints an empty `text` when
+          # the machine has no battery, which `hide-empty-text` turns into a
+          # fully hidden module.
+          "custom/battery" = {
+            exec = "${batteryScript}";
+            interval = 3;
+            return-type = "json";
+            tooltip = true;
+            hide-empty-text = true;
           };
         };
       };
@@ -1354,7 +1936,7 @@ in
 
         #tray,
         #network,
-        #battery,
+        #custom-battery,
         #memory,
         #clock {
           padding: 0 4px;
@@ -1365,11 +1947,38 @@ in
           margin-right: 6px;
         }
 
-        #battery.warning:not(.charging) {
+        /* Battery (`custom/battery`): the module's own classes say *why* it is
+           charging, so the bar keeps one accent (purple) for anything powered by
+           a real charger and dims "plugged but idle" states. */
+        #custom-battery.charging {
+          color: #c3a6ff;
+        }
+
+        #custom-battery.fast-charging,
+        #custom-battery.pd,
+        #custom-battery.pps,
+        #custom-battery.qc {
+          color: #875fff;
+        }
+
+        #custom-battery.wireless {
+          color: #c3a6ff;
+        }
+
+        /* Plugged in, not charging (charge threshold / conservation mode). */
+        #custom-battery.plugged {
+          color: #8f8f8f;
+        }
+
+        #custom-battery.full {
+          color: #875fff;
+        }
+
+        #custom-battery.warning:not(.charging) {
           color: #fad566;
         }
 
-        #battery.critical:not(.charging) {
+        #custom-battery.critical:not(.charging) {
           background-color: #d7ff5f;
           color: #111111;
         }
