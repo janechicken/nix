@@ -27,21 +27,42 @@
     "i2c_hid_of"
     "i2c_hid_of_elan"
     "hid_multitouch"
+    # NOT the display stack: `usb_0_qmpphy` (`qcom,glymur-qmp-usb3-dp-phy`) is
+    # driven only by `phy-qcom-qmp-combo` (=m), and `dwc3_core_get_phy()` does
+    # `devm_phy_get(dev, "usb3-phy")`, which returns -EPROBE_DEFER when the PHY
+    # provider is unbound. Without it every DWC3 controller (incl. `a600000.usb`,
+    # the YubiKey port) would never probe in stage 1 and FIDO2 unlock would fail.
+    "phy_qcom_qmp_combo"
   ];
 
-  # Stage-1 module set copied verbatim from the hardware-verified `system-10`
-  # generation. `pmic_glink` / `pmic_glink_altmode` are deliberately kept OUT
-  # of initrd: without `pmic_glink_altmode` to create their `aux_hpd_bridge`
-  # devices, the USB-C DP controllers (`af54000`/`af5c000`) defer until stage
-  # 2, so `msm_dpu` does not bind `fb0: msmdrmfb` until after switch-root and
-  # the AMOLED panel stays dark during the LUKS/FIDO2 prompt (even though
-  # `simpledrm` attaches `fb0`). Loading `pmic_glink` in initrd lets `msm_dpu`
-  # bind before stage-2 ADSP (`remoteproc1`) is up, which black-screened
-  # `system-11` after switch-root; keeping this set preserves `system-10`'s
-  # reliable stage-2 display bring-up.
+  # Stage 1 carries only what LUKS/FIDO2 + the internal keyboard need. The whole
+  # display stack lives in stage 2 (`boot.kernelModules` below).
+  #
+  # Proven root cause of the black LUKS screen ("Option A"): with `msm` +
+  # `panel_samsung_atna33xc20` in initrd, `atna33xc20_probe()` runtime-autosuspends
+  # 2 s after probe (it drops `VREG_EDP_3P3` and puts the TCON into DPCD D3)
+  # because `msm_dpu` defers on `af54000`/`af5c000` — those USB-C DP controllers
+  # never appear in stage 1 since `pmic_glink_altmode` is stage-2 only. The
+  # autosuspended panel then kills the UEFI GOP OLED scanout that `simpledrm`
+  # (`CONFIG_DRM_SIMPLEDRM=y`, built into the kernel Image) was driving, so the
+  # LUKS/FIDO2 prompt renders to a panel nobody scans out.
+  #
+  # Keeping the display stack out of initrd leaves `simpledrm` as the only DRM
+  # device in stage 1, so the UEFI-lit panel keeps showing the LUKS prompt, and
+  # stage 2 still gets the normal `msm_dpu` bring-up after switch-root (and after
+  # ADSP/`remoteproc1`). Fallback if stage 2 still loses the panel: mark
+  # `VREG_EDP_3P3` `regulator-always-on` in the board DTS ("Option A'").
   boot.initrd.kernelModules = [
     "i2c_hid_of"
     "hid_multitouch"
+  ];
+
+  # Display stack, stage 2 only. No initrd firmware staging is needed anymore:
+  # `msm` now loads after switch-root, where the declarative `mahua-firmware`
+  # derivation already ships `qcom/gen80100_{sqe,gmu,aqe}` in /lib/firmware
+  # (see `configuration.nix`). `phy_qcom_qmp_combo` also stays in stage 1 via
+  # `availableKernelModules` above, but only for its USB3 PHY half.
+  boot.kernelModules = [
     "mdt_loader"
     "phy_qcom_qmp_combo"
     "aux_bridge"
@@ -51,21 +72,6 @@
     "panel_samsung_atna33xc20"
     "msm"
   ];
-
-  # `msm` needs the Adreno X2-45 microcode (`gen80100_{sqe,gmu,aqe}`) from
-  # initrd, and the kernel cmdline pins `firmware_class.path=/var/lib/mahua-firmware`,
-  # so stage the 3 GPU blobs at that path in stage 1 (`system-10` layout).
-  # The single copy lives in `hosts/yogabook/firmware/qcom/` (also shipped
-  # declaratively to /lib/firmware for stage 2 via hardware.firmware).
-  boot.initrd.systemd.contents = {
-    "/var/lib/mahua-firmware/qcom/gen80100_sqe.fw".source = ./firmware/qcom/gen80100_sqe.fw;
-    "/var/lib/mahua-firmware/qcom/gen80100_gmu.bin".source = ./firmware/qcom/gen80100_gmu.bin;
-    "/var/lib/mahua-firmware/qcom/gen80100_aqe.fw".source = ./firmware/qcom/gen80100_aqe.fw;
-  };
-
-  # Nothing extra in stage 2: every module above is already loaded in stage 1
-  # and stays loaded across switch-root, exactly as in `system-10`.
-  boot.kernelModules = [ ];
 
   boot.extraModulePackages = [ ];
 
