@@ -48,9 +48,9 @@
   ];
 
   boot.initrd.systemd.contents = {
-    "/var/lib/mahua-firmware/qcom/gen80100_sqe.fw".source = ./firmware/gen80100_sqe.fw;
-    "/var/lib/mahua-firmware/qcom/gen80100_gmu.bin".source = ./firmware/gen80100_gmu.bin;
-    "/var/lib/mahua-firmware/qcom/gen80100_aqe.fw".source = ./firmware/gen80100_aqe.fw;
+    "/var/lib/mahua-firmware/qcom/gen80100_sqe.fw".source = ./firmware/qcom/gen80100_sqe.fw;
+    "/var/lib/mahua-firmware/qcom/gen80100_gmu.bin".source = ./firmware/qcom/gen80100_gmu.bin;
+    "/var/lib/mahua-firmware/qcom/gen80100_aqe.fw".source = ./firmware/qcom/gen80100_aqe.fw;
   };
 
   boot.kernelModules = [ ];
