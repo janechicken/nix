@@ -320,11 +320,10 @@
   networking.firewall.enable = false;
 
   # s2idle only: `deep` (PSCI SYSTEM_SUSPEND) is unsupported on Mahua and the
-  # cmdline pins mem_sleep_default=s2idle. SuspendMode must agree, otherwise
-  # logind writes "deep" into /sys/power/mem_sleep before suspending.
+  # cmdline pins mem_sleep_default=s2idle. `SuspendState = "freeze"` forces
+  # s2idle unconditionally (systemd 262 removed `SuspendMode=`).
   systemd.sleep.settings.Sleep = {
     SuspendState = "freeze";
-    SuspendMode = "s2idle";
   };
 
   # 16 GiB RAM: zram keeps the laptop responsive without a swap partition
