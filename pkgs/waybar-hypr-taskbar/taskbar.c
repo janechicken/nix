@@ -886,16 +886,21 @@ static void render_taskbar(TaskbarMod *mod) {
                        G_CALLBACK(on_task_button_press), mod);
 
       GtkWidget *inner = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 6);
+      gtk_widget_set_hexpand(inner, TRUE);
+      gtk_widget_set_halign(inner, GTK_ALIGN_FILL);
       GtkWidget *icon = make_icon_widget(mod, ci->wclass, ci->initial_class);
       GtkWidget *label = gtk_label_new(ci->title);
       /* Let the label shrink to nothing and ellipsize inside its slot: the
-       * width is dictated by the homogeneous box, not by the text. */
+       * width is dictated by the homogeneous box, not by the text.  Keep
+       * halign = FILL (NOT START, which shrinks the widget to its 1-char
+       * natural width) and use xalign = 0.0 to left-align the text inside. */
       gtk_label_set_ellipsize(GTK_LABEL(label), PANGO_ELLIPSIZE_END);
       gtk_label_set_single_line_mode(GTK_LABEL(label), TRUE);
       gtk_label_set_width_chars(GTK_LABEL(label), 1);
       gtk_label_set_max_width_chars(GTK_LABEL(label), 1);
+      gtk_label_set_xalign(GTK_LABEL(label), 0.0f);
       gtk_widget_set_hexpand(label, TRUE);
-      gtk_widget_set_halign(label, GTK_ALIGN_START);
+      gtk_widget_set_halign(label, GTK_ALIGN_FILL);
 
       gtk_box_pack_start(GTK_BOX(inner), icon, FALSE, FALSE, 0);
       gtk_box_pack_start(GTK_BOX(inner), label, TRUE, TRUE, 0);
