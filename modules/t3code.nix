@@ -266,7 +266,6 @@ in
   systemd.user.services.t3code = {
     Unit = {
       Description = "T3 Code server (yields the T3 home to t3code-desktop)";
-      After = [ "network-online.target" ];
       StartLimitIntervalSec = 300;
       StartLimitBurst = 5;
     };
