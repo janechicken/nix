@@ -4,12 +4,15 @@
 #   - Sharp corners (rounding = 0), 3px borders, 5px inner / 10px outer gaps, subtle shadows
 #   - Top Waybar mirroring Awesome's wibar (tags 1-9, layout box, tasklist,
 #     tray, net, bat, mem, clock); the tasklist is a socket2-driven
-#     `custom/tasklist` (focused workspace only, width-bounded) and the layout
-#     box a clickable `custom/layout` (`[master]` / `[dwindle]`)
+#     `cffi/taskbar` (focused workspace only, visible *and* minimized windows,
+#     width-bounded) and the layout box a clickable `custom/layout`
+#     (`[master]` / `[dwindle]`)
 #   - AwesomeWM keybinds, master (tile, default) <-> dwindle (spiral) toggle, sloppy focus
 #   - hyprbars titlebars on floating windows only (AwesomeWM draws them on floats)
-#   - Window minimize/restore via the hidden special:minimized workspace,
-#     keyboard + mouse resizing (resizeactive on tiled and floating windows)
+#   - Window minimize/restore via the hidden special:minimized workspace, tagged
+#     per originating workspace (`minimized-ws-<N>`) so the taskbar can list a
+#     workspace's minimized windows; keyboard + mouse resizing (resizeactive on
+#     tiled and floating windows)
 #   - Mako bottom-right notifications, Hyprlock (#000000 + U2F), Hypridle lid/sleep lock
 #
 # Shared by every Hyprland host (hosts/<host>/home.nix). Hosts configure
@@ -92,497 +95,14 @@ let
       "$title" "Brightness: ''${pct}"
   '';
 
-  # Waybar tasklist: Waybar 0.16's wlr/taskbar cannot filter by Hyprland
-  # workspace, so the tasklist is a small event-driven client instead. It
-  # listens on Hyprland's `.socket2.sock` (no polling), shows only the mapped
-  # windows of the focused workspace, and bounds its own text to a character
-  # budget derived from the focused monitor's logical width so modules-left
-  # (workspaces + layout) and modules-right (tray/network/battery/memory/clock)
-  # can never be pushed off the bar.
-  tasklistScript = pkgs.writers.writePython3 "hypr-tasklist" { } ''
-    """Event-driven Waybar tasklist for Hyprland 0.57 (Lua config).
-
-    Only shows windows on the focused workspace and never lets the bar's left
-    (workspaces + layout) or right (tray/network/battery/memory/clock) groups be
-    pushed off screen: the rendered text is bounded by a character budget derived
-    from the focused monitor's logical width.
-
-    Reads events from `.socket2.sock` (no polling) and answers queries on
-    `.socket.sock` (`j/monitors`, `j/activeworkspace`, `j/clients`,
-    `j/activewindow`).
-    """
-
-    import html
-    import json
-    import os
-    import select
-    import socket
-    import sys
-    import time
-
-    # Fixed pixel reserves for the bar's left and right module groups.
-    LEFT_RESERVE = 330
-    RIGHT_RESERVE = 560
-    CHAR_PX = 9
-    MIN_TOTAL_CHARS = 18
-    MIN_ENTRY_CHARS = 12
-    SEPARATOR = " "
-    # Character cells an icon plus its trailing space occupy. JetBrains Mono is
-    # monospaced and every glyph below is single-cell, so that is exactly two
-    # characters of the bar's width budget.
-    ICON_CHARS = 2
-
-    ACTIVE_BG = "#875fff"
-    ACTIVE_FG = "#ffffff"
-    INACTIVE_FG = "#aaaaaa"
-
-    # Nerd Font app icons. Waybar's `custom/*` modules cannot render GTK pixbuf
-    # icons (there is no icon/`format-icons` support in a `custom` module, only
-    # text or Pango markup), and `wlr/taskbar` -- which can render them -- is
-    # driven by `wlr-foreign-toplevel`, which carries no workspace id. It would
-    # therefore show every window on every workspace and could no longer be
-    # width-bounded, pushing the workspaces off the bar. So: Nerd Font glyphs,
-    # drawn by the `font-family: "JetBrainsMono Nerd Font"` the bar already uses.
-    #
-    # Every codepoint below was checked against
-    # JetBrainsMonoNerdFont-Regular.ttf (nerd-fonts 3.5.0, see modules/fonts.nix)
-    # so none of them falls back to a tofu box.
-    #
-    # Matched case-insensitively as a substring of `class` then `initialClass`,
-    # first match wins -- so specific apps come before their category, and
-    # categories come before the generic fallback.
-    ICON_ROBOT = "\U000F06A9"  # md-robot
-    ICON_VSCODE = "\U000F0A1E"  # md-microsoft_visual_studio_code
-    ICON_DISCORD = "\uf1ff"  # fa-discord
-    ICON_SPOTIFY = "\uf1bc"  # fa-spotify
-    ICON_STEAM = "\uf1b6"  # fa-steam
-    ICON_KEY = "\uf084"  # fa-key
-    ICON_NOTE = "\U000F039E"  # md-note_text
-    ICON_GAMEPAD = "\uf11b"  # fa-gamepad
-    ICON_CHESS = "\ued63"  # fa-chess_knight
-    ICON_CUBE = "\uf1b2"  # fa-cube
-    ICON_MUSIC = "\uf001"  # fa-music
-    ICON_VOLUME = "\uf028"  # fa-volume_up
-    ICON_HEADPHONES = "\uf025"  # fa-headphones
-    ICON_CHIP = "\uf2db"  # fa-microchip
-    ICON_GRID = "\uf00a"  # fa-th
-    ICON_BUG = "\uf188"  # fa-bug
-    ICON_PALETTE = "\uefcc"  # fa-palette
-    ICON_VIDEO_CAMERA = "\uf03d"  # fa-video_camera
-    ICON_CAMERA = "\uf030"  # fa-camera
-    ICON_PASTE = "\uf0ea"  # fa-paste
-    ICON_NEOVIM = "\ue83a"  # dev-neovim
-    ICON_EMACS = "\ue7cf"  # dev-emacs
-    ICON_DATABASE = "\uf1c0"  # fa-database
-    ICON_DOCKER = "\uf21f"  # fa-docker
-    ICON_CLOUD = "\uf0c2"  # fa-cloud
-    ICON_ENVELOPE = "\uf0e0"  # fa-envelope
-    ICON_TERMINAL = "\uf120"  # fa-terminal
-    ICON_CODE = "\uf121"  # fa-code
-    ICON_FIREFOX = "\uf269"  # fa-firefox
-    ICON_GLOBE = "\uf0ac"  # fa-globe
-    ICON_COMMENTS = "\uf086"  # fa-comments
-    ICON_FOLDER = "\uf07b"  # fa-folder
-    ICON_FILM = "\uf008"  # fa-film
-    ICON_DOCUMENT = "\U000F0219"  # md-file_document
-    ICON_COG = "\uf013"  # fa-cog
-    ICON_IMAGE = "\uf03e"  # fa-image
-
-    APP_ICONS = (
-        # --- named apps ----------------------------------------------------
-        (("t3code", "t3tools", "t3 code"), ICON_ROBOT),
-        (("antigravity",), ICON_VSCODE),
-        (("vesktop", "discord", "armcord", "webcord"), ICON_DISCORD),
-        (("spotify",), ICON_SPOTIFY),
-        (("steam",), ICON_STEAM),
-        (("keepass", "bitwarden", "1password", "seahorse"), ICON_KEY),
-        (("obsidian", "logseq", "joplin", "notion"), ICON_NOTE),
-        (
-            ("dolphin-emu", "cemu", "pcsx2", "retroarch",
-             "ryujinx", "yuzu", "duckstation"),
-            ICON_GAMEPAD,
-        ),
-        (("en-croissant", "stockfish", "chess"), ICON_CHESS),
-        (("minecraft", "prismlauncher", "multimc"), ICON_CUBE),
-        (("reaper", "ardour", "bitwig", "lmms", "carla"), ICON_MUSIC),
-        (
-            ("pavucontrol", "easyeffects", "qpwgraph",
-             "qjackctl", "helvum"),
-            ICON_VOLUME,
-        ),
-        (("mumble",), ICON_HEADPHONES),
-        (("ida",), ICON_CHIP),
-        (("imhex", "hexyl"), ICON_GRID),
-        (
-            ("ghidra", "radare", "rizin", "cutter",
-             "binwalk", "binaryninja"),
-            ICON_BUG,
-        ),
-        (
-            ("inkscape", "gimp", "krita", "blender",
-             "kdenlive", "shotcut"),
-            ICON_PALETTE,
-        ),
-        (("obs", "wlrobs"), ICON_VIDEO_CAMERA),
-        (("flameshot", "spectacle", "screenshot"), ICON_CAMERA),
-        (("copyq", "clipman", "cliphist"), ICON_PASTE),
-        (("neovide", "neovim", "nvim"), ICON_NEOVIM),
-        (("emacs",), ICON_EMACS),
-        (
-            ("dbeaver", "postgres", "mysql", "sqlite",
-             "redis", "mongo"),
-            ICON_DATABASE,
-        ),
-        (("docker", "podman"), ICON_DOCKER),
-        (("syncthing", "nextcloud"), ICON_CLOUD),
-        (("thunderbird", "evolution"), ICON_ENVELOPE),
-        # --- categories ----------------------------------------------------
-        (
-            ("kitty", "ghostty", "alacritty", "wezterm", "foot",
-             "konsole", "xterm", "urxvt", "rxvt", "terminator",
-             "tilix", "termite", "tabby", "warp", "hyper", "eterm"),
-            ICON_TERMINAL,
-        ),
-        (
-            ("code", "codium", "cursor", "windsurf", "vscode",
-             "sublime", "jetbrains", "idea", "pycharm", "clion",
-             "goland", "webstorm", "rustrover", "phpstorm",
-             "datagrip", "android-studio"),
-            ICON_VSCODE,
-        ),
-        (
-            ("zed", "helix", "lapce", "kate", "gedit",
-             "gnome-text-editor", "mousepad"),
-            ICON_CODE,
-        ),
-        (("firefox", "librewolf", "waterfox", "zen-browser"), ICON_FIREFOX),
-        (
-            ("brave", "chrom", "vivaldi", "edge", "opera",
-             "qutebrowser", "epiphany", "tor browser", "browser"),
-            ICON_GLOBE,
-        ),
-        (
-            ("element", "signal", "telegram", "whatsapp", "slack",
-             "gajim", "hexchat", "fractal", "matrix", "chat",
-             "messenger"),
-            ICON_COMMENTS,
-        ),
-        (
-            ("nemo", "nautilus", "thunar", "pcmanfm", "caja",
-             "ranger", "yazi", "dolphin", "ark", "file-roller",
-             "xarchiver", "gparted", "gnome-disks"),
-            ICON_FOLDER,
-        ),
-        (("mpv", "vlc", "celluloid", "totem", "haruna", "parole"), ICON_FILM),
-        (
-            ("libreoffice", "soffice", "onlyoffice", "zathura",
-             "evince", "okular", "pdf", "calibre"),
-            ICON_DOCUMENT,
-        ),
-        (
-            ("gnome-control-center", "systemsettings", "gnome-tweaks",
-             "lxappearance", "nwg-look", "dconf", "settings"),
-            ICON_COG,
-        ),
-        (("feh", "eog", "gwenview", "imv", "viewer", "image"), ICON_IMAGE),
-    )
-
-    # Generic "application window" glyph for anything not listed above.
-    FALLBACK_ICON = "\uf2d0"  # fa-window_maximize
-
-    RENDER_EVENTS = frozenset(
-        (
-            "workspace",
-            "workspacev2",
-            "createworkspace",
-            "createworkspacev2",
-            "destroyworkspace",
-            "destroyworkspacev2",
-            "focusedmon",
-            "focusedmonv2",
-            "activewindow",
-            "activewindowv2",
-            "openwindow",
-            "closewindow",
-            "movewindow",
-            "movewindowv2",
-            "windowtitle",
-            "windowtitlev2",
-            "changefloatingmode",
-            "fullscreen",
-            "configreloaded",
-            "monitoradded",
-            "monitoraddedv2",
-            "monitorremoved",
-            "monitorremovedv2",
-        )
-    )
-
-
-    def socket_dir():
-        """Directory holding the Hyprland IPC sockets for this session."""
-        runtime = os.environ.get("XDG_RUNTIME_DIR") or "/run/user/%d" % os.getuid()
-        base = os.path.join(runtime, "hypr")
-        sig = os.environ.get("HYPRLAND_INSTANCE_SIGNATURE")
-        if sig:
-            return os.path.join(base, sig)
-        try:
-            candidates = [os.path.join(base, e) for e in os.listdir(base)]
-        except OSError:
-            candidates = []
-        candidates = [c for c in candidates if os.path.isdir(c)]
-        if not candidates:
-            return os.path.join(base, "missing")
-        return max(candidates, key=os.path.getmtime)
-
-
-    def request(path, command):
-        """One request/response round trip on the Hyprland command socket."""
-        sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-        sock.settimeout(2.0)
-        try:
-            sock.connect(path)
-            sock.sendall(command.encode("utf-8", "replace"))
-            chunks = []
-            while True:
-                chunk = sock.recv(65536)
-                if not chunk:
-                    break
-                chunks.append(chunk)
-            return b"".join(chunks).decode("utf-8", "replace")
-        finally:
-            sock.close()
-
-
-    def request_json(path, command):
-        raw = request(path, command)
-        raw = raw.strip()
-        if not raw:
-            return None
-        return json.loads(raw)
-
-
-    def emit(text, tooltip=""):
-        payload = {"text": text, "tooltip": tooltip, "class": "tasklist"}
-        sys.stdout.write(json.dumps(payload) + "\n")
-        sys.stdout.flush()
-
-
-    def truncate(title, width):
-        title = " ".join(title.split())
-        if width <= 0:
-            return ""
-        if len(title) <= width:
-            return title
-        if width == 1:
-            return "…"
-        return title[: width - 1].rstrip() + "…"
-
-
-    def span(title, active):
-        escaped = html.escape(title, quote=False)
-        if active:
-            return '<span background="%s" foreground="%s"> %s </span>' % (
-                ACTIVE_BG,
-                ACTIVE_FG,
-                escaped,
-            )
-        return '<span foreground="%s"> %s </span>' % (INACTIVE_FG, escaped)
-
-
-    def logical_width(monitors):
-        for monitor in monitors or []:
-            if monitor.get("focused") and not monitor.get("disabled"):
-                width = monitor.get("width") or 0
-                scale = monitor.get("scale") or 1.0
-                if width > 0 and scale > 0:
-                    return int(width / scale)
-        for monitor in monitors or []:
-            width = monitor.get("width") or 0
-            scale = monitor.get("scale") or 1.0
-            if width > 0 and scale > 0:
-                return int(width / scale)
-        return 1920
-
-
-    def char_budget(monitors):
-        avail = logical_width(monitors) - (LEFT_RESERVE + RIGHT_RESERVE)
-        avail = max(160, avail)
-        return max(MIN_TOTAL_CHARS, avail // CHAR_PX)
-
-
-    def icon_for(client):
-        """Nerd Font glyph for a client, matched on `class` then `initialClass`."""
-        names = (
-            (client.get("class") or "").lower(),
-            (client.get("initialClass") or "").lower(),
-            (client.get("initial_class") or "").lower(),
-        )
-        for patterns, icon in APP_ICONS:
-            for name in names:
-                if not name:
-                    continue
-                for pattern in patterns:
-                    if pattern in name:
-                        return icon
-        return FALLBACK_ICON
-
-
-    def fit_titles(titles, budget):
-        """How many entries fit, and how many title characters each one gets.
-
-        Every entry also carries its icon plus a space (`ICON_CHARS`) and the
-        two padding spaces of its Pango span, so that overhead is charged
-        against the budget before the title length is chosen -- the bar's left
-        and right groups can still never be pushed off screen.
-        """
-        total = len(titles)
-        count = total
-        overhead = 2 + ICON_CHARS
-        while count > 1:
-            suffix = len(" +%d" % (total - count)) if count < total else 0
-            per = (budget - suffix - (count - 1)) // count - overhead
-            if per >= MIN_ENTRY_CHARS:
-                return count, per
-            count -= 1
-        suffix = len(" +%d" % (total - 1)) if total > 1 else 0
-        return 1, max(1, budget - suffix - overhead)
-
-
-    def render(sock_path, order):
-        monitors = request_json(sock_path, "j/monitors")
-        workspace = request_json(sock_path, "j/activeworkspace") or {}
-        clients = request_json(sock_path, "j/clients") or []
-        active = request_json(sock_path, "j/activewindow") or {}
-
-        workspace_id = workspace.get("id")
-        active_address = active.get("address")
-
-        # Mapped, visible windows on the focused workspace only. Minimized windows
-        # live on "special:minimized" and therefore drop out on their own.
-        visible = {}
-        for client in clients:
-            client_ws = client.get("workspace") or {}
-            if client_ws.get("id") != workspace_id:
-                continue
-            if not client.get("mapped", True):
-                continue
-            if client.get("hidden"):
-                continue
-            visible[client.get("address")] = client
-
-        # Stable ordering: keep the previous order, append new windows, drop gone.
-        order[:] = [a for a in order if a in visible]
-        for address in visible:
-            if address not in order:
-                order.append(address)
-
-        windows = [visible[a] for a in order]
-        if not windows:
-            emit("", "No windows on this workspace")
-            return
-
-        titles = [w.get("title") or w.get("class") or "?" for w in windows]
-        addresses = [w.get("address") for w in windows]
-
-        budget = char_budget(monitors)
-        count, per = fit_titles(titles, budget)
-        shown = list(range(count))
-        # Never hide the focused window: swap it in for the last visible entry.
-        if active_address in addresses:
-            active_index = addresses.index(active_address)
-            if active_index not in shown:
-                shown[-1] = active_index
-        shown.sort()
-
-        parts = [
-            span(
-                icon_for(windows[i]) + " " + truncate(titles[i], per),
-                addresses[i] == active_address,
-            )
-            for i in shown
-        ]
-        text = SEPARATOR.join(parts)
-        if count < len(titles):
-            text += SEPARATOR + "+%d" % (len(titles) - count)
-
-        lines = []
-        for index, title in enumerate(titles):
-            marker = "▶ " if addresses[index] == active_address else "  "
-            lines.append(marker + html.escape(title, quote=False))
-        tooltip = "\n".join(lines)
-
-        emit(text, tooltip)
-
-
-    def main():
-        directory = socket_dir()
-        event_path = os.path.join(directory, ".socket2.sock")
-        sock_path = os.path.join(directory, ".socket.sock")
-
-        order = []
-        stream = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-        stream.settimeout(2.0)
-        stream.connect(event_path)
-        stream.settimeout(None)
-
-        try:
-            render(sock_path, order)
-        except Exception as exc:  # noqa: BLE001 - keep the module alive
-            emit("", "tasklist error: %s" % exc)
-
-        pending = b""
-        render_at = None
-        recheck_at = None
-
-        while True:
-            now = time.monotonic()
-            deadlines = [d for d in (render_at, recheck_at) if d is not None]
-            timeout = max(0.0, min(deadlines) - now) if deadlines else 30.0
-
-            readable, _, _ = select.select([stream], [], [], timeout)
-
-            if readable:
-                chunk = stream.recv(65536)
-                if not chunk:
-                    return 0
-                pending += chunk
-                interesting = False
-                while b"\n" in pending:
-                    line, pending = pending.split(b"\n", 1)
-                    event = line.decode("utf-8", "replace").split(">>", 1)
-                    event = event[0].strip()
-                    if event in RENDER_EVENTS:
-                        interesting = True
-                if interesting:
-                    now = time.monotonic()
-                    # Coalesce the burst of events one action emits, then render
-                    # again shortly after: Hyprland reports `activewindow` after
-                    # `workspacev2`, so the first pass can still see the old focus.
-                    render_at = now + 0.02
-                    recheck_at = now + 0.15
-
-            now = time.monotonic()
-            if render_at is not None and now >= render_at:
-                render_at = None
-                try:
-                    render(sock_path, order)
-                except Exception:  # noqa: BLE001
-                    pass
-            if recheck_at is not None and now >= recheck_at:
-                recheck_at = None
-                try:
-                    render(sock_path, order)
-                except Exception:  # noqa: BLE001
-                    pass
-
-
-    if __name__ == "__main__":
-        try:
-            sys.exit(main())
-        except (BrokenPipeError, KeyboardInterrupt):
-            sys.exit(0)
-  '';
+  # Waybar active-workspace taskbar (CFFI GTK3 module): Waybar 0.16's built-in
+  # wlr/taskbar cannot filter by Hyprland workspace, while custom/* modules
+  # cannot render real per-app GTK icons. This small CFFI shared library listens
+  # on Hyprland's `.socket2.sock` (no polling), shows only mapped windows on the
+  # focused workspace with their real .desktop / icon-theme app icons, focuses a
+  # window on click, and caps its own width from the monitor's logical width so
+  # workspaces and tray/clock can never be pushed off-screen.
+  waybarHyprTaskbar = pkgs.callPackage ../pkgs/waybar-hypr-taskbar { };
 
   # Waybar layout indicator: `[master]` / `[dwindle]` next to the workspaces,
   # `toggle` flips the layout and re-runs every `signal = 8` Waybar module.
@@ -819,6 +339,15 @@ let
       master = {
         mfact = 0.55,
         new_status = "slave",
+      },
+
+      -- msm_dpu (yogabook) has no HDR_OUTPUT_METADATA support, so with the
+      -- colour-management pipeline on every commit logs `failed to commit hdr
+      -- metadata: no HDR_OUTPUT_METADATA prop support` and HDR mode switches
+      -- flash/tear. Hyprland 0.57.2: `render:cm_enabled` (default true, needs a
+      -- restart for full effect) — keep the plain sRGB path.
+      render = {
+        cm_enabled = false,
       },
 
       misc = {
@@ -1134,60 +663,129 @@ let
     hl.bind(mainMod .. " + T", hl.dsp.window.pin(), { description = "toggle pin / keep on top (floating)" })
 
     -- Minimize / restore (matching dotfiles/awesome/rc.lua modkey+n / modkey+Control+n).
-    -- Minimized clients are parked on the hidden "special:minimized" workspace;
-    -- the stack below keeps the LIFO order so restore pops the newest one.
+    -- Minimized clients are parked on the hidden "special:minimized" workspace
+    -- and tagged `minimized-ws-<N>` with the workspace they were minimized from.
+    -- The tag is what makes them per-workspace: Waybar's `cffi/taskbar` reads
+    -- `hyprctl -j clients` and lists a workspace's minimized windows next to its
+    -- visible ones (left click restores + focuses, middle click minimizes),
+    -- while SUPER+SHIFT+N still peeks at all of them at once. Verified against
+    -- Hyprland 0.57.2: `hl.dsp.window.tag({ tag = ..., window = ... })`,
+    -- `clear_tags` and `move({ workspace = <id>, follow = true, window = ... })`
+    -- (follow = true also focuses the window, which a window on the hidden
+    -- special workspace cannot be made to do directly: `hl.dsp.focus` on it
+    -- would open the special workspace instead).
+    local MINIMIZED_WORKSPACE = "special:minimized"
+    local MINIMIZED_TAG_PREFIX = "minimized-ws-"
+
+    -- Restore order only (newest last); the workspace attribution lives in the
+    -- tag, so it survives a config reload.
     local minimized = {}
 
+    local function minimized_tag(ws_id)
+      return MINIMIZED_TAG_PREFIX .. tostring(ws_id)
+    end
+
+    -- Workspace a minimized window was minimized from, nil when untagged (a
+    -- window parked there before this tagging existed).
+    local function minimized_workspace_id(win)
+      if not (win and win.tags) then
+        return nil
+      end
+      for _, tag in ipairs(win.tags) do
+        if type(tag) == "string" and tag:sub(1, #MINIMIZED_TAG_PREFIX) == MINIMIZED_TAG_PREFIX then
+          local id = tonumber(tag:sub(#MINIMIZED_TAG_PREFIX + 1))
+          if id then
+            return id
+          end
+        end
+      end
+      return nil
+    end
+
+    local function is_minimized(win)
+      return win ~= nil and win.workspace ~= nil and win.workspace.name == MINIMIZED_WORKSPACE
+    end
+
+    -- The workspace a keybind should act on. While the minimize workspace is
+    -- being peeked at, the special one is never a valid target.
+    local function target_workspace_id()
+      local ws = hl.get_active_workspace()
+      if ws and ws.special then
+        ws = hl.get_last_workspace()
+      end
+      return ws and ws.id or nil
+    end
+
+    local function minimize_window(win, ws_id)
+      if not win or not ws_id or is_minimized(win) then
+        return
+      end
+      -- `tagwindow` adds to the tag set, so clear first: a window that was
+      -- restored and minimized again must not keep the previous workspace tag.
+      hl.dispatch(hl.dsp.window.clear_tags({ window = win }))
+      hl.dispatch(hl.dsp.window.tag({ tag = minimized_tag(ws_id), window = win }))
+      hl.dispatch(hl.dsp.window.move({ workspace = MINIMIZED_WORKSPACE, follow = false, window = win }))
+      minimized[#minimized + 1] = { address = win.address, workspace = ws_id }
+    end
+
     local function minimize_active()
-      local win = hl.get_active_window()
-      if not win then
+      minimize_window(hl.get_active_window(), target_workspace_id())
+    end
+
+    -- Newest minimized window of `ws_id`: the restore stack first (LIFO), then
+    -- the tags for the stale-stack case (e.g. after a config reload), and
+    -- finally an untagged legacy window, which has no workspace to go back to.
+    local function pop_minimized(ws_id)
+      if not ws_id then
+        return nil
+      end
+      for i = #minimized, 1, -1 do
+        local entry = minimized[i]
+        if entry.workspace == ws_id then
+          table.remove(minimized, i)
+          local candidate = hl.get_window("address:" .. entry.address)
+          if is_minimized(candidate) then
+            return candidate
+          end
+        end
+      end
+
+      local hidden = hl.get_windows({ workspace = MINIMIZED_WORKSPACE })
+      local legacy
+      for i = #hidden, 1, -1 do
+        local owner = minimized_workspace_id(hidden[i])
+        if owner == ws_id then
+          return hidden[i]
+        end
+        if not owner then
+          legacy = hidden[i]
+        end
+      end
+      return legacy
+    end
+
+    local function restore_window(win, ws_id)
+      if not win or not ws_id then
         return
       end
-      if win.workspace and win.workspace.name == "special:minimized" then
-        return
-      end
-      minimized[#minimized + 1] = {
-        address = win.address,
-        workspace = win.workspace and win.workspace.id or nil,
-      }
-      hl.dispatch(hl.dsp.window.move({ workspace = "special:minimized", follow = false }))
+      hl.dispatch(hl.dsp.window.clear_tags({ window = win }))
+      -- One dispatch restores *and* focuses (follow = true -> silent = false),
+      -- and it closes the peeked special workspace when restoring from a peek.
+      hl.dispatch(hl.dsp.window.move({ workspace = ws_id, follow = true, window = win }))
     end
 
     local function restore_minimized()
-      -- Capture the destination first: focusing a hidden window would otherwise
-      -- make the special workspace the active one.
-      local target = hl.get_active_workspace()
-      if target and target.special then
-        target = hl.get_last_workspace()
-      end
-      local target_id = target and target.id or nil
-
-      local win
-      while #minimized > 0 do
-        local entry = table.remove(minimized)
-        local candidate = hl.get_window("address:" .. entry.address)
-        if candidate and candidate.workspace and candidate.workspace.name == "special:minimized" then
-          win = candidate
-          -- Prefer the workspace we are on, else the one it came from.
-          target_id = target_id or entry.workspace
-          break
-        end
-      end
-      if not win then
-        -- Stack empty or stale (e.g. after a config reload): take anything left.
-        local hidden = hl.get_windows({ workspace = "special:minimized" })
-        win = hidden[#hidden]
-      end
-      if not win then
-        return
-      end
-
-      hl.dispatch(hl.dsp.focus({ window = win }))
-      hl.dispatch(hl.dsp.window.move({ workspace = target_id or "e+0", follow = true }))
-      -- Make sure the restored window really ends up focused (e.g. when the
-      -- special workspace is being peeked at while restoring).
-      hl.dispatch(hl.dsp.focus({ window = win }))
+      local ws_id = target_workspace_id()
+      restore_window(pop_minimized(ws_id), ws_id)
     end
+
+    -- hyprbars buttons run a shell command, so the titlebar minimize button
+    -- carries its own self-contained copy of `minimize_active`.
+    local HYPRBARS_MINIMIZE = "hyprctl dispatch 'function() local w = hl.get_active_window() if not w then return end "
+      .. "local ws = hl.get_active_workspace() if ws.special then ws = hl.get_last_workspace() end if not ws then return end "
+      .. "hl.dispatch(hl.dsp.window.clear_tags({ window = w })) "
+      .. "hl.dispatch(hl.dsp.window.tag({ tag = \"minimized-ws-\" .. tostring(ws.id), window = w })) "
+      .. "hl.dispatch(hl.dsp.window.move({ workspace = \"special:minimized\", follow = false, window = w })) end'"
 
     hl.bind(mainMod .. " + N", minimize_active, { description = "minimize window" })
     hl.bind(mainMod .. " + CONTROL + N", restore_minimized, { description = "restore minimized window" })
@@ -1354,7 +952,7 @@ let
           fg_color = "rgb(ffffff)",
           size = 18,
           icon = "—",
-          action = "hyprctl dispatch 'hl.dsp.window.move({ workspace = \"special:minimized\", follow = false })'",
+          action = HYPRBARS_MINIMIZE,
         })
       end
 
@@ -1534,13 +1132,13 @@ in
         mainBar = {
           layer = "top";
           position = "top";
-          height = 24;
+          height = 32;
           spacing = 6;
           modules-left = [
             "hyprland/workspaces"
             "custom/layout"
           ];
-          modules-center = [ "custom/tasklist" ];
+          modules-center = [ "cffi/taskbar" ];
           modules-right = [
             "tray"
             "network"
@@ -1575,24 +1173,18 @@ in
             on-click = "${layoutScript} toggle";
           };
 
-          # AwesomeWM's `mytasklist`. Waybar 0.16's wlr/taskbar cannot filter by
-          # Hyprland workspace (`all-outputs = false` is only per-monitor), so
-          # this is `tasklistScript`: event-driven off Hyprland's socket2, mapped
-          # windows of the focused workspace only, self-bounded width. Click /
-          # scroll cycle the workspace's windows instead of activating by index.
-          "custom/tasklist" = {
-            exec = "${tasklistScript}";
-            return-type = "json";
-            escape = false;
-            tooltip = true;
-            on-click = "hyprctl dispatch 'hl.dsp.window.cycle_next()'";
-            on-click-right = "hyprctl dispatch 'hl.dsp.window.cycle_next({ next = false })'";
-            on-scroll-up = "hyprctl dispatch 'hl.dsp.window.cycle_next()'";
-            on-scroll-down = "hyprctl dispatch 'hl.dsp.window.cycle_next({ next = false })'";
+          # AwesomeWM's `mytasklist` via Waybar's native CFFI module API:
+          # real per-app GTK icons from .desktop files / GtkIconTheme, strictly
+          # filtered to the focused workspace's mapped windows plus the windows
+          # minimized from that same workspace, direct click to focus/restore,
+          # and width-bounded so workspaces and tray never overflow.
+          "cffi/taskbar" = {
+            module_path = "${waybarHyprTaskbar}/lib/libwaybar-hypr-taskbar.so";
+            icon_size = 18;
           };
 
           tray = {
-            icon-size = 16;
+            icon-size = 18;
             spacing = 6;
           };
 
@@ -1643,7 +1235,7 @@ in
           border: none;
           border-radius: 0;
           font-family: "JetBrainsMono Nerd Font", monospace;
-          font-size: 13px;
+          font-size: 13.5px;
           min-height: 0;
         }
 
@@ -1658,7 +1250,7 @@ in
         }
 
         #workspaces button {
-          padding: 0 6px;
+          padding: 0 7px;
           min-width: 0;
           background-color: #111111;
           color: #aaaaaa;
@@ -1686,7 +1278,7 @@ in
         /* AwesomeWM mylayoutbox: `[master]` / `[dwindle]`, right of the tags. */
         #custom-layout {
           margin-left: 6px;
-          padding: 0 6px;
+          padding: 0 7px;
           min-width: 0;
           background-color: #111111;
           color: #aaaaaa;
@@ -1701,17 +1293,63 @@ in
           color: #ffffff;
         }
 
-        /* AwesomeWM mytasklist: event-driven, focused workspace only. `min-width:
-           0` keeps the module from ever claiming more room than the text it
-           prints (the script bounds that itself), so modules-left/right stay put. */
-        #custom-tasklist {
-          padding: 0 4px;
+        /* AwesomeWM mytasklist (CFFI GTK3 module): real per-app icons, focused
+           workspace only (visible + minimized), self-bounded width so
+           modules-left/right stay put. */
+        #hypr-taskbar {
+          padding: 0 2px;
           min-width: 0;
           background-color: transparent;
         }
 
-        #custom-tasklist label {
+        #hypr-taskbar button.task {
+          padding: 0 8px;
+          margin: 0;
           min-width: 0;
+          min-height: 0;
+          background-color: transparent;
+          color: #aaaaaa;
+          box-shadow: none;
+          text-shadow: none;
+        }
+
+        #hypr-taskbar button.task:hover {
+          background-color: #222222;
+          color: #ffffff;
+        }
+
+        #hypr-taskbar button.task.active {
+          background-color: #875fff;
+          color: #ffffff;
+        }
+
+        /* Minimized windows of this workspace: still listed (left click
+           restores + focuses, middle click minimizes a visible one) but dimmed
+           so they read as "parked", not as another open window. */
+        #hypr-taskbar button.task.minimized {
+          color: #777777;
+        }
+
+        #hypr-taskbar button.task.minimized label {
+          font-style: italic;
+        }
+
+        #hypr-taskbar button.task.minimized image {
+          opacity: 0.55;
+        }
+
+        #hypr-taskbar button.task.minimized:hover {
+          background-color: #222222;
+          color: #aaaaaa;
+        }
+
+        #hypr-taskbar button.task label {
+          min-width: 0;
+        }
+
+        #hypr-taskbar label.task-overflow {
+          padding: 0 6px;
+          color: #888888;
         }
 
         #tray,
@@ -1768,7 +1406,9 @@ in
       settings = {
         general = {
           hide_cursor = true;
-          ignore_empty_input = true;
+          # false so an empty Enter still reaches PAM and triggers the
+          # YubiKey touch (true swallows the keypress entirely).
+          ignore_empty_input = false;
         };
 
         background = [
