@@ -7,8 +7,10 @@
 #   - QTEC0001 keyboard (i2c0), ELAN06FA touchpad (i2c0), GXPT7936 touchscreen (i2c8)
 #   - Samsung NVMe on PCIe5, ADSP/CDSP/SOCCP remoteprocs, QTEE, Battery, 3x USB-C UCSI
 #
-# Proprietary Lenovo 83QR firmware blobs (ADSP/CDSP/GPU/WCN7850 BT NV) are loaded
-# from /var/lib/mahua-firmware via firmware_class.path so they stay out of the public repo.
+# Lenovo 83QR firmware blobs (ADSP/CDSP/GPU/WCN7850 BT NV) are vendored in
+# hosts/yogabook/firmware/ and wired declaratively through hardware.firmware, so a
+# fresh install has every blob in /lib/firmware. /var/lib/mahua-firmware is kept as
+# an optional override path for testing new blobs without a rebuild.
 
 {
   config,
@@ -93,9 +95,37 @@
   };
 
   # Qualcomm redistributable firmware + wireless-regdb (regulatory.db) +
-  # Lenovo 83QR extracted blobs at /var/lib/mahua-firmware
+  # Lenovo 83QR blobs vendored in hosts/yogabook/firmware/.
   hardware.enableRedistributableFirmware = true;
-  hardware.firmware = [ pkgs.wireless-regdb ];
+  hardware.firmware = [
+    pkgs.wireless-regdb
+    # Local derivation instead of a package: the blobs are git-tracked in this
+    # repo (hosts/yogabook/firmware/) and there is nothing to fetch or patch.
+    #
+    # `compressFirmware = false` is load-bearing, and this package must stay
+    # uncompressed in /lib/firmware:
+    #   * the kernel's fw_get_filesystem_firmware() tries the plain name first
+    #     and only then `"$name.zst"`/`"$name.xz"`, so the uncompressed copies
+    #     here win over linux-firmware's `.zst` siblings
+    #     (ath12k/WCN7850/hw2.0/*, qca/hmtbtfw20.tlv, qca/hmtnv20.*,
+    #     qcom/gen80100_*) without needing hiPrio/buildEnv collisions;
+    #   * userspace pd-mapper / tqftpserv open `.jsn`/`.mbn` directly from
+    #     /lib/firmware and cannot decompress;
+    #   * initrd's makeModulesClosure copies firmware by the plain name from
+    #     `modinfo -F firmware`, so a compressed package would look "missing".
+    # meta.priority = 1 keeps it ahead of linux-firmware (5) in the buildEnv
+    # should a future blob ever share an exact path.
+    (pkgs.runCommandLocal "mahua-firmware"
+      {
+        meta.priority = 1;
+        compressFirmware = false;
+      }
+      ''
+        mkdir -p $out/lib/firmware
+        cp -r ${./firmware}/. $out/lib/firmware/
+      ''
+    )
+  ];
   hardware.bluetooth = {
     enable = true;
     powerOnBoot = true;
@@ -111,9 +141,12 @@
 
   # NixOS's built-in `udevd` activation snippet overwrites
   # /sys/module/firmware_class/parameters/path with the Nix store firmware dir.
-  # Point /lib/firmware at NixOS's firmware (wireless-regdb + linux-firmware) as
-  # the fallback path, and restore firmware_class.path=/var/lib/mahua-firmware so
-  # Lenovo 83QR extracted blobs (ADSP/CDSP/GPU/BT/audio topology) take priority.
+  # The 83QR blobs now ship declaratively in /lib/firmware (hardware.firmware
+  # above), so /var/lib/mahua-firmware is only an optional override: keep it on
+  # the search path (harmless when empty, the loader falls back to /lib/firmware)
+  # so a new Lenovo blob can be dropped in and probed without a rebuild.
+  # /lib/firmware is symlinked here because userspace readers (pd-mapper,
+  # tqftpserv) open firmware files by absolute path.
   system.activationScripts.mahuaFirmware = lib.stringAfter [ "udevd" ] ''
     mkdir -p /lib /var/lib/mahua-firmware
     if [ -e "$systemConfig/firmware" ]; then
@@ -140,7 +173,8 @@
     # - arm-smmu.disable_bypass=0: preserve UEFI SMMU bypass mappings until drivers attach
     # - mem_sleep_default=s2idle: prevents `echo mem` from entering PSCI SYSTEM_SUSPEND (deep)
     # - modprobe.blacklist=qcom_iris,qcom_camss: prevents video/camss coldplug hangs
-    # - firmware_class.path: loads Lenovo 83QR extracted firmware before /lib/firmware
+    # - firmware_class.path: optional override dir for un-packaged 83QR blobs;
+    #   everything vendored in hosts/yogabook/firmware/ is already in /lib/firmware
     kernelParams = [
       "clk_ignore_unused"
       "pd_ignore_unused"
@@ -179,7 +213,14 @@
       # stage the Mahua board DTB onto /boot and emit `devicetree` per entry.
       extraFiles."dtbs/qcom/mahua-lenovo-yoga-slim7-14q8y11.dtb" =
         "${config.hardware.deviceTree.package}/qcom/mahua-lenovo-yoga-slim7-14q8y11.dtb";
-      extraPerEntryConfig = "devicetree @bootRoot@/dtbs/qcom/mahua-lenovo-yoga-slim7-14q8y11.dtb";
+      # Must use `($drive1)/...`, NOT `@bootRoot@/...`: install-grub.pl
+      # substitutes @bootRoot@ (-> `($drive1)/`) only for the default entry, then
+      # emits the submenu generations afterwards, leaving literal `@bootRoot@`
+      # in every submenu entry. `$grubBoot` is always the first GrubFs() call
+      # (`search --set=drive1 --fs-uuid ...` right above this line), so
+      # `($drive1)/dtbs/...` resolves the ESP reliably even when USB drives
+      # shift `(hd0)` / `(hd1)`.
+      extraPerEntryConfig = "devicetree ($drive1)/dtbs/qcom/mahua-lenovo-yoga-slim7-14q8y11.dtb";
       extraEntries = ''
         menuentry "Reboot" {
             reboot
@@ -193,6 +234,12 @@
       # efi=novamap disables UEFI runtime NVRAM writes on Qualcomm EL2
       canTouchEfiVariables = false;
     };
+    # modules/core.nix sets 3 for both hosts; `mkForce` keeps that default on
+    # jane-pc while giving yogabook room to fall back through bring-up
+    # generations. `copyKernels` deduplicates by kernel/initrd store path, so the
+    # shared 70.6 MiB `Image` is stored once and each extra generation costs at
+    # most its ~27.1 MiB initrd (8 x 27.1 + 70.6 ~= 287 MiB of the 786 MiB free).
+    grub.configurationLimit = lib.mkForce 8;
   };
 
   nix.settings.experimental-features = [
@@ -216,7 +263,12 @@
   i18n.defaultLocale = "en_US.UTF-8";
 
   services = {
-    upower.enable = true;
+    upower = {
+      enable = true;
+      # 83QR firmware never survives a full battery drain: power off instead of
+      # a hibernate attempt (no swap-backed hibernation on this board).
+      criticalPowerAction = "PowerOff";
+    };
     logind = {
       settings.Login = {
         # Lid close never sleeps: lock + mute + panel DPMS off (the Hyprland
@@ -267,9 +319,17 @@
 
   networking.firewall.enable = false;
 
+  # s2idle only: `deep` (PSCI SYSTEM_SUSPEND) is unsupported on Mahua and the
+  # cmdline pins mem_sleep_default=s2idle. SuspendMode must agree, otherwise
+  # logind writes "deep" into /sys/power/mem_sleep before suspending.
   systemd.sleep.settings.Sleep = {
     SuspendState = "freeze";
+    SuspendMode = "s2idle";
   };
+
+  # 16 GiB RAM: zram keeps the laptop responsive without a swap partition
+  # (swapDevices = [ ] in hardware-configuration.nix).
+  zramSwap.enable = true;
 
   # power_supply_register_no_ws() emits the udev add uevent before calling
   # device_init_wakeup(), so disabling batt/wls wakeups via udev is racy.

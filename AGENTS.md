@@ -7,7 +7,7 @@ NixOS + Home Manager flake config. 2 hosts: `jane-pc` (`x86_64-linux`) and `yoga
 | Host | Type | GPU | Special |
 |------|------|-----|---------|
 | `jane-pc` | desktop | Intel (modesetting) | FIDO2+LUKS, Hyprland Wayland, gaming, IDA Pro |
-| `yogabook` | laptop | Snapdragon X2 Plus (Adreno X2-45, `mesa-mahua`) | FIDO2+LUKS (initrd `pmic_glink`), Hyprland Wayland @ 1.25x, custom Linux 7.4-rc3 Kalambo/Mahua kernel |
+| `yogabook` | laptop | Snapdragon X2 Plus (Adreno X2-45, `mesa-mahua`) | FIDO2+LUKS (initrd `msm` + `aux_hpd_bridge` + staged Adreno GPU blobs; `pmic_glink` is stage-2 only), Hyprland Wayland @ 1.25x, custom Linux 7.4-rc3 Kalambo/Mahua kernel |
 
 Shared modules via `hosts/<name>/configuration.nix` (system) + `home.nix` (user).
 
@@ -60,7 +60,13 @@ nix flake update nixpkgs         # update single input
 
 ## Lenovo 83QR Firmware (`yogabook`)
 
-Proprietary Lenovo Windows DriverStore blobs (ADSP/CDSP `.mbn`/`.jsn`/`.elf`, WCN7850 BT NV `hmtnv20.b112`, `Lenovo-Yoga-Slim7-14Q8Y11-tplg.bin`) are intentionally **not** committed to this public repo and live in `/var/lib/mahua-firmware` (`firmware_class.path=/var/lib/mahua-firmware`). Only the 3 GPU blobs (`gen80100_{sqe,gmu,aqe}`) are staged in `hosts/yogabook/firmware/` for initrd display bring-up.
+All proprietary Lenovo 83QR blobs are **tracked in this repo** under `hosts/yogabook/firmware/` (Adreno GPU `qcom/gen80100_{sqe,gmu,aqe}`, ADSP/CDSP `qcom/glymur/LENOVO/83QR/*.mbn`/`.jsn`/`.elf`/`fastrpc_shell_0`, the `qcom/glymur/Lenovo-Yoga-Slim7-14Q8Y11-tplg.bin` audio topology, WCN7850 `ath12k/WCN7850/hw2.0/*`, and BT NV `qca/hmtnv20.*` + `qca/hmtbtfw20.tlv`), and wired **declaratively** into `hardware.firmware` by a local `runCommandLocal "mahua-firmware"` derivation in `hosts/yogabook/configuration.nix` (`compressFirmware = false`, `meta.priority = 1`), so `/lib/firmware` is complete on a fresh install.
+
+- Keep the files **uncompressed**: the kernel tries the plain name before `"$name.zst"`, so they shadow `linux-firmware`'s `.zst` siblings; `pd-mapper`/`tqftpserv` read `.jsn`/`.mbn` directly from `/lib/firmware`; initrd's `makeModulesClosure` copies by plain name.
+- The 3 GPU blobs exist exactly **once** (`hosts/yogabook/firmware/qcom/gen80100_*`); `hardware-configuration.nix` stages those into initrd at `/var/lib/mahua-firmware/qcom/`.
+- Do **not** vendor `regulatory.db`/`regulatory.db.p7s` — `pkgs.wireless-regdb` (`hardware.wirelessRegulatoryDatabase`) provides them.
+- `/var/lib/mahua-firmware` (`firmware_class.path`) is kept only as an **optional override** path for testing a new blob without a rebuild; an empty dir is harmless.
+- These are proprietary redistributable-but-not-free blobs; secrets, age keys and unencrypted credentials still never get committed.
 
 ## Conventions
 
@@ -73,7 +79,7 @@ Proprietary Lenovo Windows DriverStore blobs (ADSP/CDSP `.mbn`/`.jsn`/`.elf`, WC
 ## Don'ts
 
 - No `nix-env` for system packages
-- No committing unencrypted secrets, age keys, or proprietary firmware blobs
+- No committing unencrypted secrets or age keys (the tracked `hosts/yogabook/firmware/` blobs are the only sanctioned exception)
 - No `nh os switch .` / `nh home switch .` — build only
 - No hardcoded `/home/jane` paths
 - No `apt`/`pip`/`npm` for system packages (use `nix-shell -p <pkg>` instead)
