@@ -72,6 +72,19 @@ let
       "$title" "$body"
   '';
 
+  # Right click on the Waybar bluetooth module: toggle the adapter's power.
+  # `bluetoothctl show` fails (no controller -> nothing printed) on machines
+  # without a Bluetooth adapter, so the script then just tries `power on`.
+  bluetoothToggleScript = pkgs.writeShellScript "waybar-bluetooth-toggle" ''
+    set -euo pipefail
+    ctl=${pkgs.bluez}/bin/bluetoothctl
+    if $ctl show 2>/dev/null | grep -q 'Powered: yes'; then
+      $ctl power off >/dev/null
+    else
+      $ctl power on >/dev/null
+    fi
+  '';
+
   brightnessScript = pkgs.writeShellScript "hypr-brightness" ''
     set -euo pipefail
     action="''${1:-}"
@@ -230,6 +243,7 @@ let
   # elided here for readability:
   #
   #   [ 67%]     discharging: Nerd Font battery ramp + level
+  #   [ 67% 3h5m] discharging with a runtime estimate appended (hours+minutes)
   #   [PD 67%]   USB-PD, >= 5.5 V or >= 15 W            (class: fast-charging)
   #   [PPS 67%]  USB-PD PPS                             (class: fast-charging)
   #   [PD5 67%]  USB-PD negotiated at 5 V (slow charger)
@@ -254,6 +268,8 @@ let
 
     Bar text (`[...]` matches the rest of the bar):
         [ 67%]        discharging: Nerd Font battery ramp glyph + capacity
+        [ 67% 3h5m]   ... plus the remaining runtime, when the battery reports
+                      both an energy level and a power draw (`42m` below 1 h)
         [PD 67%]      USB-PD charging, >= 5.5 V or >= 15 W (fast)
         [PPS 67%]     USB-PD PPS charging (fast)
         [PD5 67%]     USB-PD at 5 V (slow charger)
@@ -578,6 +594,17 @@ let
         return "%dm" % minutes
 
 
+    def fmt_eta(seconds):
+        """Compact runtime for the bar: `3h5m`, `3h` or `42m`."""
+        minutes = int(round(seconds / 60.0))
+        hours, minutes = divmod(minutes, 60)
+        if hours and minutes:
+            return "%dh%dm" % (hours, minutes)
+        if hours:
+            return "%dh" % hours
+        return "%dm" % minutes
+
+
     def fmt_float(value, digits=2):
         return ("%." + str(digits) + "f") % value
 
@@ -630,6 +657,18 @@ let
             charger_power = voltage * current
 
         battery_power = battery["power_now"]
+        now, full, unit, now_wh, full_wh = energy_state(battery)
+        rate = abs(battery_power) / 1e6 if battery_power else 0.0
+        # Remaining runtime on battery, appended to the bar text as `3h5m`.
+        # Only while discharging (charging/plugged/unknown -> no clutter) and
+        # only for a plausible draw (0.5 W .. 100 h); the tooltip carries the
+        # long form either way.
+        eta = ""
+        if not charging and not plugged and rate > 0.5 and now_wh:
+            hours = now_wh / rate
+            if 0 < hours < 100:
+                eta = fmt_eta(hours * 3600)
+
         fast = False
         if charging:
             if proto in ("PPS", "QC", "AC"):
@@ -659,7 +698,9 @@ let
             head = PLUG_GLYPH + tag
         else:
             head = discharge_glyph(capacity)
-        text = "[%s]" % " ".join(part for part in (head, percent) if part)
+        text = "[%s]" % " ".join(
+            part for part in (head, percent, eta) if part
+        )
 
         classes = []
         if charging:
@@ -726,12 +767,10 @@ let
                 charger = "%s V (current not reported)" % fmt_float(voltage / 1e6)
             lines.append("Charger: %s" % charger)
 
-        now, full, unit, now_wh, full_wh = energy_state(battery)
         if now is not None:
             power = fmt_power(battery_power, charging)
             if power:
                 lines.append("Battery power: %s" % power)
-            rate = abs(battery_power) / 1e6 if battery_power else 0.0
             if rate > 0.5 and now_wh is not None and full_wh is not None:
                 hours = None
                 if charging:
@@ -1480,6 +1519,18 @@ let
       })
     end
 
+    -- Waybar's TUI launchers (`kitty --class waybar-tui`, see the network,
+    -- bluetooth and volume modules): one centred floating terminal, large
+    -- enough for nmtui / bluetui / wiremix and small enough for the 1536x960
+    -- logical panel (1920x1200 @ 1.25) as well as any 1080p external.
+    hl.window_rule({
+      name = "waybar-tui",
+      match = { class = "^(waybar-tui)$" },
+      float = true,
+      center = true,
+      size = { 860, 560 },
+    })
+
     -----------------------------
     ---- TITLEBARS (hyprbars) ----
     -----------------------------
@@ -1687,6 +1738,10 @@ in
         # xdg-desktop-portal) but is kept for ad-hoc screencopy/scripting.
         grim
         libnotify
+        # Waybar TUI launchers: click on volume / bluetooth opens these in a
+        # floating `kitty --class waybar-tui` (window rule below).
+        wiremix
+        bluetui
       ]
       ++ lib.optional cfg.isLaptop brightnessctl;
 
@@ -1735,12 +1790,13 @@ in
             "cffi/taskbar"
           ];
           modules-right = [
-            "tray"
+            "group/tray-drawer"
             "network"
+            "bluetooth"
+            "wireplumber"
           ]
           ++ lib.optional hasBattery "custom/battery"
           ++ [
-            "memory"
             "clock"
           ];
 
@@ -1779,6 +1835,35 @@ in
             expand = true;
           };
 
+          # System tray behind a click-to-reveal drawer: the bar only shows the
+          # `custom/tray-toggle` chevron, and the tray icons slide out to its
+          # left on a left click (Waybar 0.16 `group` drawer: the first entry of
+          # `modules` is the leader, which is never hidden; `click-to-reveal`
+          # makes the group toggle on click instead of on hover, so the bar
+          # never shifts under the cursor).
+          "group/tray-drawer" = {
+            orientation = "inherit";
+            modules = [
+              "custom/tray-toggle"
+              "tray"
+            ];
+            drawer = {
+              transition-duration = 200;
+              children-class = "tray-drawer-item";
+              transition-left-to-right = false;
+              click-to-reveal = true;
+            };
+          };
+
+          # Static text only (no `exec`, no `interval`, no `signal`): Waybar
+          # renders `format` as-is and never spawns a shell for it. The click
+          # falls through to the group, which toggles the drawer.
+          "custom/tray-toggle" = {
+            format = "󰅃"; # md-chevron_up
+            tooltip = true;
+            tooltip-format = "System tray";
+          };
+
           tray = {
             icon-size = 18;
             spacing = 6;
@@ -1791,12 +1876,40 @@ in
             format-disconnected = "[NET: down]";
             tooltip-format-wifi = "{essid} ({signalStrength}%) — {ipaddr}/{cidr}";
             tooltip-format-ethernet = "{ifname} — {ipaddr}/{cidr}";
+            on-click = "${pkgs.kitty}/bin/kitty --class waybar-tui --title Network -e ${pkgs.networkmanager}/bin/nmtui";
           };
 
-          memory = {
-            interval = 5;
-            format = "[{used:0.1f}Gi]";
-            tooltip-format = "{used:0.1f}GiB / {total:0.1f}GiB ({percentage}%)";
+          # BlueZ controller state. `format-no-controller = ""` hides the module
+          # completely on a machine without a Bluetooth adapter (jane-pc).
+          bluetooth = {
+            format = "[󰂯]"; # md-bluetooth
+            format-connected = "[󰂱 {num_connections}]"; # md-bluetooth_connect
+            format-on = "[󰂯]";
+            format-off = "[󰂲]"; # md-bluetooth_off
+            format-disabled = "[󰂲]";
+            format-no-controller = "";
+            tooltip-format = "{controller_alias} — {controller_address}";
+            tooltip-format-connected = "{controller_alias} — {controller_address}\n\n{device_enumerate}";
+            tooltip-format-enumerate-connected = "{device_alias} ({device_address})";
+            tooltip-format-enumerate-connected-battery = "{device_alias} ({device_address}) {device_battery_percentage}%";
+            on-click = "${pkgs.kitty}/bin/kitty --class waybar-tui --title Bluetooth -e ${pkgs.bluetui}/bin/bluetui";
+            on-click-right = "${bluetoothToggleScript}";
+          };
+
+          # PipeWire sink volume through Waybar's native wireplumber module (it
+          # is compiled in: the waybar binary links libwireplumber-0.5, so no
+          # libpulse compatibility layer is involved). Scrolling is the
+          # module's own volume control; `scroll-step = 5` is 5 % per notch on
+          # its default `cubic_percent` scale.
+          wireplumber = {
+            format = "[󰕾 {volume}%]"; # md-volume_high
+            format-muted = "[󰝟 MUTE]"; # md-volume_off
+            format-bluetooth = "[󰂯 {volume}%]";
+            format-bluetooth-muted = "[󰂲 MUTE]";
+            tooltip-format = "{node_name} — {volume}%";
+            scroll-step = 5;
+            on-click = "${pkgs.kitty}/bin/kitty --class waybar-tui --title Audio -e ${pkgs.wiremix}/bin/wiremix";
+            on-click-right = "${pkgs.wireplumber}/bin/wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle";
           };
 
           clock = {
@@ -1952,11 +2065,46 @@ in
 
         #tray,
         #network,
+        #bluetooth,
+        #wireplumber,
         #custom-battery,
-        #memory,
         #clock {
           padding: 0 4px;
           color: #aaaaaa;
+        }
+
+        /* System tray drawer: `custom/tray-toggle` is the always-visible group
+           leader, the tray icons are its children (children-class
+           `tray-drawer-item`) and slide out to its left. */
+        #tray-drawer {
+          padding: 0;
+          margin: 0;
+          background-color: transparent;
+        }
+
+        #custom-tray-toggle {
+          padding: 0 6px;
+          color: #aaaaaa;
+        }
+
+        #custom-tray-toggle:hover {
+          background-color: #222222;
+          color: #ffffff;
+        }
+
+        /* Muted sink / radio off: dim so it reads as "there, but inactive". */
+        #wireplumber.muted {
+          color: #555555;
+        }
+
+        #bluetooth.off,
+        #bluetooth.disabled,
+        #bluetooth.no-controller {
+          color: #555555;
+        }
+
+        #bluetooth.connected {
+          color: #875fff;
         }
 
         #clock {
