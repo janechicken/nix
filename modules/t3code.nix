@@ -13,6 +13,14 @@ let
   # PATH (systemd unit, rofi/`hyprctl dispatch exec`, desktop entry).
   piEnabled = config.programs.pi.coding-agent.enable or false;
   piPackage = lib.optional piEnabled config.programs.pi.coding-agent.finalPackage;
+  t3codePkg = pkgs.t3code.override {
+    enableCodex = true;
+    enableConnect = true;
+    enableGitHub = true;
+    enableGit = true;
+    enableResourceMonitor = true;
+    extraRuntimePackages = piPackage;
+  };
 in
 {
   # ===========================================================================
@@ -40,14 +48,40 @@ in
   # so both hosts get it straight from `cache.nixos.org` (2026.10.7, above
   # upstream's 2026.10.3 minimum): a download, not a build.
   # ===========================================================================
-  home.packages = [
-    (pkgs.t3code.override {
-      enableCodex = true;
-      enableConnect = true;
-      enableGitHub = true;
-      enableGit = true;
-      enableResourceMonitor = true;
-      extraRuntimePackages = piPackage;
-    })
-  ];
+  home.packages = [ t3codePkg ];
+
+  # Headless T3 Code background daemon: starts as soon as the user logs in
+  # (WantedBy=default.target, independent of Hyprland/Wayland) so T3 Connect
+  # stays reachable from phone/remote even without a desktop session or if the
+  # compositor crashes. `t3code-desktop` attaches to the running server via
+  # `~/.t3/userdata/server-owner.sqlite`.
+  systemd.user.services.t3code = {
+    Unit = {
+      Description = "T3 Code server";
+      After = [ "network-online.target" ];
+      StartLimitIntervalSec = 300;
+      StartLimitBurst = 5;
+    };
+    Service = {
+      Type = "simple";
+      WorkingDirectory = "%h";
+      Environment = [
+        "T3CODE_HOME=%h/.t3"
+        "T3_BOOT_SERVICE_UNIT=t3code.service"
+      ];
+      ExecStart = "${t3codePkg}/bin/t3 serve";
+      KillMode = "mixed";
+      OOMPolicy = "continue";
+      Restart = "always";
+      RestartSec = 5;
+      CPUWeight = 1000;
+      IOWeight = 1000;
+      MemoryLow = "1536M";
+      OOMScoreAdjust = 100;
+      ManagedOOMPreference = "avoid";
+    };
+    Install = {
+      WantedBy = [ "default.target" ];
+    };
+  };
 }
