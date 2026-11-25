@@ -353,5 +353,109 @@
     '';
   };
 
+  # ── s2idle sleep quirks: unbind before suspend, rebind after resume ─────
+  # Two devices break s2idle resume on 83QR:
+  #   * ath12k_wifi7_pci (WCN7850 Wi-Fi) hangs in its `suspend_late` MHI
+  #     callback, so the driver is unbound before suspend and probed fresh on
+  #     resume.
+  #   * xhci-hcd keeps its command/event rings armed across the idle entry and
+  #     DMAs into freed buffers on resume: `arm-smmu 15000000.iommu` logs
+  #     `Unhandled context fault ... SID=0x1420` (0x1420 is `usb@a600000`, the
+  #     USB-C DRD port) and the controller comes back dead ("WARNING: Host
+  #     System Error", "hub failed to enable device, error -108"), losing every
+  #     device on it.
+  #
+  # `xhci-hcd` is unbound rather than its `dwc3-qcom` parent: `usb_remove_hcd()`
+  # halts the controller and frees all of its rings/DMA buffers, while the
+  # `dwc3` core, the QMP combo PHYs (`fd5000`/`fde000`/`88e1000`) and the
+  # `usb_role_switch` stay up — those PHYs are shared with `pmic_glink_altmode`
+  # for USB-C DP altmode/PD, which a `dwc3-qcom` unbind would power down and
+  # re-initialise.
+  #
+  # Devices are discovered at run time: `xhci-hcd.N.auto` instance numbers are
+  # probe-order dependent and change between boots.
+  systemd.services.mahua-sleep-quirks = {
+    description = "Unbind ath12k and USB host controllers around s2idle";
+    wantedBy = [ "sleep.target" ];
+    before = [ "sleep.target" ];
+    unitConfig.StopWhenUnneeded = true;
+    path = [ pkgs.kmod ];
+    serviceConfig = {
+      Type = "oneshot";
+      RemainAfterExit = true;
+      # Runs on resume, when sleep.target is stopped again.
+      ExecStop = pkgs.writeShellScript "mahua-sleep-quirks-resume" ''
+        # USB first: a still-unbound xHCI is the one that faults the SMMU on
+        # the *next* idle entry.
+        state=/run/mahua-sleep-quirks
+
+        if [ -f "$state/usb" ]; then
+          while read -r name; do
+            [ -n "$name" ] || continue
+            [ -e "/sys/bus/platform/devices/$name" ] || continue
+            # Skip anything the kernel already bound again.
+            if [ ! -e "/sys/bus/platform/devices/$name/driver" ]; then
+              if ! printf '%s\n' "$name" > /sys/bus/platform/drivers/xhci-hcd/bind; then
+                echo "mahua-sleep-quirks: failed to rebind $name" >&2
+              fi
+            fi
+          done < "$state/usb"
+        fi
+
+        if [ -f "$state/ath12k" ]; then
+          # The driver directory only disappears if the module was unloaded.
+          if [ ! -d /sys/bus/pci/drivers/ath12k_wifi7_pci ]; then
+            modprobe -a qrtr_mhi ath12k_wifi7 || true
+          fi
+          while read -r slot; do
+            [ -n "$slot" ] || continue
+            [ -e "/sys/bus/pci/devices/$slot" ] || continue
+            if [ ! -e "/sys/bus/pci/devices/$slot/driver" ]; then
+              if ! printf '%s\n' "$slot" > /sys/bus/pci/drivers/ath12k_wifi7_pci/bind; then
+                echo "mahua-sleep-quirks: failed to rebind ath12k $slot" >&2
+              fi
+            fi
+          done < "$state/ath12k"
+        fi
+
+        rm -rf "$state"
+      '';
+    };
+    script = ''
+      state=/run/mahua-sleep-quirks
+      rm -rf "$state"
+      mkdir -p "$state"
+      : > "$state/ath12k"
+      : > "$state/usb"
+
+      # WCN7850 Wi-Fi: `ath12k_wifi7_pci` binds PCI slot symlinks such as
+      # `0004:01:00.0`; `bind`/`unbind`/`module`/`new_id` are plain files.
+      wifi=/sys/bus/pci/drivers/ath12k_wifi7_pci
+      for dev in "$wifi"/*; do
+        [ -L "$dev" ] || continue
+        slot=$(basename "$dev")
+        case "$slot" in
+          ????\:??\:??.?) ;;
+          *) continue ;;
+        esac
+        printf '%s\n' "$slot" >> "$state/ath12k"
+        if ! printf '%s\n' "$slot" > "$wifi/unbind"; then
+          echo "mahua-sleep-quirks: failed to unbind ath12k $slot" >&2
+        fi
+      done
+
+      # USB host controllers: every bound `xhci-hcd.N.auto`.
+      usb=/sys/bus/platform/drivers/xhci-hcd
+      for dev in "$usb"/xhci-hcd.*.auto; do
+        [ -L "$dev" ] || continue
+        name=$(basename "$dev")
+        printf '%s\n' "$name" >> "$state/usb"
+        if ! printf '%s\n' "$name" > "$usb/unbind"; then
+          echo "mahua-sleep-quirks: failed to unbind $name" >&2
+        fi
+      done
+    '';
+  };
+
   system.stateVersion = "25.05";
 }

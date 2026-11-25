@@ -36,10 +36,14 @@
   # `af54000`/`af5c000` DP controllers defer indefinitely without
   # `aux_hpd_bridge`).
   #
-  # `pmic_glink` / `pmic_glink_altmode` are deliberately kept OUT of initrd for
-  # now: loading them in initrd makes `msm_dpu` bind before stage-2 ADSP
-  # (`remoteproc1`) is up, which produced a stage-2 black screen on `system-11`.
-  # Leaving them to stage 2 reproduces `system-10`'s working stage-2 bring-up.
+  # `pmic_glink` / `pmic_glink_altmode` are deliberately kept OUT of initrd.
+  # Without `pmic_glink_altmode` the `af54000`/`af5c000` DP controllers defer
+  # until stage 2, so stage 1 never gets `msmdrmfb` and the LUKS/FIDO2 prompt
+  # stays blind on `simpledrm` (`simpledrmdrmfb` owns `fb0` until `msm_dpu`
+  # takes it over after switch-root). Loading them in initrd instead makes
+  # `msm_dpu` bind before stage-2 ADSP (`remoteproc1`) is up, which
+  # black-screened `system-11` after switch-root; the deferral is kept on
+  # purpose, since it reproduces `system-10`'s working stage-2 bring-up.
   boot.initrd.kernelModules = [
     "i2c_hid_of"
     "hid_multitouch"
