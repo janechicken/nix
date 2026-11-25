@@ -18,6 +18,7 @@
     ../../modules/hex.nix
     ../../modules/minecraft.nix
     ../../modules/gpg.nix
+    ../../modules/u2f-keys.nix
     ../../modules/dolphin.nix
     ../../modules/chess.nix
     ../../modules/zed.nix

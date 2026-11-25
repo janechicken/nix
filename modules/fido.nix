@@ -23,6 +23,11 @@
     # Only consulted for credentials from pamu2fcfg <= 1.0.8; defaults to the
     # origin value otherwise. Kept equal to origin to match pamu2fcfg -i.
     appid = "pam://nixos-jane";
+    # The mapping itself is written by modules/u2f-keys.nix (Home Manager). Pin
+    # the path instead of relying on pam_u2f's $XDG_CONFIG_HOME / $HOME default:
+    # the stack also runs inside `sudo`, where neither variable is guaranteed to
+    # still point at jane's home.
+    authfile = "${config.users.users.jane.home}/.config/Yubico/u2f_keys";
     cue = true;
     cue_prompt = "Please touch your YubiKey";
   };
