@@ -73,6 +73,50 @@
     # Touchpad (ELAN06FA on i2c0): prevent palm/bag spurious wakes; lid-open,
     # power button, and keyboard remain enabled wakeup sources.
     ACTION=="add|bind", SUBSYSTEM=="i2c", ATTR{modalias}=="of:Ntouchpad*", ATTR{power/wakeup}="disabled"
+
+    # ── Runtime PM on the unused USB controllers (battery life) ────────────
+    # dwc3 core takes a pm_runtime_forbid() reference in .probe, so the glue
+    # devices never autosuspend by default. Writing power/control="auto" drops
+    # that reference (drivers/base/power/runtime.c: pm_runtime_allow()); the
+    # glue then idles after its 5 s autosuspend delay and dwc3_qcom_suspend()
+    # gates the controller clocks + interconnect paths. Only the four
+    # controllers with nothing attached are matched:
+    #   a000000.usb  peripheral-only (UDC), no xHCI child, QMP phy 88e1000
+    #   a200000.usb  usb1                       (eUSB2 phy fa0000)
+    #   a400000.usb  usb2 + usb3                (eUSB2 fa1000/fa2000, QMP fa3000/fa5000)
+    #   a800000.usb  usb8 + usb9                (eUSB2 fdd000, QMP fde000)
+    # a600000.usb is deliberately NOT matched: it hosts the YubiKey (6-1) and
+    # is the verified zero-fault s2idle path (`SID=0x1420`).
+    ACTION=="add|bind", SUBSYSTEM=="platform", DRIVER=="dwc3-qcom", KERNEL=="a000000.usb|a200000.usb|a400000.usb|a800000.usb", ATTR{power/control}="auto"
+
+    # Their xHCI children (xhci-hcd.{1,2,5}.auto). xhci_plat_probe() also calls
+    # pm_runtime_forbid() -- "users should enable runtime pm using power/control
+    # in sysfs" -- and the root hubs (usb1/2/3/8/9) are already autosuspended,
+    # so dropping the forbid reference lets the controller idle. KERNELS!="..."
+    # matches only when no ancestor carries that name, keeping a600000's
+    # xhci-hcd.4.auto out; `bind` matters because mahua-sleep-quirks rebinds
+    # these devices on every resume, which re-runs xhci_plat_probe() and
+    # restores power/control="on".
+    ACTION=="add|bind", SUBSYSTEM=="platform", DRIVER=="xhci-hcd", KERNEL=="xhci-hcd.*.auto", KERNELS!="a600000.usb", ATTR{power/control}="auto"
+
+    # QMP USB3 PHYs of those four controllers: 88e1000 (a000000),
+    # fa3000 + fa5000 (a400000), fde000 (a800000). phy_power_on() holds a
+    # runtime-PM reference while a consumer uses the PHY (drivers/phy/phy-core.c),
+    # so an in-use PHY can never suspend. The M31 eUSB2 PHYs
+    # (88e0000/fa0000/fa1000/fa2000/fdd000) are intentionally absent:
+    # qcom-m31eusb2-phy implements no runtime PM at all (power/runtime_enabled
+    # reads "disabled", runtime_status "unsupported"), so "auto" is a no-op.
+    ACTION=="add|bind", SUBSYSTEM=="platform", KERNEL=="88e1000.phy|fa3000.phy|fa5000.phy|fde000.phy", ATTR{power/control}="auto"
+
+    # NOT covered on purpose:
+    # - NVMe 0005:01:00.0: nvme_dev_pm_ops has no .runtime_suspend/.runtime_resume
+    #   (drivers/nvme/host/pci.c), and pci_pm_runtime_suspend() falls through to
+    #   pci_finish_runtime_suspend() when the driver has no callback, i.e. the
+    #   controller would be put into D3hot behind the nvme driver's back. The
+    #   SSD's own power management is APST, already active
+    #   (nvme_core.default_ps_max_latency_us=100000).
+    # - ath12k 0004:01:00.0 / root port 0004:00:00.0: WCN7850 firmware hangs in
+    #   MHI M2, which is why mahua-sleep-quirks unbinds it around s2idle.
   '';
 
   # Disabled during bring-up: an unattended rebuild would pull nixpkgs' stock

@@ -941,6 +941,10 @@ let
         force_default_wallpaper = 0,
         key_press_enables_dpms = true,
         mouse_move_enables_dpms = true,
+        -- `misc:vfr` no longer exists in Hyprland 0.57.2 (there is no such
+        -- option: `hyprctl getoption misc:vfr` -> "no such option", and the
+        -- string is absent from the binary), so the old "enable variable frame
+        -- rate to save power" knob is simply gone — do not re-add it.
         -- 0 = off, 1 = on, 2 = fullscreen only
         vrr = ${toString cfg.vrr},
       },
@@ -1810,7 +1814,13 @@ in
           # fully hidden module.
           "custom/battery" = {
             exec = "${batteryScript}";
-            interval = 3;
+            # Waybar re-execs `exec` on every `interval` tick, so this is a
+            # process spawn, not a cheap read: the script walks
+            # /sys/class/power_supply + /sys/class/typec and takes ~40 ms per
+            # run. At interval 3 that is ~1.3 % of one core, permanently, plus
+            # a timer wakeup every 3 s. Charge state and PD negotiation move on
+            # a minutes timescale, so 10 s is ample and cuts it to ~0.4 %.
+            interval = 10;
             return-type = "json";
             tooltip = true;
             hide-empty-text = true;

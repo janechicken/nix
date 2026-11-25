@@ -31,6 +31,40 @@ This file tracks verified hardware state, applied fixes, post-reboot checks, and
   The unit follows the `systemd.special(7)` sleep-wrapper pattern (`WantedBy=sleep.target`, `Before=sleep.target`, `StopWhenUnneeded=yes`, `Type=oneshot`, `RemainAfterExit=yes`, `restartIfChanged = false`), discovers the bound devices at run time (never hardcoded: `xhci-hcd.N.auto` instance numbers are probe-order dependent and change between boots), unbinds them in `ExecStart=` (state recorded under `/run/mahua-sleep-quirks/`) and rebinds them in `ExecStopPost=` — USB first, then Wi-Fi, skipping anything the kernel already rebound, and `modprobe -a qrtr_mhi ath12k_wifi7` if the `ath12k_wifi7_pci` driver directory is gone. `xhci-hcd` is unbound rather than its `dwc3-qcom` parent because `usb_remove_hcd()` halts the controller and frees all of its rings/DMA buffers while leaving the `dwc3` core, the QMP combo PHYs (`fd5000`/`fde000`/`88e1000`) and the `usb_role_switch` up — those PHYs are shared with `pmic_glink_altmode` for USB-C DP altmode and PD, which a `dwc3-qcom` unbind would power down and re-initialise. Verify the unit after a rebuild with `systemctl cat mahua-sleep-quirks` and `/run/mahua-sleep-quirks/` (present only while suspended).
 - **Wireless & Input:** WCN7850 Wi-Fi 7 (`wlP4p1s0`), Bluetooth (`hci0`), `QTEC0001` keyboard (`i2c0`), `ELAN06FA` touchpad (`i2c0`), `GXPT7936` touchscreen (`i2c8`), lid hall sensor (`gpio-keys`, TLMM 92). (Note: 83QR has no fingerprint reader in hardware.)
 
+## Battery Life / Runtime PM (Tier 1, applied)
+
+`services.udev.extraRules` in `configuration.nix` enables runtime PM on the four USB controllers that have nothing attached plus their QMP USB3 PHYs. The mapping below is read from `/proc/device-tree/soc@0` (`phys`/`phy-names` phandles) and `/sys`, not assumed:
+
+| Controller | xHCI child | eUSB2 PHY (no runtime PM) | QMP PHY (runtime PM) |
+|---|---|---|---|
+| `a000000.usb` (peripheral-only UDC, no xHCI child) | — | `88e0000.phy` | `88e1000.phy` |
+| `a200000.usb` | `xhci-hcd.1.auto` → `usb1` | `fa0000.phy` | — |
+| `a400000.usb` | `xhci-hcd.2.auto` → `usb2`, `usb3` | `fa1000.phy`, `fa2000.phy` | `fa3000.phy`, `fa5000.phy` |
+| `a800000.usb` | `xhci-hcd.5.auto` → `usb8`, `usb9` | `fdd000.phy` | `fde000.phy` |
+| `a600000.usb` — **excluded** | `xhci-hcd.4.auto` → `usb6` (YubiKey at `6-1`), `usb7` | `fd3000.phy` | `fd5000.phy` |
+
+- **Why `power/control="auto"` is the right knob:** both `dwc3_core_probe()` (`drivers/usb/dwc3/core.c`) and `xhci_plat_probe()` (`drivers/usb/host/xhci-plat.c`) call `pm_runtime_forbid()`, which takes a permanent `usage_count` reference; `pm_runtime_allow()` (what a `"auto"` write does) drops it. Before the write the devices read `power/control=on`, `runtime_enabled=forbidden`, `runtime_usage=1`; the root hubs (`usb1/2/3/8/9`) are already `auto`/`suspended`, so once the forbid reference is gone the xHCI idles and the glue autosuspends after its 5 s delay, where `dwc3_qcom_suspend()` runs `clk_bulk_disable_unprepare()` + `dwc3_qcom_interconnect_disable()` — that is where the power actually goes.
+- **`ACTION=="add|bind"` is required, not decorative:** `mahua-sleep-quirks` unbinds/rebinds every `xhci-hcd.*.auto` around `s2idle`, and every rebind re-runs `xhci_plat_probe()` → `pm_runtime_forbid()`, i.e. `power/control` would silently revert to `on` after the first sleep without the `bind` trigger.
+- **The unbind/rebind cycle stays safe:** `__device_release_driver()` (`drivers/base/dd.c`) does `pm_runtime_get_sync(dev)` before `->remove` and `pm_runtime_put_sync(dev)` after, and `xhci_plat_remove()` itself starts with `pm_runtime_get_sync()`. On the system-sleep path `xhci_plat_suspend_common()` resumes a runtime-suspended controller first (`if (pm_runtime_suspended(dev)) pm_runtime_resume(dev);`), so a runtime-suspended xHCI never reaches `xhci_suspend()`.
+- **`a600000.usb` is excluded on purpose:** it is the verified zero-fault `s2idle` path (`SID=0x1420`) and hosts the YubiKey. Enable it only as a separate experiment with a full suspend/resume soak.
+- **The M31 eUSB2 PHYs are excluded because they cannot do it:** `qcom-m31eusb2-phy` never calls `devm_pm_runtime_enable()`, so they read `power/runtime_enabled=disabled`, `runtime_status=unsupported` — writing `auto` there is a no-op that would only make `power/control` lie.
+- **QMP PHYs are safe to autosuspend:** `phy_power_on()` takes a runtime-PM reference on the PHY and `phy_power_off()` drops it (`drivers/phy/phy-core.c`), so a PHY in use by its controller cannot suspend.
+- **Userspace:** Waybar `custom/battery` went from `interval = 3` to `10`. Waybar re-execs `exec` on every tick, and the script costs ~40 ms per run (measured) → ~1.3 % of one core at `3`, ~0.4 % at `10`; charge/PD state moves on a minutes timescale. Nothing else in the bar is worth touching: Waybar as a whole used 9 s CPU in 5346 s (~0.17 %).
+
+### Audited and deliberately *not* changed
+
+- **NVMe (`0005:01:00.0`) runtime PM:** `nvme_dev_pm_ops` (`drivers/nvme/host/pci.c`) has **no** `.runtime_suspend`/`.runtime_resume`, and `pci_pm_runtime_suspend()` falls through to `pci_finish_runtime_suspend()` when the driver supplies no callback — i.e. `power/control=auto` would put the controller into D3hot *behind the nvme driver's back*, with no re-init on the way back. It is a no-op today (`runtime_usage=2`) and a latent data-loss hazard the moment that drops. The SSD's real power management is APST, already active (`nvme_core.default_ps_max_latency_us=100000`).
+- **`pcie_aspm.policy=powersupersave`:** nothing to gain — `qcom-pcie` already enables L1 + L1SS on both links (`/sys/bus/pci/devices/0004:01:00.0/link/l1_2_aspm=1`, same for the NVMe link) and deliberately clears the L0s capability (`qcom_pcie_clear_aspm_l0s()`); `powersupersave` would only push L0s, which is the half that is turned off on purpose. Policy stays `default`. `ath12k` (`wcn7850 hw2.0`) has `supports_aspm = true` and re-enables ASPM after firmware boot (`ath12k_pci_start()`), so WCN7850 is not the blocker — the root complex is.
+- **`misc.vfr`:** does not exist in Hyprland 0.57.2. `hyprctl getoption misc:vfr` → `no such option`, and the string is absent from the binary/man page. There is nothing to enable; a comment in `modules/hyprland-home.nix` records this so it does not get "re-added". `misc.vrr` stays `0` (fixed-refresh OLED).
+- **`charge_control_end_threshold`:** `qcom_battmgr` implements and exposes it (`/sys/class/power_supply/qcom-battmgr-bat/charge_control_end_threshold`, currently `0` = no limit, and it is in `is_writeable()`), so an 80 % cap *is* plumbed through `pmic-glink` on Glymur/Mahua. Not enabled — it needs a one-off write to confirm the EC honours it before it becomes declarative.
+- **`wsa884x-codec: Parity error detected`:** 4 lines in a 1 h 28 min boot (2 events, both amps, seconds apart), alongside periodic `SWR bus clsh detected` (SoundWire clock-stop on idle, normal). Rare, harmless, no audio dropout, and not something a NixOS option can influence — it needs a `sound/soc/codecs/wsa884x.c` fix (`scp_int1_mask` currently unmasks `SDW_SCP_INT1_BUS_CLASH | SDW_SCP_INT1_PARITY`).
+
+### Tier 2 (next, keep each as its own single-variable commit)
+
+- Drop **only** `clk_ignore_unused` from `boot.kernelParams` (leave `pd_ignore_unused` / `regulator_ignore_unused` alone), one boot, then check `dmesg` for `clk: ... still enabled`/`-EBUSY` and that the panel/GPU/ADSP still come up. It is boot-only, so `s2idle` is unaffected either way.
+- Then, separately: `a600000.usb` runtime PM (YubiKey port) with a suspend/resume soak.
+- Then: an 80 % charge cap via `charge_control_end_threshold`, if the EC honours it.
+
 ## Backlog: Blocked Upstream / Missing Firmware (Out of Scope)
 
 - **`qcom_iris` (HW video decode):** Needs post-7.4 Glymur/Mahua Iris driver + DT series, plus `qcom/vpu/vpu36_p4_s7.mbn`, which is **not** in upstream `linux-firmware` (nor in this repo). Nothing to vendor yet: waits on upstream `linux-firmware` gaining the `vpu36` blob *and* post-7.4 kernel Iris support. Keep blacklisted.
@@ -84,6 +118,16 @@ After `nh os switch .` and rebooting into the new generation:
    - **`cpuidle.off=1` A/B test:** if real `s2idle` (not `pm_test`) hangs, reboot with `cpuidle.off=1` appended in GRUB and repeat. Passing with cpuidle off pins the fault on `domain_ss3`/`qcom,glymur-pdc` idle-state entry rather than a driver callback.
    - **`rtcwake` / timed wake cannot work on this board:** `apps_rsc` reports `CONTROL_TCS 0`, so the RSC cannot arm a TCS/RTC wake timer. `rtcwake -m freeze -s 20` will therefore look like a hang until something else wakes the machine.
    - **Wake sources:** `pmic_pwrkey` (`event4`, IRQ 275, `power/wakeup = enabled`) is the real power button (PMIC event, 2 edges per press; `PowerKeyIgnoreInhibited = "yes"` in `services.logind.settings.Login` is set so user-app `block` sleep inhibitors like T3 Code don't refuse explicit power-key presses). Keyboard wake comes through `event3` (`hid-over-i2c 048D:83DB`, wakeup source `0-003a`, GIC `msmgpio` IRQ 236), and lid open through `gpio-keys` (`event0`, TLMM 92). Those three are the only reliable wake sources.
+7. **USB runtime PM (Tier 1) and its interaction with `s2idle`:**
+   ```bash
+   # All four unused controllers + their xHCI children + the four QMP PHYs:
+   grep . /sys/bus/platform/devices/{a000000,a200000,a400000,a800000}.usb/power/control
+   grep . /sys/bus/platform/devices/xhci-hcd.{1,2,5}.auto/power/{control,runtime_status}
+   grep . /sys/bus/platform/devices/{88e1000,fa3000,fa5000,fde000}.phy/power/{control,runtime_status}
+   # Must stay untouched (YubiKey port):
+   grep . /sys/bus/platform/devices/{a600000.usb,xhci-hcd.4.auto,fd5000.phy}/power/control
+   ```
+   Expected: `auto` on the first three groups, `on` on `a600000`/`xhci-hcd.4.auto`/`fd5000.phy`; `runtime_status` reaches `suspended` on the unused controllers once nothing is plugged in (~5 s after boot). After one `systemctl suspend`/resume cycle the `xhci-hcd.*.auto` values must still be `auto` — that is what the `ACTION=="add|bind"` rule covers, and it is the only thing that keeps runtime PM from being lost on every resume. A YubiKey must still enumerate on `a600000` (`lsusb`, `ykman info`).
 
 ## Critical Invariants & Past Dead Ends (Do Not Regress)
 
