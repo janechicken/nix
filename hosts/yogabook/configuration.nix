@@ -278,9 +278,11 @@
         HandleLidSwitchExternalPower = "lock";
         HandleLidSwitchDocked = "ignore";
         # Short press suspends (hypridle's before_sleep_cmd locks first), hold
-        # powers off.
+        # powers off. Ignore user-app sleep inhibitors (e.g. T3 Code's block
+        # lock) on explicit physical power-button presses.
         HandlePowerKey = "suspend";
         HandlePowerKeyLongPress = "poweroff";
+        PowerKeyIgnoreInhibited = "yes";
       };
     };
     openssh.enable = true;
