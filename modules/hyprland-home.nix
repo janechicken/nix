@@ -1046,7 +1046,7 @@ let
       },
 
       master = {
-        mfact = 0.55,
+        mfact = 0.50,
         new_status = "slave",
       },
 
