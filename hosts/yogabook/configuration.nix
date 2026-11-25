@@ -82,7 +82,7 @@
     # glue then idles after its 5 s autosuspend delay and dwc3_qcom_suspend()
     # gates the controller clocks + interconnect paths. Only the four
     # controllers with nothing attached are matched:
-    #   a000000.usb  peripheral-only (UDC), no xHCI child, QMP phy 88e1000
+    #   a000000.usb  usb4 + usb5                (eUSB2 phy 88e0000, QMP 88e1000)
     #   a200000.usb  usb1                       (eUSB2 phy fa0000)
     #   a400000.usb  usb2 + usb3                (eUSB2 fa1000/fa2000, QMP fa3000/fa5000)
     #   a800000.usb  usb8 + usb9                (eUSB2 fdd000, QMP fde000)
@@ -90,15 +90,25 @@
     # is the verified zero-fault s2idle path (`SID=0x1420`).
     ACTION=="add|bind", SUBSYSTEM=="platform", DRIVER=="dwc3-qcom", KERNEL=="a000000.usb|a200000.usb|a400000.usb|a800000.usb", ATTR{power/control}="auto"
 
-    # Their xHCI children (xhci-hcd.{1,2,5}.auto). xhci_plat_probe() also calls
-    # pm_runtime_forbid() -- "users should enable runtime pm using power/control
-    # in sysfs" -- and the root hubs (usb1/2/3/8/9) are already autosuspended,
-    # so dropping the forbid reference lets the controller idle. KERNELS!="..."
-    # matches only when no ancestor carries that name, keeping a600000's
-    # xhci-hcd.4.auto out; `bind` matters because mahua-sleep-quirks rebinds
-    # these devices on every resume, which re-runs xhci_plat_probe() and
-    # restores power/control="on".
-    ACTION=="add|bind", SUBSYSTEM=="platform", DRIVER=="xhci-hcd", KERNEL=="xhci-hcd.*.auto", KERNELS!="a600000.usb", ATTR{power/control}="auto"
+    # Their xHCI children (xhci-hcd.{1,2,3,5}.auto). xhci_plat_probe() also
+    # calls pm_runtime_forbid() -- "users should enable runtime pm using
+    # power/control in sysfs" -- and the root hubs (usb1/2/3/4/5/8/9) are
+    # already autosuspended, so dropping the forbid reference lets the
+    # controller idle. `bind` matters because mahua-sleep-quirks rebinds these
+    # devices on every resume, which re-runs xhci_plat_probe() and restores
+    # power/control="on".
+    #
+    # The four parents are whitelisted by name on purpose: a negated KERNELS
+    # match CANNOT exclude a parent. KERNELS/ATTRS walk the device and every
+    # ancestor, and `!=` is true as soon as *any* of them fails to match -- so
+    # `KERNELS!="a600000.usb"` was true for xhci-hcd.4.auto itself (its own
+    # KERNEL is "xhci-hcd.4.auto"), and udev happily wrote "auto" there:
+    #   udevadm test --action=add .../a600000.usb/xhci-hcd.4.auto
+    #     -> 99-local.rules: ATTR{power/control}="auto"   (wrong, control=suspended)
+    # A positive KERNELS match is only true when the device or one of its
+    # parents really carries that name, i.e. exactly the four unused
+    # controllers, and never a600000.usb.
+    ACTION=="add|bind", SUBSYSTEM=="platform", DRIVER=="xhci-hcd", KERNEL=="xhci-hcd.*.auto", KERNELS=="a000000.usb|a200000.usb|a400000.usb|a800000.usb", ATTR{power/control}="auto"
 
     # QMP USB3 PHYs of those four controllers: 88e1000 (a000000),
     # fa3000 + fa5000 (a400000), fde000 (a800000). phy_power_on() holds a
