@@ -136,6 +136,41 @@
   hardware.deviceTree = {
     enable = true;
     name = "qcom/mahua-lenovo-yoga-slim7-14q8y11.dtb";
+
+    # "Option A'": force VREG_EDP_3P3 (the panel's 3.3 V eDP rail) on for the
+    # whole boot. The board DTS only sets `regulator-boot-on` on it, so once
+    # `atna33xc20` runtime-autosuspends (which it does whenever `msm_dpu`
+    # defers on the stage-2 pmic_glink_altmode) the rail is dropped, the TCON
+    # goes to DPCD D3 and the panel stays dark. `regulator-always-on` keeps
+    # the rail enabled and the panel out of D3.
+    #
+    # Applied as a DT overlay (nixpkgs apply_overlays.py + libfdt), so it costs
+    # one tiny derivation and **no** kernel/DTS rebuild. `target-path` (not a
+    # `&label` reference) is used on purpose: it resolves the node by its
+    # literal path, so it keeps working even if the base DTB were ever built
+    # without `-@`/`__symbols__`.
+    #
+    # NOTE: the overlay's `filter` is a plain *substring* test on the DTB's
+    # path inside the dtbs output (apply_overlays.py: `filter not in
+    # str(rel_path)`), NOT a glob - a leading `*` would never match.
+    overlays = [
+      {
+        name = "vreg-edp-3p3-always-on";
+        filter = "mahua-lenovo-yoga-slim7-14q8y11.dtb";
+        dtsText = ''
+          /dts-v1/;
+          /plugin/;
+
+          / {
+            compatible = "lenovo,yoga-slim7-14q8y11";
+          };
+
+          &{/regulator-edp-3p3} {
+            regulator-always-on;
+          };
+        '';
+      }
+    ];
   };
 
   # Qualcomm redistributable firmware + wireless-regdb (regulatory.db) +
@@ -233,6 +268,13 @@
       "modprobe.blacklist=qcom_iris,qcom_camss"
       "firmware_class.path=/var/lib/mahua-firmware"
     ];
+
+    # NixOS emits `loglevel=$consoleLogLevel` in kernelParams (and
+    # kernel.printk) from this option; the default is 4. At 4 the benign
+    # boot-time `qcom-apm ... 1001021` timeout (KERN_WARNING) is printed on
+    # /dev/tty1 right over the console. 3 keeps KERN_ERR and above on the
+    # console while every message is still recorded in dmesg/journalctl.
+    consoleLogLevel = 3;
 
     # Ensure qrtr-mhi loads before ath12k_wifi7 so WCN7850 WiFi 7 initializes reliably
     kernelModules = [
