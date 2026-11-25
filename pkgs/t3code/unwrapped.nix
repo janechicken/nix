@@ -24,6 +24,10 @@
   pnpmConfigHook,
   pnpmBuildHook,
   cacert,
+  # Bake upstream's public T3 Connect identifiers (relay URL + Clerk
+  # application) into the bundles, the way upstream's documented
+  # `cp .env.example .env` does for source builds.
+  enableConnect ? false,
 }:
 
 stdenv.mkDerivation (
@@ -124,6 +128,19 @@ stdenv.mkDerivation (
       # Exclude the `@t3tools/monorepo` workspace from the pending rebuild since
       # `vp config` needs git
       pnpm rebuild --pending "''${pnpmInstallFlags[@]}" --filter '!@t3tools/monorepo'
+    ''
+    + lib.optionalString enableConnect ''
+      # T3 Connect public identifiers, copied verbatim from upstream's
+      # `.env.example` (they are the same public, non-secret values baked into
+      # official release builds). Only the `T3CODE_*` spellings are needed:
+      # `loadRepoEnv` in scripts/lib/public-config.ts reads them from the
+      # process environment and derives the `VITE_*` aliases that
+      # apps/web/vite.config.ts, apps/server/vite.config.ts and
+      # apps/desktop/vite.config.ts define at build time.
+      export T3CODE_CLERK_PUBLISHABLE_KEY=pk_live_Y2xlcmsudDMuY29kZXMk
+      export T3CODE_CLERK_JWT_TEMPLATE=t3-relay
+      export T3CODE_CLERK_CLI_OAUTH_CLIENT_ID=hzxSgY2cH10sDU2r
+      export T3CODE_RELAY_URL=https://relay.t3.codes
     '';
 
     pnpmBuildScript = "build:desktop";

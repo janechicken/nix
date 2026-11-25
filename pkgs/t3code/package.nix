@@ -10,6 +10,11 @@
   bitbucket-cli,
   enableClaude ? false,
   claude-code,
+  # T3 Connect (relay + Clerk sign-in). Adds `cloudflared` to the runtime
+  # closure and points T3CODE_CLOUDFLARED_PATH at it; the tunnel itself needs
+  # upstream's public relay/Clerk identifiers, baked in by `t3code-unwrapped`.
+  enableConnect ? false,
+  cloudflared,
   enableCodex ? true,
   codex,
   enableCursor ? false,
@@ -30,7 +35,7 @@
   # Agent CLIs T3 Code shells out to that nixpkgs has no flag for yet
   # (e.g. `pi`, whose provider driver resolves the bare `pi` command on PATH).
   extraRuntimePackages ? [ ],
-  t3code-unwrapped ? callPackage ./unwrapped.nix { },
+  t3code-unwrapped ? callPackage ./unwrapped.nix { inherit enableConnect; },
   t3code-resource-monitor ? callPackage ./resource-monitor.nix { inherit t3code-unwrapped; },
 }:
 
@@ -66,6 +71,13 @@ let
       "--set-default"
       "T3CODE_RESOURCE_MONITOR_PATH"
       (lib.getExe t3code-resource-monitor)
+    ]
+    # The relay tunnel shells out to cloudflared; upstream probes it for a
+    # minimum version (2026.10.3), which nixpkgs' 2026.10.7 satisfies.
+    ++ lib.optionals enableConnect [
+      "--set-default"
+      "T3CODE_CLOUDFLARED_PATH"
+      (lib.getExe cloudflared)
     ];
 
 in

@@ -12,7 +12,7 @@ let
   # working even when t3code-desktop is started without the home-manager session
   # PATH (systemd unit, rofi/`hyprctl dispatch exec`, desktop entry).
   piEnabled = config.programs.pi.coding-agent.enable or false;
-  piPackage = lib.optional piEnabled config.programs.pi.coding-agent.package;
+  piPackage = lib.optional piEnabled config.programs.pi.coding-agent.finalPackage;
 in
 {
   # ===========================================================================
@@ -30,14 +30,20 @@ in
   # — they are not used here.
   #
   # The resource monitor sidecar (Rust, built from source) stays enabled: it
-  # feeds the app's CPU/RAM panel. T3 Connect's cloudflared is deliberately not
-  # wired (nixpkgs' `T3CODE_CLOUDFLARED_PATH` patch): `cloudflared` is not on
-  # cache.nixos.org for either host, so it would add an uncached Go build for a
-  # relay feature that is not used here.
+  # feeds the app's CPU/RAM panel.
+  #
+  # T3 Connect is on: `enableConnect` bakes upstream's public relay/Clerk
+  # identifiers (relay.t3.codes, the Clerk publishable key and JWT template,
+  # straight from upstream's `.env.example`) into the web/server/desktop
+  # bundles, and the wrapper exports T3CODE_CLOUDFLARED_PATH for the relay
+  # tunnel. `cloudflared` comes from nixpkgs (built with `buildGo127Module`),
+  # so both hosts get it straight from `cache.nixos.org` (2026.10.7, above
+  # upstream's 2026.10.3 minimum): a download, not a build.
   # ===========================================================================
   home.packages = [
     (pkgs.t3code.override {
       enableCodex = true;
+      enableConnect = true;
       enableGitHub = true;
       enableGit = true;
       enableResourceMonitor = true;
