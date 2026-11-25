@@ -378,13 +378,17 @@
     description = "Unbind ath12k and USB host controllers around s2idle";
     wantedBy = [ "sleep.target" ];
     before = [ "sleep.target" ];
+    restartIfChanged = false;
     unitConfig.StopWhenUnneeded = true;
     path = [ pkgs.kmod ];
     serviceConfig = {
       Type = "oneshot";
       RemainAfterExit = true;
-      # Runs on resume, when sleep.target is stopped again.
-      ExecStop = pkgs.writeShellScript "mahua-sleep-quirks-resume" ''
+      # Runs on resume when sleep.target stops, and also if ExecStart fails
+      # mid-way so partially unbound devices are still rebound.
+      ExecStopPost = pkgs.writeShellScript "mahua-sleep-quirks-resume" ''
+        # Intentionally no `set -e`: one failing bind must not skip the
+        # remaining USB controllers or strand Wi-Fi.
         # USB first: a still-unbound xHCI is the one that faults the SMMU on
         # the *next* idle entry.
         state=/run/mahua-sleep-quirks

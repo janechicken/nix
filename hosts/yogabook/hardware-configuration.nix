@@ -30,20 +30,15 @@
   ];
 
   # Stage-1 module set copied verbatim from the hardware-verified `system-10`
-  # generation. `msm` + `panel_samsung_atna33xc20` + the DP/USB-C HPD bridge
-  # stack must be in initrd so `msm_dpu` binds `fb0: msmdrmfb` before
-  # switch-root and the LUKS/FIDO2 prompt renders on the OLED panel (the
-  # `af54000`/`af5c000` DP controllers defer indefinitely without
-  # `aux_hpd_bridge`).
-  #
-  # `pmic_glink` / `pmic_glink_altmode` are deliberately kept OUT of initrd.
-  # Without `pmic_glink_altmode` the `af54000`/`af5c000` DP controllers defer
-  # until stage 2, so stage 1 never gets `msmdrmfb` and the LUKS/FIDO2 prompt
-  # stays blind on `simpledrm` (`simpledrmdrmfb` owns `fb0` until `msm_dpu`
-  # takes it over after switch-root). Loading them in initrd instead makes
-  # `msm_dpu` bind before stage-2 ADSP (`remoteproc1`) is up, which
-  # black-screened `system-11` after switch-root; the deferral is kept on
-  # purpose, since it reproduces `system-10`'s working stage-2 bring-up.
+  # generation. `pmic_glink` / `pmic_glink_altmode` are deliberately kept OUT
+  # of initrd: without `pmic_glink_altmode` to create their `aux_hpd_bridge`
+  # devices, the USB-C DP controllers (`af54000`/`af5c000`) defer until stage
+  # 2, so `msm_dpu` does not bind `fb0: msmdrmfb` until after switch-root and
+  # the AMOLED panel stays dark during the LUKS/FIDO2 prompt (even though
+  # `simpledrm` attaches `fb0`). Loading `pmic_glink` in initrd lets `msm_dpu`
+  # bind before stage-2 ADSP (`remoteproc1`) is up, which black-screened
+  # `system-11` after switch-root; keeping this set preserves `system-10`'s
+  # reliable stage-2 display bring-up.
   boot.initrd.kernelModules = [
     "i2c_hid_of"
     "hid_multitouch"
