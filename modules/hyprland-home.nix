@@ -85,6 +85,93 @@ let
       --custom-progress-text "$text"
   '';
 
+  # Microphone mute (`XF86AudioMicMute`). All mic input runs through
+  # EasyEffects, so `easyeffects_source` is the default source, but muting that
+  # node does nothing audible: it is a `support.null-audio-sink` whose monitor
+  # ports (the ones clients capture from) bypass the node's own volume/mute
+  # (`monitor.channel-volumes = false`, `monitorMute = false`). Captured level
+  # stays unchanged while the node reports `[MUTED]`. The mute has to land on
+  # the hardware source EasyEffects captures from (`alsa_input.*`), which does
+  # silence the whole chain down to a captured RMS of 0. Explicit
+  # `set-mute 0|1` (never `toggle`) keeps every node in step; the virtual node
+  # is mirrored too, purely so pavucontrol shows the state. `swayosd-client
+  # --input-volume` is avoided on purpose: it goes through libpulse and would
+  # toggle `@DEFAULT_AUDIO_SOURCE@` a second time.
+  micMuteScript = pkgs.writeShellApplication {
+    name = "hypr-mic-mute";
+    runtimeInputs = [
+      pkgs.jq
+      pkgs.pipewire
+      pkgs.swayosd
+      pkgs.wireplumber
+    ];
+    text = ''
+      dump="$(pw-dump)"
+
+      # Hardware capture nodes: `Audio/Source` minus the virtual EasyEffects
+      # node, each with its current mute state.
+      hw="$(jq -r '
+        .[]
+        | select(.type == "PipeWire:Interface:Node")
+        | select((.info.props."media.class" // "") == "Audio/Source")
+        | select(((.info.props."node.virtual" // false) | tostring) != "true")
+        | "\(.id) \(if (.info.params.Props[0].mute // false) then 1 else 0 end)"
+      ' <<<"$dump")"
+
+      ee="$(jq -r '
+        first(.[]
+          | select(.type == "PipeWire:Interface:Node")
+          | select((.info.props."node.name" // "") == "easyeffects_source")
+          | .id) // empty
+      ' <<<"$dump")"
+
+      ids=()
+      muted=0
+      while read -r id is_muted; do
+        [ -n "$id" ] || continue
+        ids+=("$id")
+        muted=$((muted + is_muted))
+      done <<<"$hw"
+
+      if [ "''${#ids[@]}" -eq 0 ]; then
+        # PipeWire restarting or no capture device at all: plain default toggle.
+        wpctl set-mute @DEFAULT_AUDIO_SOURCE@ toggle
+      else
+        # One press always silences the mic: only unmute when every hardware
+        # source is already muted. Every source is muted, not just the active
+        # one, so a headset mic cannot stay live behind the built-in one.
+        if [ "$muted" -eq "''${#ids[@]}" ]; then
+          state=0
+        else
+          state=1
+        fi
+        for id in "''${ids[@]}"; do
+          wpctl set-mute "$id" "$state"
+        done
+        if [ -n "$ee" ]; then
+          wpctl set-mute "$ee" "$state"
+        fi
+      fi
+
+      # Read back from the default source (the mirrored virtual node, or the
+      # hardware source when EasyEffects is not running) for the OSD.
+      if wpctl get-volume @DEFAULT_AUDIO_SOURCE@ | grep -q '\[MUTED\]'; then
+        icon="microphone-sensitivity-muted-symbolic"
+        text="MUTED"
+        progress="0.00"
+      else
+        icon="microphone-sensitivity-high-symbolic"
+        text="ON"
+        progress="1.00"
+      fi
+
+      exec swayosd-client \
+        --custom-icon "$icon" \
+        --custom-progress "$progress" \
+        --custom-progress-text "$text"
+    '';
+  };
+
   # Right click on the Waybar bluetooth module: toggle the adapter's power.
   # `bluetoothctl show` fails (no controller -> nothing printed) on machines
   # without a Bluetooth adapter, so the script then just tries `power on`.
@@ -1598,7 +1685,7 @@ let
     hl.bind("XF86AudioRaiseVolume", hl.dsp.exec_cmd("${volumeScript} up"), { locked = true, repeating = true })
     hl.bind("XF86AudioLowerVolume", hl.dsp.exec_cmd("${volumeScript} down"), { locked = true, repeating = true })
     hl.bind("XF86AudioMute", hl.dsp.exec_cmd("${volumeScript} mute"), { locked = true })
-    hl.bind("XF86AudioMicMute", hl.dsp.exec_cmd("wpctl set-mute @DEFAULT_AUDIO_SOURCE@ toggle"), { locked = true })
+    hl.bind("XF86AudioMicMute", hl.dsp.exec_cmd("${micMuteScript}/bin/hypr-mic-mute"), { locked = true })
     -- Caps Lock OSD. `swayosd-client --caps-lock` reads the kernel LED
     -- (/sys/class/leds/*capslock), so no root libinput daemon is needed;
     -- `non_consuming` keeps the lock itself reaching the focused window.
