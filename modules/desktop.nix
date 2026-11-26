@@ -35,35 +35,13 @@
     pkgs.copyq
     pkgs.easyeffects
     pkgs.pavucontrol
-    pkgs.flameshot
     inputs.nix-alien.packages.${pkgs.system}.nix-alien
     pkgs.yt-dlp-light
     pkgs.xbacklight
   ];
 
-  # Flameshot 15 on Hyprland/Wayland. Verified against the installed 15.0.0
-  # (src/utils/confighandler.cpp): capture goes through the xdg-desktop-portal
-  # `org.freedesktop.portal.Screenshot` API, provided by
-  # xdg-desktop-portal-hyprland (modules/hyprland.nix). Notes:
-  #   - useX11LegacyScreenshot is X11-only (ignored on Wayland) and the old
-  #     `useGrimAdapter` / `disabledGrimWarning` keys no longer exist at all:
-  #     Flameshot 15 has no grim backend (its nixpkgs wrapper still ships grim).
-  #   - captureActiveMonitor must stay false: on Wayland Flameshot refuses it
-  #     ("Capture Active Monitor is not supported on Wayland due to Wayland
-  #     security model") and the capture fails outright on multi-monitor hosts.
-  #     Single-monitor hosts short-circuit before that check, so this is a
-  #     no-op there.
-  xdg.configFile."flameshot/flameshot.ini".text = ''
-    [General]
-    captureActiveMonitor=false
-    contrastOpacity=188
-    drawColor=#ff0000
-    saveAfterCopy=true
-    savePath=${config.home.homeDirectory}/Pictures/Screenshots
-    showSelectionGeometryHideTime=3000
-    undoLimit=100
-  '';
-
+  # Screenshots live in modules/hyprland-home.nix (grim + slurp + satty, with
+  # the satty config.toml and the Print/CTRL+Print/SHIFT+Print binds).
   home.file = {
     ".config/awesome" = {
       recursive = true;

@@ -13,6 +13,13 @@
 #     `USB` / `WLS`) next to a Nerd Font level ramp, on any laptop, and hides
 #     itself when the machine has no battery
 #   - AwesomeWM keybinds, master (tile, default) <-> dwindle (spiral) toggle, sloppy focus
+#   - One independent 1-9 workspace block per configured monitor (1-9 on the
+#     first, 10-18 on the second, ...): SUPER+1..9, SUPER+Left/Right and the
+#     Waybar scroll all act on the focused monitor's block, and every bar
+#     relabels its own block back to 1-9; `primaryMonitor` owns the cursor at
+#     startup (`cursor.default_monitor`) and is XWayland's `xrandr --primary`
+#   - grim + slurp + satty screenshots (Print = monitor, CTRL+Print = region,
+#     SHIFT+Print = monitor straight into satty)
 #   - hyprbars titlebars on floating windows only (AwesomeWM draws them on floats)
 #   - Window minimize/restore via the hidden special:minimized workspace, tagged
 #     per originating workspace (`minimized-ws-<N>`) so the taskbar can list a
@@ -26,7 +33,8 @@
 # `custom.hyprland.*`; everything else (keybinds, Waybar, Swaync, Hyprlock) is
 # byte-identical so the two machines look and behave the same. Only these
 # hardware facts differ:
-#   monitors / isLaptop / batteryName / vrr / idleLockTimeout / idleDpmsTimeout
+#   monitors / primaryMonitor / isLaptop / batteryName / vrr / idleLockTimeout /
+#   idleDpmsTimeout
 {
   config,
   lib,
@@ -37,7 +45,9 @@
 let
   cfg = config.custom.hyprland;
 
-  # Workspaces are bounded to 1..9, matching AwesomeWM's tags 1-9.
+  # Workspaces per monitor, matching AwesomeWM's tags 1-9. Every configured
+  # monitor owns its own block of this size (1-9, 10-18, ...), bound with
+  # `hl.workspace_rule` and relabelled 1-9 per bar.
   workspaceCount = 9;
 
   # Volume (PipeWire/WirePlumber) with a SwayOSD progress bar. `wpctl` keeps the
@@ -238,6 +248,69 @@ let
         ;;
     esac
   '';
+
+  # Screenshots: grim captures, satty annotates. `monitor` is the instant
+  # AwesomeWM-style Print (capture the focused output, copy it, notify), the two
+  # editing modes pipe grim straight into satty, which copies on Enter and saves
+  # through its own `output-filename` (see the satty config.toml below).
+  screenshotScript = pkgs.writeShellApplication {
+    name = "hypr-screenshot";
+    runtimeInputs = [
+      pkgs.grim
+      pkgs.slurp
+      pkgs.satty
+      pkgs.wl-clipboard
+      pkgs.libnotify
+      pkgs.jq
+      pkgs.hyprland
+    ];
+    text = ''
+      action="''${1:-monitor}"
+      dir="$HOME/Pictures/Screenshots"
+      mkdir -p "$dir"
+
+      # The focused output's name, straight from Hyprland's IPC (`monitors` is a
+      # JSON array with exactly one `focused: true` entry).
+      focused_output() {
+        hyprctl -j monitors | jq -r '.[] | select(.focused) | .name'
+      }
+
+      case "$action" in
+        monitor)
+          file="$dir/$(date +%Y-%m-%d_%H:%M:%S).png"
+          grim -o "$(focused_output)" "$file"
+          wl-copy < "$file"
+          notify-send -i "$file" "Screenshot saved" "$file"
+          ;;
+        region)
+          # slurp exits non-zero when the selection is cancelled (Escape).
+          geom="$(slurp)" || exit 0
+          [ -n "$geom" ] || exit 0
+          grim -g "$geom" - | satty -f -
+          ;;
+        monitor-edit)
+          grim -o "$(focused_output)" - | satty -f -
+          ;;
+        *)
+          echo "usage: $0 {monitor|region|monitor-edit}" >&2
+          exit 1
+          ;;
+      esac
+    '';
+  };
+
+  # `cursor.default_monitor` (Hyprland 0.57.2 config key `cursor:default_monitor`,
+  # "the name of a default monitor for the cursor to be set to on startup") and
+  # the matching `xrandr --primary` for XWayland. Both are single-line Lua
+  # fragments on purpose: a multi-line `${...}` interpolation inside the Lua
+  # template loses its indentation, a single line keeps the template's own.
+  primaryMonitorCursorLua = lib.optionalString (cfg.primaryMonitor != null) (
+    "cursor = { default_monitor = ${luaScalar cfg.primaryMonitor} }, -- start the pointer on the primary output"
+  );
+
+  primaryMonitorXrandrLua = lib.optionalString (cfg.primaryMonitor != null) (
+    ''hl.exec_cmd("${pkgs.xrandr}/bin/xrandr --output ${cfg.primaryMonitor} --primary") -- also primary for XWayland''
+  );
 
   # SwayOSD stylesheet (AwesomeWM palette, 6px corners, purple progress).
   swayosdStyle = pkgs.writeText "swayosd-style.css" ''
@@ -1193,13 +1266,31 @@ let
         sys.exit(code)
   '';
 
-  # Waybar scroll handler: the same 1..9 wrap-around as `cycle_workspace`
+  # Waybar scroll handler: the same per-monitor wrap-around as `cycle_workspace`
   # below, evaluated by Hyprland's own Lua runtime through `hyprctl dispatch`.
+  # `dispatch` wraps its argument as `return hl.dispatch(<arg>)` (Hyprland
+  # 0.57.2, src/ipc/s1/Commands.cpp:dispatchRequest), so the base-offset lookup
+  # has to be a single expression: an immediately invoked function.
   # `r+1`/`r-1` must never be used here: a single trackpad scroll would spawn
-  # workspaces 10, 11, 12, ...
+  # workspaces outside the focused monitor's block.
   cycleWorkspaceCmd =
     delta:
-    "hyprctl dispatch \"hl.dsp.focus({workspace = ((hl.get_active_workspace().id - 1 + (${toString delta})) % ${toString workspaceCount}) + 1})\"";
+    let
+      baseTable = monitorBaseTable "'";
+      d = toString delta;
+      n = toString workspaceCount;
+    in
+    "hyprctl dispatch \"hl.dsp.focus({workspace = (function() "
+    + "local t = ${baseTable} "
+    + "local m = hl.get_active_monitor() "
+    + "local b = t[m and m.name or ''] "
+    + "if b == nil then b = (m and m.id or 0) * ${n} end "
+    + "local w = hl.get_active_workspace() "
+    + "if w and w.special then w = m and m.active_workspace end "
+    + "local o = ((w and w.id) or (b + 1)) - b "
+    + "if o < 1 or o > ${n} then o = 1 end "
+    + "return b + ((o - 1 + (${d})) % ${n}) + 1 "
+    + "end)()})\"";
 
   # Lua literal for monitor option values ("auto" -> "auto", 1.25 -> 1.25).
   # toJSON already emits valid Lua for strings, integers and floats.
@@ -1241,6 +1332,74 @@ let
     })
   '') monitors;
 
+  # Every configured monitor owns its own block of `workspaceCount` workspaces:
+  # the first one 1..9, the second 10..18, and so on. `base` is the 0-based
+  # offset of that block.
+  monitorBases = lib.imap0 (idx: m: {
+    output = m.output;
+    base = idx * workspaceCount;
+  }) cfg.monitors;
+
+  # `hl.workspace_rule` (Hyprland 0.57.2 Lua: `workspace` is a required string
+  # selector, `monitor` a monitor selector, `default` a bool that makes the
+  # workspace the monitor's initial one - CWorkspaceRuleManager::
+  # getDefaultWorkspaceFor). Without the `default` rules Hyprland gives a fresh
+  # monitor the lowest id not bound elsewhere, which is how the second monitor
+  # ended up on a stray workspace 2.
+  workspaceRulesLua = lib.concatMapStringsSep "\n" (
+    m:
+    lib.concatMapStringsSep "\n" (
+      i:
+      "hl.workspace_rule({ workspace = \"${toString i}\", monitor = ${luaScalar m.output}${
+        lib.optionalString (i == m.base + 1) ", default = true"
+      } })"
+    ) (lib.range (m.base + 1) (m.base + workspaceCount))
+  ) monitorBases;
+
+  # Lua table of `output -> 0-based base offset` for the configured monitors
+  # (`{ ["DP-3"] = 0, ["DP-1"] = 9 }`), used by the workspace keybinds,
+  # `cycle_workspace` and the Waybar scroll command. `quote` is `"` in
+  # hyprland.lua and `'` inside the one-line `hyprctl dispatch` commands, which
+  # sit in shell double quotes.
+  monitorBaseTable =
+    quote:
+    "{ "
+    + lib.concatMapStringsSep ", " (
+      m: "[${quote}${m.output}${quote}] = ${toString m.base}"
+    ) monitorBases
+    + " }";
+
+  # Waybar 0.16 `hyprland/workspaces`: keys are output names ("*" for outputs
+  # not listed), and a non-empty array value is the list of workspace *names* to
+  # always show on that output (src/modules/hyprland/workspaces.cpp:
+  # loadPersistentWorkspacesFromConfig -> `workspace.asString()`), so strings
+  # match `hl.workspace_rule` exactly and no longer depend on Hyprland's runtime
+  # DRM monitor id. An int value would instead create `id * amount + 1..` on
+  # that monitor. Never emit an empty array: Waybar reads that as "a workspace
+  # named after the key, on every monitor".
+  persistentWorkspaces =
+    lib.listToAttrs (
+      lib.imap0 (idx: m: {
+        name = m.output;
+        value = map toString (lib.range (idx * workspaceCount + 1) ((idx + 1) * workspaceCount));
+      }) cfg.monitors
+    )
+    // {
+      "*" = workspaceCount;
+    };
+
+  # `format = "{icon}"` plus this map: each bar relabels its own block 1..9, so
+  # every monitor shows the same tag row while controlling an independent
+  # workspace set. Waybar matches `format-icons` on the workspace *name*
+  # (Workspace::selectString), falling back to the raw name when unmapped.
+  # Covers 4 monitors (36 workspaces).
+  workspaceIcons = lib.listToAttrs (
+    map (n: {
+      name = toString n;
+      value = toString (lib.mod (n - 1) workspaceCount + 1);
+    }) (lib.range 1 (4 * workspaceCount))
+  );
+
   hasBattery = cfg.isLaptop || cfg.batteryName != null;
 
   hypridleListeners =
@@ -1262,6 +1421,17 @@ let
     ---- MONITORS ----
     ------------------
     ${monitorLua}
+
+    ${lib.optionalString (cfg.monitors != [ ]) ''
+      -----------------------------
+      ---- WORKSPACE BINDING ----
+      -----------------------------
+      -- One independent block of ${toString workspaceCount} workspaces per configured
+      -- monitor (first monitor 1-${toString workspaceCount}, second ${toString (workspaceCount + 1)}-${toString (2 * workspaceCount)}, ...).
+      -- `default = true` pins the monitor's initial workspace to the first id of
+      -- its own block instead of letting Hyprland pick the lowest free id.
+      ${workspaceRulesLua}
+    ''}
 
     -------------------------------
     ---- ENVIRONMENT VARIABLES ----
@@ -1353,6 +1523,8 @@ let
         force_zero_scaling = true,
       },
 
+      ${primaryMonitorCursorLua}
+
       input = {
         kb_layout = "us",
         follow_mouse = 1,
@@ -1397,6 +1569,9 @@ let
       -- 3-finger horizontal swipe to switch workspaces on the touchpad.
       -- workspace_swipe_create_new would otherwise create workspace 10, 11, ...
       -- when swiping right from the last workspace (Hyprland default: true).
+      -- This is Hyprland's native `workspace` gesture (not cycle_workspace), so
+      -- it steps through workspace ids: with a second monitor attached, a swipe
+      -- past the last workspace of this monitor lands on that monitor's block.
       hl.config({ gestures = { workspace_swipe_create_new = false } })
 
       hl.gesture({
@@ -1411,24 +1586,57 @@ let
     hl.on("hyprland.start", function()
       hl.exec_cmd("copyq")
       hl.exec_cmd("udiskie --tray")
-      -- Flameshot daemon (tray icon + the screenshot backend used by Print)
-      hl.exec_cmd("flameshot")
+      ${primaryMonitorXrandrLua}
     end)
 
     ---------------------------
     ---- WORKSPACE CYCLING ----
     ---------------------------
-    -- Workspaces stay inside 1..9 (AwesomeWM tags). Hyprland's relative
-    -- selectors (r+1 / r-1) create workspace 10, 11, ... on every scroll.
+    -- Every monitor owns its own block of WORKSPACE_COUNT workspaces (see the
+    -- `hl.workspace_rule` bindings above). Hyprland's relative selectors
+    -- (r+1 / r-1) walk across monitors and would spawn workspace ids outside
+    -- the block, so every bind resolves an absolute id inside the focused
+    -- monitor's block instead.
     local WORKSPACE_COUNT = ${toString workspaceCount}
 
-    local function cycle_workspace(delta)
-      local ws = hl.get_active_workspace()
-      local id = ws and ws.id or 1
-      if id < 1 or id > WORKSPACE_COUNT then
-        id = 1
+    -- Output name -> 0-based base offset of its block, generated from
+    -- custom.hyprland.monitors (`{ ["DP-3"] = 0, ["DP-1"] = 9 }`).
+    local MONITOR_BASE = ${monitorBaseTable "\""}
+
+    -- Base offset of the focused monitor. Outputs missing from MONITOR_BASE
+    -- (hot-plugged) fall back to their Hyprland monitor id (`HL.Monitor.id`),
+    -- the same block Waybar's `persistent-workspaces` "*" fallback assumes.
+    local function focused_base()
+      local mon = hl.get_active_monitor()
+      if not mon then
+        return 0
       end
-      hl.dispatch(hl.dsp.focus({ workspace = ((id - 1 + delta) % WORKSPACE_COUNT) + 1 }))
+      local base = MONITOR_BASE[mon.name or ""]
+      if base ~= nil then
+        return base
+      end
+      return (mon.id or 0) * WORKSPACE_COUNT
+    end
+
+    -- Workspace the focused monitor is on, ignoring a peeked special workspace
+    -- (`special:minimized` has a negative id).
+    local function focused_workspace_id()
+      local ws = hl.get_active_workspace()
+      if ws and ws.special then
+        local mon = hl.get_active_monitor()
+        ws = mon and mon.active_workspace or nil
+      end
+      return ws and ws.id or nil
+    end
+
+    -- Cycle inside the focused monitor's block, wrapping at its edges.
+    local function cycle_workspace(delta)
+      local base = focused_base()
+      local offset = (focused_workspace_id() or (base + 1)) - base
+      if offset < 1 or offset > WORKSPACE_COUNT then
+        offset = 1
+      end
+      hl.dispatch(hl.dsp.focus({ workspace = base + ((offset - 1 + delta) % WORKSPACE_COUNT) + 1 }))
     end
 
     ------------------------------
@@ -1525,9 +1733,9 @@ let
       fit_floating(win, false)
     end)
 
-    -- Windows that become floating later: SUPER+CTRL+Space, Flameshot pins,
-    -- `setprop floating`, plugin/mouse rules. Pinned windows (Flameshot's
-    -- screenshots) place themselves and are left alone.
+    -- Windows that become floating later: SUPER+CTRL+Space, satty's annotation
+    -- window, `setprop floating`, plugin/mouse rules. Pinned windows place
+    -- themselves and are left alone.
     hl.on("window.update_state", function(win, changes)
       if not win or not changes.float or win.pinned then
         return
@@ -1565,18 +1773,21 @@ let
       { description = "toggle notification center" }
     )
 
-    -- Workspace navigation, bounded to 1..9 (wrapping like AwesomeWM's tags)
+    -- Workspace navigation, bounded to each monitor's own block of
+    -- WORKSPACE_COUNT workspaces (wrapping like AwesomeWM's tags). SUPER+1..9
+    -- and SUPER+SHIFT+1..9 act on the focused monitor, so both monitors show
+    -- the same 1-9 keys and Waybar labels.
     hl.bind(mainMod .. " + Left", function() cycle_workspace(-1) end, { description = "previous workspace" })
     hl.bind(mainMod .. " + Right", function() cycle_workspace(1) end, { description = "next workspace" })
     hl.bind(mainMod .. " + Escape", hl.dsp.focus({ workspace = "previous" }), { description = "restore previous workspace" })
 
-    for i = 1, 9 do
-      hl.bind(mainMod .. " + " .. i, hl.dsp.focus({ workspace = i }), { description = "workspace " .. i })
-      hl.bind(
-        mainMod .. " + SHIFT + " .. i,
-        hl.dsp.window.move({ workspace = i, follow = false }),
-        { description = "move window to workspace " .. i }
-      )
+    for i = 1, WORKSPACE_COUNT do
+      hl.bind(mainMod .. " + " .. i, function()
+        hl.dispatch(hl.dsp.focus({ workspace = focused_base() + i }))
+      end, { description = "workspace " .. i })
+      hl.bind(mainMod .. " + SHIFT + " .. i, function()
+        hl.dispatch(hl.dsp.window.move({ workspace = focused_base() + i, follow = false }))
+      end, { description = "move window to workspace " .. i })
     end
 
     -- Client focus & swapping
@@ -1851,10 +2062,12 @@ let
         hl.dispatch(hl.dsp.dpms({ action = "enable" }))
       end, { locked = true, description = "lid open: panel on" })
     ''}
-    -- Screenshots (Flameshot, Wayland-native via xdg-desktop-portal; `--clipboard`
-    -- copies and `saveAfterCopy` in flameshot.ini also saves to ~/Pictures/Screenshots)
-    hl.bind("Print", hl.dsp.exec_cmd("flameshot screen --clipboard"), { description = "screenshot monitor" })
-    hl.bind("CONTROL + Print", hl.dsp.exec_cmd("flameshot gui --clipboard"), { description = "screenshot selection" })
+    -- Screenshots (grim + satty): Print grabs the focused monitor instantly
+    -- (PNG + clipboard + notification), CTRL+Print selects a region and opens
+    -- it in satty, SHIFT+Print sends the monitor straight to satty.
+    hl.bind("Print", hl.dsp.exec_cmd("${screenshotScript}/bin/hypr-screenshot monitor"), { description = "screenshot monitor" })
+    hl.bind("CONTROL + Print", hl.dsp.exec_cmd("${screenshotScript}/bin/hypr-screenshot region"), { description = "screenshot selection" })
+    hl.bind("SHIFT + Print", hl.dsp.exec_cmd("${screenshotScript}/bin/hypr-screenshot monitor-edit"), { description = "screenshot monitor in satty" })
 
     ----------------------
     ---- WINDOW RULES ----
@@ -1878,19 +2091,14 @@ let
       no_focus = true,
     })
 
-    -- Flameshot: its capture overlay, pinned screenshots and settings window are
-    -- plain xdg_toplevels, so Hyprland has to float/pin them itself (Wayland has
-    -- no "always on top" hint). Without this the overlay gets tiled into the
-    -- layout and pinned screenshots end up behind other windows.
-    -- No `center`/`move` (Flameshot places pins itself) and no `stay_focused`
-    -- (it would block focusing any other window while a pin exists).
+    -- satty (screenshot annotation): its window is a plain xdg_toplevel, so
+    -- Hyprland has to float it itself; no titlebar (see the hyprbars rules
+    -- below) because satty's own toolbar is the whole point.
     hl.window_rule({
-      name = "flameshot",
-      match = { class = "^(flameshot|org\\.flameshot\\.Flameshot)$" },
+      name = "satty",
+      match = { class = "^(com\\.gabm\\.satty)$" },
       float = true,
-      pin = true,
-      no_anim = true,
-      border_size = 0,
+      center = true,
     })
 
     -- Floating utility windows (matching dotfiles/awesome/rc.lua rules)
@@ -1957,16 +2165,16 @@ let
       })
 
       -- AwesomeWM draws titlebars on floating clients only: hyprbars decorates
-      -- every window, so tiled clients, Flameshot's capture overlay / pinned
-      -- screenshots and the invisible XWayland drag proxies get `no_bar`.
+      -- every window, so tiled clients, satty's annotation window and the
+      -- invisible XWayland drag proxies get `no_bar`.
       hl.window_rule({
         name = "hyprbars-tiled",
         match = { float = false },
         ["hyprbars:no_bar"] = true,
       })
       hl.window_rule({
-        name = "hyprbars-flameshot",
-        match = { class = "^(flameshot|org\\.flameshot\\.Flameshot)$" },
+        name = "hyprbars-satty",
+        match = { class = "^(com\\.gabm\\.satty)$" },
         ["hyprbars:no_bar"] = true,
       })
       hl.window_rule({
@@ -2061,6 +2269,20 @@ in
       '';
     };
 
+    primaryMonitor = lib.mkOption {
+      type = lib.types.nullOr lib.types.str;
+      default = if cfg.monitors != [ ] then (builtins.head cfg.monitors).output else null;
+      defaultText = lib.literalExpression ''
+        if cfg.monitors != [ ] then (builtins.head cfg.monitors).output else null
+      '';
+      description = ''
+        Output that owns the cursor at startup (`cursor.default_monitor`) and is
+        marked primary for XWayland via `xrandr --primary` on
+        `hyprland.start`. Defaults to the first configured monitor; null keeps
+        Hyprland's own choice.
+      '';
+    };
+
     vrr = lib.mkOption {
       type = lib.types.int;
       default = 0;
@@ -2095,9 +2317,11 @@ in
       [
         wl-clipboard
         cliphist
-        # grim is not used by Flameshot 15 (it captures through
-        # xdg-desktop-portal) but is kept for ad-hoc screencopy/scripting.
+        # Screenshots: grim captures, slurp selects the region, satty annotates
+        # (see screenshotScript above).
         grim
+        slurp
+        satty
         libnotify
         # Waybar TUI launcher: click on bluetooth opens this in a
         # floating `kitty --class waybar-tui` (window rule above).
@@ -2111,6 +2335,22 @@ in
       gtk.enable = true;
       hyprcursor.enable = true;
     };
+
+    # satty 0.22.0 screenshot annotation. Every key lives under `[general]`
+    # (satty's config.toml is a four-section file: general, keybinds,
+    # color-palette, font, and it rejects unknown keys — verified with
+    # `satty -c <file> -f /dev/null`: a top-level key fails with "unknown
+    # field ..., expected one of `general`, `color-palette`, `font`,
+    # `keybinds`"). Enter copies (wl-copy) *and* saves, Escape just closes.
+    xdg.configFile."satty/config.toml".text = ''
+      [general]
+      output-filename = "${config.home.homeDirectory}/Pictures/Screenshots/%Y-%m-%d_%H:%M:%S.png"
+      copy-command = "wl-copy"
+      save-after-copy = true
+      early-exit = ["all"]
+      actions-on-enter = ["save-to-clipboard"]
+      actions-on-escape = ["exit"]
+    '';
 
     # Hyprland 0.57+ Lua configuration; NixOS provides the package and xdg portal.
     wayland.windowManager.hyprland = {
@@ -2161,16 +2401,17 @@ in
             "custom/notification"
           ];
 
+          # Each bar shows the 9 workspaces of *its* monitor, relabelled 1..9
+          # (`format-icons`), while `hl.workspace_rule` keeps the workspace
+          # sets independent: 1-9 on the first configured monitor, 10-18 on the
+          # second, ... Scrolling stays inside the focused monitor's block.
           "hyprland/workspaces" = {
-            format = "{id}";
+            format = "{icon}";
+            format-icons = workspaceIcons;
             on-click = "activate";
-            # Bounded 1..9 wrap-around (same as SUPER+Left/Right); scrolling
-            # must never create workspace 10+.
             on-scroll-up = cycleWorkspaceCmd 1;
             on-scroll-down = cycleWorkspaceCmd (-1);
-            persistent-workspaces = {
-              "*" = workspaceCount;
-            };
+            persistent-workspaces = persistentWorkspaces;
           };
 
           # AwesomeWM's `s.mylayoutbox`, right next to the taglist: shows the

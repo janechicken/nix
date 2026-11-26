@@ -74,6 +74,10 @@
       }
     ];
     isLaptop = false;
+    # The old .xinitrc layout made DP-3 primary, but DP-1 is the panel the
+    # pointer/session should start on (cursor.default_monitor + xrandr --primary
+    # for XWayland).
+    primaryMonitor = "DP-1";
     vrr = 2;
     idleLockTimeout = null;
     idleDpmsTimeout = null;

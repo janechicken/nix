@@ -3,8 +3,9 @@
 {
   xdg.portal = {
     enable = true;
-    # gtk: FileChooser/etc. Screenshot stays flameshot (Awesome Print keys),
-    # not a portal backend — gnome is settings-only on X11, xapp pulls MATE.
+    # gtk: FileChooser/etc. Screenshots are grim+satty (Print binds in
+    # modules/hyprland-home.nix), not a portal backend — gnome is settings-only
+    # on X11, xapp pulls MATE.
     config.common.default = [ "gtk" ];
     extraPortals = [ pkgs.xdg-desktop-portal-gtk ];
   };
