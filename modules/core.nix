@@ -6,7 +6,6 @@
   ...
 }:
 let
-  isX86 = pkgs.stdenv.hostPlatform.isx86_64;
   wine-wrapped = pkgs.symlinkJoin {
     name = "wine-wrapped";
     paths = [ pkgs.wineWow64Packages.staging ];
@@ -25,8 +24,9 @@ in
     flake = "${config.users.users.jane.home}/nix";
   };
 
-  environment.systemPackages =
-    (with pkgs; [
+  environment.systemPackages = (
+    with pkgs;
+    [
       lsd
       jq
       openssl
@@ -46,11 +46,10 @@ in
       pandoc
       python3Packages.weasyprint
       inputs.nixwrap.packages.${pkgs.system}.wrap
-    ])
-    ++ lib.optionals isX86 [
       wine-wrapped
       pkgs.winetricks
-    ];
+    ]
+  );
   boot.loader.grub.configurationLimit = 3;
 
   nixpkgs.config = {

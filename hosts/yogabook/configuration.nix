@@ -38,6 +38,7 @@
     ../../modules/virtualisation.nix
     ../../modules/hyprland.nix
     ../../modules/joyshockmapper.nix
+    ../../modules/ntsync.nix
     inputs.sops-nix.nixosModules.sops
     ../../secrets/sops-nix.nix
   ];
