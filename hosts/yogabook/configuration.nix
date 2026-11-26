@@ -282,6 +282,9 @@
       # stage the Mahua board DTB onto /boot and emit `devicetree` per entry.
       extraFiles."dtbs/qcom/mahua-lenovo-yoga-slim7-14q8y11.dtb" =
         "${config.hardware.deviceTree.package}/qcom/mahua-lenovo-yoga-slim7-14q8y11.dtb";
+      # EDK2 UEFI Shell, purely as an ACPI-table dumping tool (see the menuentry
+      # below). Nothing boots through it; it is a 1.1 MiB .efi on the ESP.
+      extraFiles."EFI/shell/shell.efi" = "${pkgs.edk2-uefi-shell}/shell.efi";
       # Must use `($drive1)/...`, NOT `@bootRoot@/...`: install-grub.pl
       # substitutes @bootRoot@ (-> `($drive1)/`) only for the default entry, then
       # emits the submenu generations afterwards, leaving literal `@bootRoot@`
@@ -290,7 +293,22 @@
       # `($drive1)/dtbs/...` resolves the ESP reliably even when USB drives
       # shift `(hd0)` / `(hd1)`.
       extraPerEntryConfig = "devicetree ($drive1)/dtbs/qcom/mahua-lenovo-yoga-slim7-14q8y11.dtb";
+      # Why a UEFI Shell entry: with `hardware.deviceTree.enable` the kernel
+      # boots via DT, so the firmware ACPI tables are never consumed and
+      # /sys/firmware/acpi/tables stays empty -- they cannot be read from Linux.
+      # Scanning low memory for the RSDP from userspace is blocked too, see this
+      # kernel's config: CONFIG_STRICT_DEVMEM=y + CONFIG_IO_STRICT_DEVMEM=y and
+      # `# CONFIG_PROC_KCORE is not set`. The UEFI Shell still has the firmware's
+      # own ACPI table services, so
+      #   acpiview -s DSDT -d
+      #   acpiview -s SSDT -d
+      # dumps the raw tables to the shell's current directory (`-d` writes
+      # DSDT.dat / SSDT*.dat there; the ESP is fs0: -- confirm with `map`, `fs0:`
+      # if needed), which is /boot from Linux. No USB stick, no Windows, ~15 s.
       extraEntries = ''
+        menuentry "UEFI Shell (ACPIVIEW table dump)" {
+            chainloader ($drive1)/EFI/shell/shell.efi
+        }
         menuentry "Reboot" {
             reboot
         }
