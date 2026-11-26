@@ -340,9 +340,9 @@
     };
     logind = {
       settings.Login = {
-        # Lid close never sleeps: lock + mute + panel DPMS off (the Hyprland
-        # `switch:on:` bind in modules/hyprland-home.nix) and hypridle runs
-        # lock_cmd on logind's Lock signal.
+        # Lid close never sleeps: lock + pause all media + panel DPMS off (the
+        # Hyprland `switch:on:` bind in modules/hyprland-home.nix) and hypridle
+        # runs lock_cmd on logind's Lock signal.
         HandleLidSwitch = "lock";
         HandleLidSwitchExternalPower = "lock";
         HandleLidSwitchDocked = "ignore";

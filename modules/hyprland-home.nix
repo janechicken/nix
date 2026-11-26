@@ -995,6 +995,11 @@ let
     else
       ''{ action = "disable", monitor = ${luaScalar lidPanel} }'';
 
+  # Pause every MPRIS player (browsers, mpv, spotify, ...). `|| true` keeps the
+  # lid-close command and hypridle's `before_sleep_cmd` from failing when
+  # nothing is playing (playerctl exits non-zero on "no players found").
+  pauseMediaCmd = "${pkgs.playerctl}/bin/playerctl -a pause || true";
+
   # Configured monitors plus the catch-all fallback for hot-plugged outputs.
   monitors = cfg.monitors ++ [
     {
@@ -1608,16 +1613,18 @@ let
       hl.bind("XF86MonBrightnessDown", hl.dsp.exec_cmd("${brightnessScript} down"), { locked = true, repeating = true })
 
       -- Lid switch (laptops only). logind handles the lock itself
-      -- (`HandleLidSwitch = lock` -> hypridle runs lock_cmd), this also mutes the
-      -- speakers and powers the panel down so nothing lights up in a bag.
+      -- (`HandleLidSwitch = lock` -> hypridle runs lock_cmd), this also pauses
+      -- all media playback and powers the panel down so nothing lights up in a
+      -- bag. `locked = true` makes the bind a `bindl`, so it still fires while
+      -- hyprlock is up.
       -- The device name comes from libinput (Aquamarine uses it verbatim):
       -- most laptops expose "Lid Switch", the Yoga Slim 7 reports "gpio-keys".
       hl.bind("switch:on:${cfg.lidSwitchName}", function()
-        hl.dispatch(hl.dsp.exec_cmd("${pkgs.wireplumber}/bin/wpctl set-mute @DEFAULT_AUDIO_SINK@ 1; pidof hyprlock || hyprlock"))
+        hl.dispatch(hl.dsp.exec_cmd("${pauseMediaCmd}; pidof hyprlock || hyprlock"))
         hl.dispatch(hl.dsp.dpms(${lidDpmsOff}))
-      end, { locked = true, description = "lid close: mute, lock, panel off" })
+      end, { locked = true, description = "lid close: pause media, lock, panel off" })
 
-      -- Lid open: panel back on. Mute is deliberately not undone.
+      -- Lid open: panel back on. Playback is deliberately not resumed.
       hl.bind("switch:off:${cfg.lidSwitchName}", function()
         hl.dispatch(hl.dsp.dpms({ action = "enable" }))
       end, { locked = true, description = "lid open: panel on" })
@@ -2898,7 +2905,9 @@ in
       settings = {
         general = {
           lock_cmd = "pidof hyprlock || hyprlock";
-          before_sleep_cmd = "loginctl lock-session";
+          # Runs right before suspend (power button / `systemctl suspend`), so
+          # `s2idle` never resumes into a still-playing player.
+          before_sleep_cmd = "${pauseMediaCmd}; loginctl lock-session";
           after_sleep_cmd = "hyprctl dispatch 'hl.dsp.dpms({ action = \"enable\" })'";
         };
       }
