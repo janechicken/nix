@@ -321,11 +321,19 @@
   ];
 
   networking.hostName = "yogabook";
-  # WCN7850 (ath12k_wifi7_pci) hangs/times out on scans with MAC randomization or powersave
+  # MAC randomization stays off (`wifi.scanRandMacAddress = false`) — that is the
+  # setting ath12k timeouts on scans were traced to — while Wi-Fi power save is
+  # now on: `wcn7850 hw2.0` declares `.supports_sta_ps = true`
+  # (`drivers/net/wireless/ath/ath12k/wifi7/hw.c`), so
+  # `ath12k_mac_bss_info_changed()` handles `BSS_CHANGED_PS` via
+  # `ath12k_mac_vif_setup_ps()` + the sticky-DTIM WMI param, i.e. the firmware
+  # really dozes between DTIMs instead of keeping the RX path hot.
+  # NetworkManager emits `wifi.powersave=3` for this. The two knobs are
+  # independent; if scans ever time out again, revert this one first.
   networking.networkmanager = {
     enable = true;
     wifi.scanRandMacAddress = false;
-    wifi.powersave = false;
+    wifi.powersave = true;
   };
 
   time.timeZone = "America/New_York";
@@ -441,6 +449,21 @@
   # 16 GiB RAM: zram keeps the laptop responsive without a swap partition
   # (swapDevices = [ ] in hardware-configuration.nix).
   zramSwap.enable = true;
+
+  # schedutil asks the SCMI perf domain for a new OPP at most every
+  # `rate_limit_us`; the driver's default is 45 us, i.e. it re-evaluates on
+  # essentially every utilization update (~thousands of SCMI mailbox round
+  # trips/s under load). 1000 us (1 ms) is still far below the scheduler tick and
+  # invisible in latency, while collapsing those requests by >20x.
+  #
+  # tmpfiles and not a service: `CONFIG_ARM_SCMI_CPUFREQ=y` (checked in
+  # /proc/config.gz) means `scmi_cpufreq` is built into the Image, so `policy0`
+  # and its `schedutil/` tunables exist before `systemd-tmpfiles-setup` runs —
+  # no module-load ordering to wait on. `w-` (write, ignore failure) is what
+  # tmpfiles.d(5) documents for API filesystems such as /sys and /proc.
+  systemd.tmpfiles.rules = [
+    "w- /sys/devices/system/cpu/cpufreq/policy0/schedutil/rate_limit_us - - - - 1000"
+  ];
 
   # power_supply_register_no_ws() emits the udev add uevent before calling
   # device_init_wakeup(), so disabling batt/wls wakeups via udev is racy.
