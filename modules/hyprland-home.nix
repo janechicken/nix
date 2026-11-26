@@ -14,10 +14,13 @@
 #     itself when the machine has no battery
 #   - AwesomeWM keybinds, master (tile, default) <-> dwindle (spiral) toggle, sloppy focus
 #   - One independent 1-9 workspace block per configured monitor (1-9 on the
-#     first, 10-18 on the second, ...): SUPER+1..9, SUPER+Left/Right and the
-#     Waybar scroll all act on the focused monitor's block, and every bar
-#     relabels its own block back to 1-9; `primaryMonitor` owns the cursor at
-#     startup (`cursor.default_monitor`) and is XWayland's `xrandr --primary`
+#     first, 10-18 on the second, ...) so the two monitors' workspaces are
+#     *not* linked: SUPER+1..9, SUPER+Left/Right and the Waybar scroll switch a
+#     workspace on the focused monitor only (`on_current_monitor = true`, i.e.
+#     Hyprland's `focusworkspaceoncurrentmonitor`), the other monitor keeps its
+#     workspace, and every bar relabels its own block back to 1-9;
+#     `primaryMonitor` owns the cursor at startup (`cursor.default_monitor`) and
+#     is XWayland's `xrandr --primary`
 #   - grim + slurp + satty screenshots (Print = monitor, CTRL+Print = region,
 #     SHIFT+Print = monitor straight into satty)
 #   - hyprbars titlebars on floating windows only (AwesomeWM draws them on floats)
@@ -49,6 +52,13 @@ let
   # monitor owns its own block of this size (1-9, 10-18, ...), bound with
   # `hl.workspace_rule` and relabelled 1-9 per bar.
   workspaceCount = 9;
+
+  # Monitors listed in `custom.hyprland.monitors`. They own the low workspace
+  # blocks (1-9, 10-18, ...); a hot-plugged output that is not configured gets
+  # a block *after* them (see `focused_base` below), so it can never share an id
+  # with a configured monitor's block - a shared id is exactly what made one
+  # monitor switch when the other one was asked for its workspace.
+  configuredMonitorCount = builtins.length cfg.monitors;
 
   # Volume (PipeWire/WirePlumber) with a SwayOSD progress bar. `wpctl` keeps the
   # 100 % cap (`-l 1`) and the OSD is a layer surface, so volume changes never
@@ -1273,24 +1283,35 @@ let
   # has to be a single expression: an immediately invoked function.
   # `r+1`/`r-1` must never be used here: a single trackpad scroll would spawn
   # workspaces outside the focused monitor's block.
+  #
+  # `on_current_monitor = true` is what keeps the two monitors unlinked: without
+  # it `hl.dsp.focus({ workspace = N })` is Hyprland's plain `workspace`
+  # dispatcher (`Actions::changeWorkspace`), which switches N on whichever
+  # monitor *owns* it and then moves keyboard focus there - i.e. asking for
+  # workspace 1 while focused on the second monitor switched the first one.
+  # With the flag it becomes `Actions::changeWorkspaceOnCurrentMonitor`
+  # (src/config/lua/bindings/LuaBindingsDispatchers.cpp:hlFocus ->
+  # src/config/shared/actions/ConfigActions.cpp), which only ever touches the
+  # focused monitor.
   cycleWorkspaceCmd =
     delta:
     let
       baseTable = monitorBaseTable "'";
       d = toString delta;
       n = toString workspaceCount;
+      cm = toString configuredMonitorCount;
     in
     "hyprctl dispatch \"hl.dsp.focus({workspace = (function() "
     + "local t = ${baseTable} "
     + "local m = hl.get_active_monitor() "
     + "local b = t[m and m.name or ''] "
-    + "if b == nil then b = (m and m.id or 0) * ${n} end "
+    + "if b == nil then b = (${cm} + (m and m.id or 0)) * ${n} end "
     + "local w = hl.get_active_workspace() "
     + "if w and w.special then w = m and m.active_workspace end "
     + "local o = ((w and w.id) or (b + 1)) - b "
     + "if o < 1 or o > ${n} then o = 1 end "
     + "return b + ((o - 1 + (${d})) % ${n}) + 1 "
-    + "end)()})\"";
+    + "end)(), on_current_monitor = true})\"";
 
   # Lua literal for monitor option values ("auto" -> "auto", 1.25 -> 1.25).
   # toJSON already emits valid Lua for strings, integers and floats.
@@ -1369,35 +1390,40 @@ let
     ) monitorBases
     + " }";
 
-  # Waybar 0.16 `hyprland/workspaces`: keys are output names ("*" for outputs
-  # not listed), and a non-empty array value is the list of workspace *names* to
-  # always show on that output (src/modules/hyprland/workspaces.cpp:
-  # loadPersistentWorkspacesFromConfig -> `workspace.asString()`), so strings
-  # match `hl.workspace_rule` exactly and no longer depend on Hyprland's runtime
-  # DRM monitor id. An int value would instead create `id * amount + 1..` on
-  # that monitor. Never emit an empty array: Waybar reads that as "a workspace
+  # Waybar 0.16 `hyprland/workspaces`: keys are output names and a non-empty
+  # array value is the list of workspace *selectors* to always show on that
+  # output (src/modules/hyprland/workspaces.cpp:
+  # loadPersistentWorkspacesFromConfig -> `workspace.asString()`), so the names
+  # match `hl.workspace_rule` exactly and do not depend on Hyprland's runtime
+  # monitor id. Never emit an empty array: Waybar reads that as "a workspace
   # named after the key, on every monitor".
-  persistentWorkspaces =
-    lib.listToAttrs (
-      lib.imap0 (idx: m: {
-        name = m.output;
-        value = map toString (lib.range (idx * workspaceCount + 1) ((idx + 1) * workspaceCount));
-      }) cfg.monitors
-    )
-    // {
-      "*" = workspaceCount;
-    };
+  #
+  # There is deliberately no `"*"` fallback any more. An int value expands to
+  # `id * workspaceCount + 1..` on that monitor (Hyprland's runtime monitor id),
+  # which cannot express the block an *unconfigured* hot-plugged output gets
+  # (see `focused_base`), so a `"*"` entry could hand out another monitor's
+  # workspace ids and make its bar buttons switch the wrong monitor. Without it
+  # an unconfigured output simply lists the workspaces it actually has (Waybar
+  # filters per monitor: `all-outputs` is off), and every click dispatches a
+  # workspace that lives on that monitor.
+  persistentWorkspaces = lib.listToAttrs (
+    lib.imap0 (idx: m: {
+      name = m.output;
+      value = map toString (lib.range (idx * workspaceCount + 1) ((idx + 1) * workspaceCount));
+    }) cfg.monitors
+  );
 
   # `format = "{icon}"` plus this map: each bar relabels its own block 1..9, so
   # every monitor shows the same tag row while controlling an independent
   # workspace set. Waybar matches `format-icons` on the workspace *name*
   # (Workspace::selectString), falling back to the raw name when unmapped.
-  # Covers 4 monitors (36 workspaces).
+  # Covers 6 monitors (54 workspaces), the configured ones plus hot-plugged
+  # outputs that get a block after them.
   workspaceIcons = lib.listToAttrs (
     map (n: {
       name = toString n;
       value = toString (lib.mod (n - 1) workspaceCount + 1);
-    }) (lib.range 1 (4 * workspaceCount))
+    }) (lib.range 1 (6 * workspaceCount))
   );
 
   hasBattery = cfg.isLaptop || cfg.batteryName != null;
@@ -1428,6 +1454,9 @@ let
       -----------------------------
       -- One independent block of ${toString workspaceCount} workspaces per configured
       -- monitor (first monitor 1-${toString workspaceCount}, second ${toString (workspaceCount + 1)}-${toString (2 * workspaceCount)}, ...).
+      -- A monitor can only ever display workspaces of its own block, which is
+      -- what unlinks the two monitors: switching a tag on one of them cannot
+      -- reach the other one's workspaces.
       -- `default = true` pins the monitor's initial workspace to the first id of
       -- its own block instead of letting Hyprland pick the lowest free id.
       ${workspaceRulesLua}
@@ -1599,13 +1628,18 @@ let
     -- monitor's block instead.
     local WORKSPACE_COUNT = ${toString workspaceCount}
 
+    -- Number of monitors configured in custom.hyprland.monitors (they own the
+    -- blocks 1-9, 10-18, ...).
+    local CONFIGURED_MONITORS = ${toString configuredMonitorCount}
+
     -- Output name -> 0-based base offset of its block, generated from
     -- custom.hyprland.monitors (`{ ["DP-3"] = 0, ["DP-1"] = 9 }`).
     local MONITOR_BASE = ${monitorBaseTable "\""}
 
-    -- Base offset of the focused monitor. Outputs missing from MONITOR_BASE
-    -- (hot-plugged) fall back to their Hyprland monitor id (`HL.Monitor.id`),
-    -- the same block Waybar's `persistent-workspaces` "*" fallback assumes.
+    -- Base offset of the focused monitor. An output missing from MONITOR_BASE
+    -- (hot-plugged) gets a block *after* the configured ones, so it can never
+    -- collide with a configured monitor's block - a collision would make
+    -- SUPER+1 on the hot-plugged output switch the configured monitor instead.
     local function focused_base()
       local mon = hl.get_active_monitor()
       if not mon then
@@ -1615,7 +1649,7 @@ let
       if base ~= nil then
         return base
       end
-      return (mon.id or 0) * WORKSPACE_COUNT
+      return (CONFIGURED_MONITORS + (mon.id or 0)) * WORKSPACE_COUNT
     end
 
     -- Workspace the focused monitor is on, ignoring a peeked special workspace
@@ -1630,13 +1664,16 @@ let
     end
 
     -- Cycle inside the focused monitor's block, wrapping at its edges.
+    -- `on_current_monitor` keeps the switch on the focused monitor (Hyprland's
+    -- plain `workspace` dispatcher would switch the monitor that owns the id and
+    -- move focus there).
     local function cycle_workspace(delta)
       local base = focused_base()
       local offset = (focused_workspace_id() or (base + 1)) - base
       if offset < 1 or offset > WORKSPACE_COUNT then
         offset = 1
       end
-      hl.dispatch(hl.dsp.focus({ workspace = base + ((offset - 1 + delta) % WORKSPACE_COUNT) + 1 }))
+      hl.dispatch(hl.dsp.focus({ workspace = base + ((offset - 1 + delta) % WORKSPACE_COUNT) + 1, on_current_monitor = true }))
     end
 
     ------------------------------
@@ -1776,14 +1813,20 @@ let
     -- Workspace navigation, bounded to each monitor's own block of
     -- WORKSPACE_COUNT workspaces (wrapping like AwesomeWM's tags). SUPER+1..9
     -- and SUPER+SHIFT+1..9 act on the focused monitor, so both monitors show
-    -- the same 1-9 keys and Waybar labels.
+    -- the same 1-9 keys and Waybar labels while owning separate workspaces.
+    -- `on_current_monitor = true` (Hyprland's `focusworkspaceoncurrentmonitor`)
+    -- is what keeps them separate: the plain `workspace` dispatcher switches
+    -- the id on the monitor that owns it and moves focus there, so asking for
+    -- workspace 1 on the second monitor switched the first one instead.
+    -- SUPER+Escape is the exception: it is a focus-history jump, so it may land
+    -- on the other monitor (it still only switches that one).
     hl.bind(mainMod .. " + Left", function() cycle_workspace(-1) end, { description = "previous workspace" })
     hl.bind(mainMod .. " + Right", function() cycle_workspace(1) end, { description = "next workspace" })
     hl.bind(mainMod .. " + Escape", hl.dsp.focus({ workspace = "previous" }), { description = "restore previous workspace" })
 
     for i = 1, WORKSPACE_COUNT do
       hl.bind(mainMod .. " + " .. i, function()
-        hl.dispatch(hl.dsp.focus({ workspace = focused_base() + i }))
+        hl.dispatch(hl.dsp.focus({ workspace = focused_base() + i, on_current_monitor = true }))
       end, { description = "workspace " .. i })
       hl.bind(mainMod .. " + SHIFT + " .. i, function()
         hl.dispatch(hl.dsp.window.move({ workspace = focused_base() + i, follow = false }))
@@ -2402,12 +2445,21 @@ in
           ];
 
           # Each bar shows the 9 workspaces of *its* monitor, relabelled 1..9
-          # (`format-icons`), while `hl.workspace_rule` keeps the workspace
-          # sets independent: 1-9 on the first configured monitor, 10-18 on the
-          # second, ... Scrolling stays inside the focused monitor's block.
+          # (`format-icons`), while `hl.workspace_rule` keeps the workspace sets
+          # independent: 1-9 on the first configured monitor, 10-18 on the
+          # second, ... The two monitors are therefore unlinked: clicking tag N
+          # on one bar switches that monitor only, and scrolling stays inside
+          # the focused monitor's block. `all-outputs = false` (Waybar's default,
+          # spelled out) is what keeps each bar to its own monitor's workspaces.
+          # `move-to-monitor = false` keeps a click on `workspace <name>` (Waybar
+          # 0.16 dispatches that itself, see Workspace::handleClicked) so the
+          # workspace is switched on the monitor that owns it - the bar's own -
+          # instead of being dragged onto the keyboard-focused one.
           "hyprland/workspaces" = {
             format = "{icon}";
             format-icons = workspaceIcons;
+            all-outputs = false;
+            move-to-monitor = false;
             on-click = "activate";
             on-scroll-up = cycleWorkspaceCmd 1;
             on-scroll-down = cycleWorkspaceCmd (-1);
