@@ -60,50 +60,113 @@ let
   # monitor switch when the other one was asked for its workspace.
   configuredMonitorCount = builtins.length cfg.monitors;
 
-  # Volume (PipeWire/WirePlumber) with a SwayOSD progress bar. `wpctl` keeps the
-  # 100 % cap (`-l 1`) and the OSD is a layer surface, so volume changes never
-  # touch the notification daemon (`swaync`). `swayosd-client --output-volume`
-  # would go through libpulse and bypass the cap, hence the explicit
-  # `--custom-progress` path.
-  volumeScript = pkgs.writeShellScript "hypr-volume" ''
-    set -euo pipefail
-    action="''${1:-}"
-    case "$action" in
-      up)
-        ${pkgs.wireplumber}/bin/wpctl set-volume -l 1 @DEFAULT_AUDIO_SINK@ 5%+
-        ;;
-      down)
-        ${pkgs.wireplumber}/bin/wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%-
-        ;;
-      mute)
-        ${pkgs.wireplumber}/bin/wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle
-        ;;
-      *)
-        exit 1
-        ;;
-    esac
+  # Volume and mute (PipeWire/WirePlumber) with a SwayOSD progress bar. `wpctl`
+  # keeps the 100 % cap (`-l 1`) and the OSD is a layer surface, so volume
+  # changes never touch the notification daemon (`swaync`). `swayosd-client
+  # --output-volume` would go through libpulse and bypass the cap, hence the
+  # explicit `--custom-progress` path.
+  #
+  # Mute cannot simply toggle `@DEFAULT_AUDIO_SINK@`: with EasyEffects running
+  # that is `easyeffects_sink`, a `support.null-audio-sink` (`node.virtual =
+  # true`, `monitor.channel-volumes = false`, `monitor.passthrough = true`)
+  # whose monitor ports — the ones EasyEffects reads and pushes on to the
+  # hardware — bypass the node's own volume and mute. Flipping that node to
+  # `[MUTED]` leaves the speaker playing at full level; measured on
+  # `ee_soe_output_level:output` with a steady tone, the level stayed at rms
+  # 3689 when `easyeffects_sink` was muted and 3822 when it was dropped to 0.01,
+  # against 3683/3825 untouched, while the real sink `alsa_output.*` stayed
+  # `mute=false`. So the mute lands on the hardware sinks instead —
+  # `media.class == "Audio/Sink"` minus `node.virtual`, i.e. the ALSA/Bluetooth
+  # nodes that own the actual playback streams — and the virtual node is mirrored
+  # so Waybar, pavucontrol and the OSD show the state. Explicit `set-mute 0|1`
+  # (never `toggle`) keeps every node in step, the target state is read from the
+  # default sink (one press always flips what the user sees), and a plain
+  # `set-mute` on the default sink remains as the fallback when no hardware sink
+  # is visible. Same reasoning as `micMuteScript` below, for the output side.
+  volumeScript = pkgs.writeShellApplication {
+    name = "hypr-volume";
+    runtimeInputs = [
+      pkgs.jq
+      pkgs.pipewire
+      pkgs.swayosd
+      pkgs.wireplumber
+    ];
+    text = ''
+      action="''${1:-}"
+      case "$action" in
+        up)
+          wpctl set-volume -l 1 @DEFAULT_AUDIO_SINK@ 5%+
+          ;;
+        down)
+          wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%-
+          ;;
+        mute)
+          dump="$(pw-dump)"
 
-    out="$(${pkgs.wireplumber}/bin/wpctl get-volume @DEFAULT_AUDIO_SINK@)"
-    pct="$(echo "$out" | awk '{ printf "%d", ($2 * 100) + 0.5 }')"
-    if echo "$out" | grep -q '\[MUTED\]'; then
-      icon="audio-volume-muted-symbolic"
-      text="MUTE"
-    elif [ "$pct" -ge 60 ]; then
-      icon="audio-volume-high-symbolic"
-      text="''${pct}%"
-    elif [ "$pct" -ge 25 ]; then
-      icon="audio-volume-medium-symbolic"
-      text="''${pct}%"
-    else
-      icon="audio-volume-low-symbolic"
-      text="''${pct}%"
-    fi
+          # Hardware output nodes: `Audio/Sink` minus the virtual EasyEffects
+          # node. Every one of them is muted, so a headset or HDMI sink cannot
+          # stay live behind the one that is actually routed.
+          hw="$(jq -r '
+            .[]
+            | select(.type == "PipeWire:Interface:Node")
+            | select((.info.props."media.class" // "") == "Audio/Sink")
+            | select(((.info.props."node.virtual" // false) | tostring) != "true")
+            | .id
+          ' <<<"$dump")"
 
-    exec ${pkgs.swayosd}/bin/swayosd-client \
-      --custom-icon "$icon" \
-      --custom-progress "$(awk -v p="$pct" 'BEGIN { printf "%.2f", p / 100 }')" \
-      --custom-progress-text "$text"
-  '';
+          ids=()
+          while read -r id; do
+            [ -n "$id" ] || continue
+            ids+=("$id")
+          done <<<"$hw"
+
+          # The default sink carries the state the user sees (OSD, Waybar), so
+          # it decides the direction: muted now means unmute, else mute.
+          if wpctl get-volume @DEFAULT_AUDIO_SINK@ | grep -q '\[MUTED\]'; then
+            state=0
+          else
+            state=1
+          fi
+
+          if [ "''${#ids[@]}" -eq 0 ]; then
+            # PipeWire restarting or no output device at all: plain default.
+            wpctl set-mute @DEFAULT_AUDIO_SINK@ "$state"
+          else
+            for id in "''${ids[@]}"; do
+              wpctl set-mute "$id" "$state"
+            done
+            # Mirror on the default sink (the virtual node when EasyEffects is
+            # running, the hardware sink itself otherwise) for UI consistency.
+            wpctl set-mute @DEFAULT_AUDIO_SINK@ "$state"
+          fi
+          ;;
+        *)
+          exit 1
+          ;;
+      esac
+
+      out="$(wpctl get-volume @DEFAULT_AUDIO_SINK@)"
+      pct="$(echo "$out" | awk '{ printf "%d", ($2 * 100) + 0.5 }')"
+      if echo "$out" | grep -q '\[MUTED\]'; then
+        icon="audio-volume-muted-symbolic"
+        text="MUTE"
+      elif [ "$pct" -ge 60 ]; then
+        icon="audio-volume-high-symbolic"
+        text="''${pct}%"
+      elif [ "$pct" -ge 25 ]; then
+        icon="audio-volume-medium-symbolic"
+        text="''${pct}%"
+      else
+        icon="audio-volume-low-symbolic"
+        text="''${pct}%"
+      fi
+
+      exec swayosd-client \
+        --custom-icon "$icon" \
+        --custom-progress "$(awk -v p="$pct" 'BEGIN { printf "%.2f", p / 100 }')" \
+        --custom-progress-text "$text"
+    '';
+  };
 
   # Microphone mute (`XF86AudioMicMute`). All mic input runs through
   # EasyEffects, so `easyeffects_source` is the default source, but muting that
@@ -2071,9 +2134,9 @@ let
     hl.bind("XF86AudioPause", hl.dsp.exec_cmd("playerctl play-pause"), { locked = true })
     hl.bind("XF86AudioNext", hl.dsp.exec_cmd("playerctl next"), { locked = true })
     hl.bind("XF86AudioPrev", hl.dsp.exec_cmd("playerctl previous"), { locked = true })
-    hl.bind("XF86AudioRaiseVolume", hl.dsp.exec_cmd("${volumeScript} up"), { locked = true, repeating = true })
-    hl.bind("XF86AudioLowerVolume", hl.dsp.exec_cmd("${volumeScript} down"), { locked = true, repeating = true })
-    hl.bind("XF86AudioMute", hl.dsp.exec_cmd("${volumeScript} mute"), { locked = true })
+    hl.bind("XF86AudioRaiseVolume", hl.dsp.exec_cmd("${volumeScript}/bin/hypr-volume up"), { locked = true, repeating = true })
+    hl.bind("XF86AudioLowerVolume", hl.dsp.exec_cmd("${volumeScript}/bin/hypr-volume down"), { locked = true, repeating = true })
+    hl.bind("XF86AudioMute", hl.dsp.exec_cmd("${volumeScript}/bin/hypr-volume mute"), { locked = true })
     hl.bind("XF86AudioMicMute", hl.dsp.exec_cmd("${micMuteScript}/bin/hypr-mic-mute"), { locked = true })
     -- Caps Lock OSD. `swayosd-client --caps-lock` reads the kernel LED
     -- (/sys/class/leds/*capslock), so no root libinput daemon is needed;
