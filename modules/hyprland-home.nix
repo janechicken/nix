@@ -8,10 +8,10 @@
 #     tray, net, battery, mem, clock); the tasklist is a socket2-driven
 #     `cffi/taskbar` (focused workspace only, visible *and* minimized windows,
 #     width-bounded) and the layout box a clickable `custom/layout`
-#     (`[master]` / `[dwindle]`); the battery is a `custom/battery` script that
-#     reports the charging protocol (`PD` / `PPS` / `QC` / `AC` / `USB` / `WLS`)
-#     next to a Nerd Font level ramp, on any laptop, and hides itself when the
-#     machine has no battery
+#     (`[master]` / `[dwindle]`); the battery is a long-running `custom/battery`
+#     script that reports the charging protocol (`PD` / `PPS` / `QC` / `AC` /
+#     `USB` / `WLS`) next to a Nerd Font level ramp, on any laptop, and hides
+#     itself when the machine has no battery
 #   - AwesomeWM keybinds, master (tile, default) <-> dwindle (spiral) toggle, sloppy focus
 #   - hyprbars titlebars on floating windows only (AwesomeWM draws them on floats)
 #   - Window minimize/restore via the hidden special:minimized workspace, tagged
@@ -429,6 +429,16 @@ let
   # and negotiated watts, battery power, time to full/empty, health, cycles,
   # temperature and the charge threshold. No battery (desktop) -> empty `text`,
   # which Waybar 0.16 hides (`hide-empty-text`).
+  #
+  # It is a *streaming* producer, not a polled one: Waybar starts it once and
+  # reads JSON lines from its stdout (no `interval`, so no re-exec every tick
+  # and no timer wakeup). The script prints the initial line immediately, then
+  # blocks in `select` on a `NETLINK_KOBJECT_UEVENT` socket (group 1), waking
+  # only on a `power_supply` uevent (plug/unplug, capacity, PD negotiation) or
+  # a 15 s heartbeat, and re-emits only when the JSON actually changed. Zero
+  # subprocesses, zero dependencies beyond the stdlib. With no battery it
+  # prints the empty line once and exits, so a desktop idles nothing at all.
+  # `--once` prints a single line and exits (tests, `waybar-battery` by hand).
   batteryScript = pkgs.writers.writePython3 "waybar-battery" { } ''
     """Waybar battery indicator (`custom/battery`) for the Hyprland bar.
 
@@ -462,11 +472,25 @@ let
 
     `BATTERY_SYSFS_ROOT` (default `/sys/class`) points discovery at another tree;
     that is how the mock-sysfs tests exercise every branch.
+
+    Waybar runs the script once, as a streaming JSON producer: the first line
+    is printed immediately, then the process sleeps in `select` on a
+    `NETLINK_KOBJECT_UEVENT` socket and re-reads sysfs only on a
+    `SUBSYSTEM=power_supply` uevent (debounced, so a plug/unplug burst is read
+    once, settled) or on a 15 s heartbeat for the time-based numbers. A line is
+    printed only when it changed. No battery -> the empty line is printed once
+    and the process exits 0, so a desktop keeps no idle daemon. `--once`
+    prints a single line and exits.
     """
 
     import json
     import os
     import re
+    import select
+    import signal
+    import socket
+    import sys
+    import time
     import traceback
 
     # Discovery roots (see module docstring).
@@ -1042,20 +1066,131 @@ let
         }
 
 
-    def main():
+    # ---- streaming ---------------------------------------------------------
+
+
+    EMPTY = {"text": "", "tooltip": "", "class": [], "alt": ""}
+    POLL_SECONDS = 15.0
+    DEBOUNCE_SECONDS = 0.15
+
+
+    def snapshot():
+        """(JSON line, battery present) for the current sysfs state."""
         result = classify(all_supplies())
         if result is None:
             # No battery (desktop): empty text, Waybar hides the module.
-            result = {"text": "", "tooltip": "", "class": [], "alt": ""}
-        print(json.dumps(result))
+            return json.dumps(EMPTY), False
+        return json.dumps(result), True
+
+
+    def emit(line):
+        print(line, flush=True)
+
+
+    def open_uevent():
+        """Non-blocking NETLINK_KOBJECT_UEVENT socket, None when unavailable."""
+        try:
+            proto = getattr(socket, "NETLINK_KOBJECT_UEVENT", 15)
+            nl = socket.socket(socket.AF_NETLINK, socket.SOCK_DGRAM, proto)
+            try:
+                nl.bind((0, 1))  # group 1: kernel -> userspace uevents
+                nl.setblocking(False)
+            except OSError:
+                nl.close()
+                raise
+            return nl
+        except OSError:
+            # No netlink here (odd kernel or sandbox): heartbeat only.
+            return None
+
+
+    def drain_uevents(nl):
+        """Every queued uevent datagram, without blocking."""
+        events = []
+        while True:
+            try:
+                events.append(nl.recv(8192))
+            except (BlockingIOError, InterruptedError):
+                return events
+            except OSError:
+                return events
+
+
+    def power_supply_ready(nl):
+        """True once a `power_supply` uevent arrived; settles the burst."""
+        events = drain_uevents(nl)
+        if not any(b"SUBSYSTEM=power_supply" in e for e in events):
+            return False
+        # A plug/unplug emits a burst (one uevent per attribute that changed);
+        # let the rest land so the read below sees settled sysfs rather than a
+        # half-updated device, then drop them instead of redrawing per datagram.
+        time.sleep(DEBOUNCE_SECONDS)
+        drain_uevents(nl)
+        return True
+
+
+    def stream():
+        """Emit on change only, waking on `power_supply` uevents."""
+        line, present = snapshot()
+        emit(line)
+        if not present:
+            # Desktop: nothing to watch, so no idle daemon and no timer.
+            return 0
+        last = line
+        nl = open_uevent()
+        while True:
+            if nl is None:
+                time.sleep(POLL_SECONDS)  # no uevents: heartbeat only
+            else:
+                try:
+                    readable = select.select([nl], [], [], POLL_SECONDS)[0]
+                except InterruptedError:  # a signal: re-read right away
+                    readable = []
+                if readable and not power_supply_ready(nl):
+                    continue  # another subsystem's uevent: nothing to redraw
+            line, present = snapshot()
+            if line != last:
+                # An unchanged line would only make Waybar repaint for nothing.
+                emit(line)
+                last = line
+            if not present:
+                return 0  # battery gone (hot-unplug): stop idling
+
+
+    def main(argv):
+        if "--once" in argv[1:]:
+            line = snapshot()[0]
+            emit(line)
+            return 0
+        return stream()
+
+
+    def _terminate(_signum, _frame):
+        """SIGTERM/SIGINT: unwind out of `select` without a traceback."""
+        raise SystemExit(0)
 
 
     if __name__ == "__main__":
+        code = 0
         try:
-            main()
-        except Exception:  # noqa: BLE001 - a bar module must never crash the bar
+            for sig in (signal.SIGTERM, signal.SIGINT):
+                signal.signal(sig, _terminate)
+            code = main(sys.argv)
+        except BrokenPipeError:
+            # Waybar closed the pipe (bar restarted, module removed).
+            code = 0
+        except (KeyboardInterrupt, SystemExit):
+            code = 0
+        except Exception:  # noqa: BLE001 - a bar module must never crash
             traceback.print_exc()
-            print(json.dumps({"text": "", "tooltip": "", "class": [], "alt": ""}))
+            emit(json.dumps(EMPTY))
+            code = 0
+        try:
+            sys.stdout.flush()
+        except BrokenPipeError:
+            # The documented recipe for a silent exit on a closed stdout.
+            os.dup2(os.open(os.devnull, os.O_WRONLY), sys.stdout.fileno())
+        sys.exit(code)
   '';
 
   # Waybar scroll handler: the same 1..9 wrap-around as `cycle_workspace`
@@ -2179,13 +2314,11 @@ in
           # fully hidden module.
           "custom/battery" = {
             exec = "${batteryScript}";
-            # Waybar re-execs `exec` on every `interval` tick, so this is a
-            # process spawn, not a cheap read: the script walks
-            # /sys/class/power_supply + /sys/class/typec and takes ~40 ms per
-            # run. At interval 3 that is ~1.3 % of one core, permanently, plus
-            # a timer wakeup every 3 s. Charge state and PD negotiation move on
-            # a minutes timescale, so 10 s is ample and cuts it to ~0.4 %.
-            interval = 10;
+            # No `interval`: Waybar keeps the script running and reads JSON
+            # lines from its stdout as they arrive. The script is event-driven
+            # (a `power_supply` uevent socket, 15 s heartbeat) and prints only
+            # when the rendered line changed, so there is no per-tick re-exec
+            # and no timer wakeup - just one idle process in `select`.
             return-type = "json";
             tooltip = true;
             hide-empty-text = true;
