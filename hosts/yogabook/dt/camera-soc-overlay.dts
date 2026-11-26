@@ -1,0 +1,600 @@
+// SPDX-License-Identifier: BSD-3-Clause
+/*
+ * Lenovo Yoga Slim 7 14Q8Y11 (83QR, Snapdragon X2 Plus / Mahua) —
+ * SoC-level camera subsystem: CAMSS + CSIPHY0/1/4 + CCI0/CCI1 + TLMM pins.
+ *
+ * Upstream 7.4-rc3 has no camera nodes in glymur.dtsi / mahua.dtsi (the
+ * platform DTs stop at camcc), so this overlay supplies the whole SoC side.
+ * Applied by NixOS `hardware.deviceTree.overlays` on top of
+ * qcom/mahua-lenovo-yoga-slim7-14q8y11.dtb, which carries a __symbols__ node,
+ * so every &label below is resolved by libfdt at apply time.
+ *
+ * Addresses / IRQs verified from the firmware ACPI tables
+ * (DSDT0000.bin, Lenovo 83QR):
+ *
+ *   _SB.MPCS (QCOM0F98, _STA=0x0F) — CSI PHYs
+ *     0x0ACE4000 0x2000  IRQ GSI 0x1FD (509) -> GIC_SPI 477   CSIPHY0
+ *     0x0ACE6000 0x2000  IRQ GSI 0x1FE (510) -> GIC_SPI 478   CSIPHY1
+ *     0x0ACEC000 0x2000  IRQ GSI 0x09A (154) -> GIC_SPI 122   CSIPHY4
+ *     (GSI = GIC_SPI + 32 on this platform; the CSITPG blocks 0x0ACF6000/
+ *      7000/8000 are mapped by CAMSS, see below.)
+ *
+ *   _SB.CAMP (QCOM0F32, _STA=0x0F) — CCI
+ *     0x0AC15000 0x1000   cci0
+ *     0x0AC16000 0x1000   cci1
+ *     IRQs GSI 0x1E8 (488) -> GIC_SPI 456, GSI 0x37B (891) -> GIC_SPI 859,
+ *          GSI 0x0FC (252) -> GIC_SPI 220.
+ *     The driver uses a single interrupt per instance (i2c-qcom-cci.c:
+ *     platform_get_irq(pdev, 0), binding `interrupts: maxItems: 1`).
+ *     456/859 pair with the "lite" pipeline IRQs — csid_lite0 = 457
+ *     (GSI 489) and vfe_lite1 = 860 (GSI 892, _SB.SISP) — so cci0 gets 456
+ *     and cci1 gets 859; GSI 252 (SPI 220) is the third CAMP interrupt and is
+ *     not consumed by any in-tree driver, so it is intentionally not wired.
+ *
+ * CAMSS register layout, clocks, GDSCs and interconnects are taken verbatim
+ * from Documentation/devicetree/bindings/media/qcom,glymur-camss.yaml in the
+ * pinned 7.4-rc3 tree. _SB.CAMS/_SB.CAMF/_SB.CAMT/_SB.CAMU carry no _CRS
+ * (addresses are not exposed through ACPI), so the binding is the only
+ * source; the IRQ list it documents is a subset of _SB.VFE0's GSI list
+ * (601 = GSI 633, 603 = GSI 635, 457 = GSI 489, 270 = GSI 302,
+ *  271 = GSI 303, 458 = GSI 490), which confirms the binding values.
+ *
+ * Driver requirements checked against the 7.4-rc3 sources:
+ *   - phy-qcom-mipi-csi2-core.c matches on "qcom,x1e80100-csi2-phy" only, so
+ *     the glymur compatible is followed by that fallback. probe() needs
+ *     3 clocks ("core"/"timer"/"ahb"), a mandatory OPP table
+ *     (devm_pm_opp_of_add_table() is fatal), 3 power domains
+ *     ("top"/"mmcx"/"mx"), and port@0 with data-lanes.
+ *     vdda-0p9/vdda-1p2 are not wired yet: devm_regulator_bulk_get() with
+ *     NORMAL_GET falls back to a dummy regulator, so probe still succeeds.
+ *   - camss.c: camss_detect_legacy_phy() decides by *node name* — the PHY
+ *     nodes must be called phy@... — and the new-style PHY path needs
+ *     ports 0/1/3 (no port@2: there is no CSIPHY2 on Glymur). Without a
+ *     sensor endpoint camss_parse_ports() simply skips the port, and no
+ *     "top" reg is provided, so camss_read_version() does no register access
+ *     and probe cannot hang.
+ */
+
+/dts-v1/;
+/plugin/;
+
+#include <dt-bindings/clock/qcom,glymur-camcc.h>
+#include <dt-bindings/clock/qcom,glymur-gcc.h>
+#include <dt-bindings/interconnect/qcom,glymur-rpmh.h>
+#include <dt-bindings/interconnect/qcom,icc.h>
+#include <dt-bindings/interrupt-controller/arm-gic.h>
+#include <dt-bindings/media/video-interfaces.h>
+#include <dt-bindings/power/qcom,rpmhpd.h>
+
+/ {
+	/* NixOS applies overlays through libfdt and skips any overlay whose
+	 * compatible does not intersect the base DTB's: keep this in sync with
+	 * mahua-lenovo-yoga-slim7-14q8y11.dts. Root properties of an overlay
+	 * are not merged into the base tree, so this only gates application.
+	 */
+	compatible = "lenovo,yoga-slim7-14q8y11", "qcom,mahua";
+};
+
+&soc {
+	/* Identical to /soc@0 in the base tree; repeated here only so dtc
+	 * validates the fragment against 2/2 address cells instead of its
+	 * overlay defaults, and so the new nodes carry an explicit
+	 * interrupt-parent (root already points at &intc).
+	 */
+	#address-cells = <2>;
+	#size-cells = <2>;
+	interrupt-parent = <&intc>;
+
+	camss: isp@acb6000 {
+		compatible = "qcom,glymur-camss";
+
+		reg = <0x0 0x0acb6000 0x0 0x1000>,
+		      <0x0 0x0acb7000 0x0 0x2000>,
+		      <0x0 0x0acb9000 0x0 0x2000>,
+		      <0x0 0x0acbb000 0x0 0x2000>,
+		      <0x0 0x0acc6000 0x0 0x1000>,
+		      <0x0 0x0acca000 0x0 0x1000>,
+		      <0x0 0x0acf6000 0x0 0x1000>,
+		      <0x0 0x0acf7000 0x0 0x1000>,
+		      <0x0 0x0acf8000 0x0 0x1000>,
+		      <0x0 0x0ac62000 0x0 0xf000>,
+		      <0x0 0x0ac71000 0x0 0xf000>,
+		      <0x0 0x0acc7000 0x0 0x2000>,
+		      <0x0 0x0accb000 0x0 0x2000>;
+		reg-names = "csid_wrapper",
+			    "csid0",
+			    "csid1",
+			    "csid2",
+			    "csid_lite0",
+			    "csid_lite1",
+			    "csitpg0",
+			    "csitpg1",
+			    "csitpg2",
+			    "vfe0",
+			    "vfe1",
+			    "vfe_lite0",
+			    "vfe_lite1";
+
+		clocks = <&camcc CAM_CC_CAMNOC_AXI_NRT_CLK>,
+			 <&camcc CAM_CC_CAMNOC_AXI_RT_CLK>,
+			 <&camcc CAM_CC_CORE_AHB_CLK>,
+			 <&camcc CAM_CC_CPAS_AHB_CLK>,
+			 <&camcc CAM_CC_CPAS_FAST_AHB_CLK>,
+			 <&camcc CAM_CC_CPAS_IFE_0_CLK>,
+			 <&camcc CAM_CC_CPAS_IFE_1_CLK>,
+			 <&camcc CAM_CC_CPAS_IFE_LITE_CLK>,
+			 <&camcc CAM_CC_CSID_CLK>,
+			 <&camcc CAM_CC_CSID_CSIPHY_RX_CLK>,
+			 <&gcc GCC_CAMERA_HF_AXI_CLK>,
+			 <&gcc GCC_CAMERA_SF_AXI_CLK>,
+			 <&camcc CAM_CC_IFE_0_CLK>,
+			 <&camcc CAM_CC_IFE_0_FAST_AHB_CLK>,
+			 <&camcc CAM_CC_IFE_1_CLK>,
+			 <&camcc CAM_CC_IFE_1_FAST_AHB_CLK>,
+			 <&camcc CAM_CC_IFE_LITE_CLK>,
+			 <&camcc CAM_CC_IFE_LITE_AHB_CLK>,
+			 <&camcc CAM_CC_IFE_LITE_CPHY_RX_CLK>,
+			 <&camcc CAM_CC_IFE_LITE_CSID_CLK>;
+		clock-names = "camnoc_nrt_axi",
+			      "camnoc_rt_axi",
+			      "core_ahb",
+			      "cpas_ahb",
+			      "cpas_fast_ahb",
+			      "cpas_vfe0",
+			      "cpas_vfe1",
+			      "cpas_vfe_lite",
+			      "csid",
+			      "csid_csiphy_rx",
+			      "gcc_axi_hf",
+			      "gcc_axi_sf",
+			      "vfe0",
+			      "vfe0_fast_ahb",
+			      "vfe1",
+			      "vfe1_fast_ahb",
+			      "vfe_lite",
+			      "vfe_lite_ahb",
+			      "vfe_lite_cphy_rx",
+			      "vfe_lite_csid";
+
+		interrupts = <GIC_SPI 601 IRQ_TYPE_EDGE_RISING>,
+			     <GIC_SPI 603 IRQ_TYPE_EDGE_RISING>,
+			     <GIC_SPI 431 IRQ_TYPE_EDGE_RISING>,
+			     <GIC_SPI 457 IRQ_TYPE_EDGE_RISING>,
+			     <GIC_SPI 436 IRQ_TYPE_EDGE_RISING>,
+			     <GIC_SPI 270 IRQ_TYPE_EDGE_RISING>,
+			     <GIC_SPI 271 IRQ_TYPE_EDGE_RISING>,
+			     <GIC_SPI 458 IRQ_TYPE_EDGE_RISING>,
+			     <GIC_SPI 860 IRQ_TYPE_EDGE_RISING>;
+		interrupt-names = "csid0",
+				  "csid1",
+				  "csid2",
+				  "csid_lite0",
+				  "csid_lite1",
+				  "vfe0",
+				  "vfe1",
+				  "vfe_lite0",
+				  "vfe_lite1";
+
+		interconnects = <&hsc_noc MASTER_APPSS_PROC QCOM_ICC_TAG_ACTIVE_ONLY
+				 &config_noc SLAVE_CAMERA_CFG QCOM_ICC_TAG_ACTIVE_ONLY>,
+				<&mmss_noc MASTER_CAMNOC_HF QCOM_ICC_TAG_ALWAYS
+				 &mc_virt SLAVE_EBI1 QCOM_ICC_TAG_ALWAYS>,
+				<&mmss_noc MASTER_CAMNOC_SF QCOM_ICC_TAG_ALWAYS
+				 &mc_virt SLAVE_EBI1 QCOM_ICC_TAG_ALWAYS>,
+				<&mmss_noc MASTER_CAMNOC_ICP QCOM_ICC_TAG_ALWAYS
+				 &mc_virt SLAVE_EBI1 QCOM_ICC_TAG_ALWAYS>;
+		interconnect-names = "ahb",
+				     "hf_mnoc",
+				     "sf_mnoc",
+				     "sf_icp_mnoc";
+
+		iommus = <&apps_smmu 0x800 0x20>;
+
+		power-domains = <&camcc CAM_CC_IFE_0_GDSC>,
+				<&camcc CAM_CC_IFE_1_GDSC>,
+				<&camcc CAM_CC_TITAN_TOP_GDSC>;
+		power-domain-names = "ife0", "ife1", "top";
+
+		ports {
+			#address-cells = <1>;
+			#size-cells = <0>;
+
+			/* Port numbers are indices into csiphy_res_x1e80100[],
+			 * not CSIPHY ids: port@0 -> CSIPHY0, port@1 -> CSIPHY1,
+			 * port@3 -> CSIPHY4. There is no port@2 (no CSIPHY2).
+			 */
+			port@0 {
+				reg = <0>;
+
+				camss_csiphy0_ep: endpoint {
+					data-lanes = <1 2 3 4>;
+					remote-endpoint = <&csiphy0_out>;
+				};
+			};
+
+			port@1 {
+				reg = <1>;
+
+				camss_csiphy1_ep: endpoint {
+					data-lanes = <1 2 3 4>;
+					remote-endpoint = <&csiphy1_out>;
+				};
+			};
+
+			port@3 {
+				reg = <3>;
+
+				camss_csiphy4_ep: endpoint {
+					data-lanes = <1 2 3 4>;
+					remote-endpoint = <&csiphy4_out>;
+				};
+			};
+		};
+	};
+
+	csiphy0: phy@ace4000 {
+		compatible = "qcom,glymur-csi2-phy", "qcom,x1e80100-csi2-phy";
+		reg = <0x0 0x0ace4000 0x0 0x2000>;
+
+		clocks = <&camcc CAM_CC_CSIPHY0_CLK>,
+			 <&camcc CAM_CC_CSI0PHYTIMER_CLK>,
+			 <&camcc CAM_CC_CORE_AHB_CLK>;
+		clock-names = "core", "timer", "ahb";
+
+		interrupts = <GIC_SPI 477 IRQ_TYPE_EDGE_RISING>;
+
+		operating-points-v2 = <&csiphy0_opp_table>;
+
+		power-domains = <&camcc CAM_CC_TITAN_TOP_GDSC>,
+				<&rpmhpd RPMHPD_MMCX>,
+				<&rpmhpd RPMHPD_MX>;
+		power-domain-names = "top", "mmcx", "mx";
+
+		ports {
+			#address-cells = <1>;
+			#size-cells = <0>;
+
+			/* Sensor input: populated by the sensor overlay. */
+			port@0 {
+				reg = <0>;
+
+				csiphy0_in: endpoint {
+					bus-type = <MEDIA_BUS_TYPE_CSI2_DPHY>;
+					data-lanes = <1 2 3 4>;
+				};
+			};
+
+			/* Output to CAMSS CSID. */
+			port@1 {
+				reg = <1>;
+
+				csiphy0_out: endpoint {
+					remote-endpoint = <&camss_csiphy0_ep>;
+				};
+			};
+		};
+
+		/* CSIPHY rates are the CAM_CC CSIPHY/CSI*PHYTIMER rates the
+		 * CAMSS driver programs (300/400/480 MHz). The two
+		 * required-opps are consumed in x1e_genpds[] order for the
+		 * scaled domains: mmcx first, then mx.
+		 */
+		csiphy0_opp_table: opp-table {
+			compatible = "operating-points-v2";
+
+			opp-300000000 {
+				opp-hz = /bits/ 64 <300000000>;
+				required-opps = <&rpmhpd_opp_low_svs_d1>,
+						<&rpmhpd_opp_low_svs_d1>;
+			};
+
+			opp-400000000 {
+				opp-hz = /bits/ 64 <400000000>;
+				required-opps = <&rpmhpd_opp_low_svs>,
+						<&rpmhpd_opp_low_svs>;
+			};
+
+			opp-480000000 {
+				opp-hz = /bits/ 64 <480000000>;
+				required-opps = <&rpmhpd_opp_svs>,
+						<&rpmhpd_opp_svs>;
+			};
+		};
+	};
+
+	csiphy1: phy@ace6000 {
+		compatible = "qcom,glymur-csi2-phy", "qcom,x1e80100-csi2-phy";
+		reg = <0x0 0x0ace6000 0x0 0x2000>;
+
+		clocks = <&camcc CAM_CC_CSIPHY1_CLK>,
+			 <&camcc CAM_CC_CSI1PHYTIMER_CLK>,
+			 <&camcc CAM_CC_CORE_AHB_CLK>;
+		clock-names = "core", "timer", "ahb";
+
+		interrupts = <GIC_SPI 478 IRQ_TYPE_EDGE_RISING>;
+
+		operating-points-v2 = <&csiphy1_opp_table>;
+
+		power-domains = <&camcc CAM_CC_TITAN_TOP_GDSC>,
+				<&rpmhpd RPMHPD_MMCX>,
+				<&rpmhpd RPMHPD_MX>;
+		power-domain-names = "top", "mmcx", "mx";
+
+		ports {
+			#address-cells = <1>;
+			#size-cells = <0>;
+
+			port@0 {
+				reg = <0>;
+
+				csiphy1_in: endpoint {
+					bus-type = <MEDIA_BUS_TYPE_CSI2_DPHY>;
+					data-lanes = <1 2 3 4>;
+				};
+			};
+
+			port@1 {
+				reg = <1>;
+
+				csiphy1_out: endpoint {
+					remote-endpoint = <&camss_csiphy1_ep>;
+				};
+			};
+		};
+
+		csiphy1_opp_table: opp-table {
+			compatible = "operating-points-v2";
+
+			opp-300000000 {
+				opp-hz = /bits/ 64 <300000000>;
+				required-opps = <&rpmhpd_opp_low_svs_d1>,
+						<&rpmhpd_opp_low_svs_d1>;
+			};
+
+			opp-400000000 {
+				opp-hz = /bits/ 64 <400000000>;
+				required-opps = <&rpmhpd_opp_low_svs>,
+						<&rpmhpd_opp_low_svs>;
+			};
+
+			opp-480000000 {
+				opp-hz = /bits/ 64 <480000000>;
+				required-opps = <&rpmhpd_opp_svs>,
+						<&rpmhpd_opp_svs>;
+			};
+		};
+	};
+
+	csiphy4: phy@acec000 {
+		compatible = "qcom,glymur-csi2-phy", "qcom,x1e80100-csi2-phy";
+		reg = <0x0 0x0acec000 0x0 0x2000>;
+
+		clocks = <&camcc CAM_CC_CSIPHY4_CLK>,
+			 <&camcc CAM_CC_CSI4PHYTIMER_CLK>,
+			 <&camcc CAM_CC_CORE_AHB_CLK>;
+		clock-names = "core", "timer", "ahb";
+
+		interrupts = <GIC_SPI 122 IRQ_TYPE_EDGE_RISING>;
+
+		operating-points-v2 = <&csiphy4_opp_table>;
+
+		power-domains = <&camcc CAM_CC_TITAN_TOP_GDSC>,
+				<&rpmhpd RPMHPD_MMCX>,
+				<&rpmhpd RPMHPD_MX>;
+		power-domain-names = "top", "mmcx", "mx";
+
+		ports {
+			#address-cells = <1>;
+			#size-cells = <0>;
+
+			port@0 {
+				reg = <0>;
+
+				csiphy4_in: endpoint {
+					bus-type = <MEDIA_BUS_TYPE_CSI2_DPHY>;
+					data-lanes = <1 2 3 4>;
+				};
+			};
+
+			port@1 {
+				reg = <1>;
+
+				csiphy4_out: endpoint {
+					remote-endpoint = <&camss_csiphy4_ep>;
+				};
+			};
+		};
+
+		csiphy4_opp_table: opp-table {
+			compatible = "operating-points-v2";
+
+			opp-300000000 {
+				opp-hz = /bits/ 64 <300000000>;
+				required-opps = <&rpmhpd_opp_low_svs_d1>,
+						<&rpmhpd_opp_low_svs_d1>;
+			};
+
+			opp-400000000 {
+				opp-hz = /bits/ 64 <400000000>;
+				required-opps = <&rpmhpd_opp_low_svs>,
+						<&rpmhpd_opp_low_svs>;
+			};
+
+			opp-480000000 {
+				opp-hz = /bits/ 64 <480000000>;
+				required-opps = <&rpmhpd_opp_svs>,
+						<&rpmhpd_opp_svs>;
+			};
+		};
+	};
+
+	cci0: cci@ac15000 {
+		compatible = "qcom,glymur-cci", "qcom,msm8996-cci";
+		reg = <0x0 0x0ac15000 0x0 0x1000>;
+
+		interrupts = <GIC_SPI 456 IRQ_TYPE_EDGE_RISING>;
+
+		clocks = <&camcc CAM_CC_CORE_AHB_CLK>,
+			 <&camcc CAM_CC_CCI_0_CLK>;
+		clock-names = "ahb", "cci";
+
+		power-domains = <&camcc CAM_CC_TITAN_TOP_GDSC>;
+
+		pinctrl-0 = <&cci0_default>;
+		pinctrl-1 = <&cci0_sleep>;
+		pinctrl-names = "default", "sleep";
+
+		#address-cells = <1>;
+		#size-cells = <0>;
+
+		cci0_i2c0: i2c-bus@0 {
+			reg = <0>;
+			clock-frequency = <400000>;
+			#address-cells = <1>;
+			#size-cells = <0>;
+		};
+	};
+
+	cci1: cci@ac16000 {
+		compatible = "qcom,glymur-cci", "qcom,msm8996-cci";
+		reg = <0x0 0x0ac16000 0x0 0x1000>;
+
+		interrupts = <GIC_SPI 859 IRQ_TYPE_EDGE_RISING>;
+
+		clocks = <&camcc CAM_CC_CORE_AHB_CLK>,
+			 <&camcc CAM_CC_CCI_1_CLK>;
+		clock-names = "ahb", "cci";
+
+		power-domains = <&camcc CAM_CC_TITAN_TOP_GDSC>;
+
+		pinctrl-0 = <&cci1_default>;
+		pinctrl-1 = <&cci1_sleep>;
+		pinctrl-names = "default", "sleep";
+
+		#address-cells = <1>;
+		#size-cells = <0>;
+
+		cci1_i2c0: i2c-bus@0 {
+			reg = <0>;
+			clock-frequency = <400000>;
+			#address-cells = <1>;
+			#size-cells = <0>;
+		};
+	};
+};
+
+/*
+ * TLMM: CCI buses and the four camera MCLKs.
+ *
+ * Function names are the ones exported by pinctrl-glymur.c:
+ *   cci_i2c_sda = gpio101, 103, 105
+ *   cci_i2c_scl = gpio102, 104, 106
+ *   cam_mclk    = gpio96..99
+ *   cam_asc_mclk4 = gpio100
+ * CCI0 -> 101/102, CCI1 -> 103/104; 105/106 belong to a third CCI bus that
+ * Glymur does not expose (no cci@ac14000 block in _SB.CAMP).
+ *
+ * The MCLK states are unreferenced until a sensor overlay claims them; they
+ * are defined here so the pin functions are documented next to the PHYs.
+ */
+&tlmm {
+	cci0_default: cci0-default-state {
+		cci0-sda-pins {
+			pins = "gpio101";
+			function = "cci_i2c_sda";
+			drive-strength = <2>;
+			bias-pull-up;
+		};
+
+		cci0-scl-pins {
+			pins = "gpio102";
+			function = "cci_i2c_scl";
+			drive-strength = <2>;
+			bias-pull-up;
+		};
+	};
+
+	cci0_sleep: cci0-sleep-state {
+		cci0-sda-pins {
+			pins = "gpio101";
+			function = "gpio";
+			drive-strength = <2>;
+			bias-pull-down;
+		};
+
+		cci0-scl-pins {
+			pins = "gpio102";
+			function = "gpio";
+			drive-strength = <2>;
+			bias-pull-down;
+		};
+	};
+
+	cci1_default: cci1-default-state {
+		cci1-sda-pins {
+			pins = "gpio103";
+			function = "cci_i2c_sda";
+			drive-strength = <2>;
+			bias-pull-up;
+		};
+
+		cci1-scl-pins {
+			pins = "gpio104";
+			function = "cci_i2c_scl";
+			drive-strength = <2>;
+			bias-pull-up;
+		};
+	};
+
+	cci1_sleep: cci1-sleep-state {
+		cci1-sda-pins {
+			pins = "gpio103";
+			function = "gpio";
+			drive-strength = <2>;
+			bias-pull-down;
+		};
+
+		cci1-scl-pins {
+			pins = "gpio104";
+			function = "gpio";
+			drive-strength = <2>;
+			bias-pull-down;
+		};
+	};
+
+	cam_mclk0_default: cam-mclk0-default-state {
+		pins = "gpio96";
+		function = "cam_mclk";
+		drive-strength = <16>;
+		bias-disable;
+	};
+
+	cam_mclk1_default: cam-mclk1-default-state {
+		pins = "gpio97";
+		function = "cam_mclk";
+		drive-strength = <16>;
+		bias-disable;
+	};
+
+	cam_mclk2_default: cam-mclk2-default-state {
+		pins = "gpio98";
+		function = "cam_mclk";
+		drive-strength = <16>;
+		bias-disable;
+	};
+
+	cam_mclk3_default: cam-mclk3-default-state {
+		pins = "gpio99";
+		function = "cam_mclk";
+		drive-strength = <16>;
+		bias-disable;
+	};
+
+	/* CSIPHY4 uses the dedicated camera-ASC MCLK on gpio100. */
+	cam_mclk4_default: cam-mclk4-default-state {
+		pins = "gpio100";
+		function = "cam_asc_mclk4";
+		drive-strength = <16>;
+		bias-disable;
+	};
+};

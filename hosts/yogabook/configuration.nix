@@ -145,15 +145,28 @@
   # hardware.deviceTree only selects the DTB package; NixOS's install-grub.pl
   # ignores hardware.deviceTree.name entirely, so GRUB gets the DTB through
   # boot.loader.grub.extraFiles + extraPerEntryConfig below.
-  # No DT overlays: the previous "Option A'" overlay (`regulator-always-on` on
-  # `VREG_EDP_3P3`) was dropped. `VREG_EDP_3P3` already carries
-  # `regulator-boot-on` + `regulator_ignore_unused`, so the overlay was a
+  #
+  # Overlays: `dt/camera-soc-overlay.dts` adds the SoC-level camera stack
+  # (CAMSS, CSIPHY0/1/4, CCI0/1 and their TLMM pins) that upstream glymur.dtsi /
+  # mahua.dtsi do not describe. The earlier "Option A'" overlay
+  # (`regulator-always-on` on `VREG_EDP_3P3`) stays dropped: `VREG_EDP_3P3`
+  # already carries `regulator-boot-on` + `regulator_ignore_unused`, so it was a
   # Stage-1 no-op (the LUKS prompt stayed black with it live in the booted DT)
   # while `regulator-always-on` additionally blocks the panel 3.3 V rail from
   # powering down in `s2idle`. See hosts/yogabook/BRINGUP.md.
   hardware.deviceTree = {
     enable = true;
     name = "qcom/mahua-lenovo-yoga-slim7-14q8y11.dtb";
+    overlays = [
+      {
+        name = "mahua-camera-soc";
+        # libfdt applies this overlay to every DTB whose path contains the
+        # filter string, and only when the overlay's own `compatible`
+        # intersects the base DTB's (see the head of the .dts).
+        filter = "mahua-lenovo-yoga-slim7-14q8y11.dtb";
+        dtsFile = ./dt/camera-soc-overlay.dts;
+      }
+    ];
   };
 
   # Qualcomm redistributable firmware + wireless-regdb (regulatory.db) +
@@ -234,7 +247,11 @@
     # - nokaslr + efi=novamap: required for Qualcomm EL2 UEFI stub on Lenovo 83QR
     # - arm-smmu.disable_bypass=0: preserve UEFI SMMU bypass mappings until drivers attach
     # - mem_sleep_default=s2idle: prevents `echo mem` from entering PSCI SYSTEM_SUSPEND (deep)
-    # - modprobe.blacklist=qcom_iris,qcom_camss: prevents video/camss coldplug hangs
+    # - modprobe.blacklist=qcom_iris: prevents video/iris coldplug hangs. qcom_camss is
+    #   no longer blacklisted: the SoC-level camera nodes now come from
+    #   dt/camera-soc-overlay.dts, and the driver's own probe path is safe without a
+    #   sensor (no "top" reg -> no register access in camss_read_version(), and
+    #   camss_parse_ports() skips endpoints whose PHY has no sensor attached).
     # - firmware_class.path: optional override dir for un-packaged 83QR blobs;
     #   everything vendored in hosts/yogabook/firmware/ is already in /lib/firmware
     kernelParams = [
@@ -248,7 +265,7 @@
       "console=tty0"
       "console=tty1"
       "fbcon=font:TER16x32"
-      "modprobe.blacklist=qcom_iris,qcom_camss"
+      "modprobe.blacklist=qcom_iris"
       "firmware_class.path=/var/lib/mahua-firmware"
     ];
 
@@ -267,7 +284,6 @@
 
     blacklistedKernelModules = [
       "qcom_iris"
-      "qcom_camss"
     ];
   };
 
