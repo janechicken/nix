@@ -118,7 +118,11 @@
     # (88e0000/fa0000/fa1000/fa2000/fdd000) are intentionally absent:
     # qcom-m31eusb2-phy implements no runtime PM at all (power/runtime_enabled
     # reads "disabled", runtime_status "unsupported"), so "auto" is a no-op.
-    ACTION=="add|bind", SUBSYSTEM=="platform", KERNEL=="88e1000.phy|fa3000.phy|fa5000.phy|fde000.phy", ATTR{power/control}="auto"
+    # fd5000.phy (a600000.usb, the YubiKey port) is listed even though its
+    # controller is NOT: the PHY alone stays at control=on forever otherwise
+    # (it is a QMP combo PHY with real runtime PM), and the phy-core reference
+    # rule above means it simply never idles while usb6/usb7 have a consumer.
+    ACTION=="add|bind", SUBSYSTEM=="platform", KERNEL=="88e1000.phy|fa3000.phy|fa5000.phy|fd5000.phy|fde000.phy", ATTR{power/control}="auto"
 
     # NOT covered on purpose:
     # - NVMe 0005:01:00.0: nvme_dev_pm_ops has no .runtime_suspend/.runtime_resume
@@ -254,6 +258,22 @@
     #   camss_parse_ports() skips endpoints whose PHY has no sensor attached).
     # - firmware_class.path: optional override dir for un-packaged 83QR blobs;
     #   everything vendored in hosts/yogabook/firmware/ is already in /lib/firmware
+    # - fw_devlink.sync_state=timeout: `fw_devlink.sync_state()` at the end of
+    #   driver_init() walks every consumer link, and `1dfa000.crypto` never
+    #   probes, so the wait used to stall there and the last sync_state()
+    #   consumers never ran: `icc_sync_state()` never voted, leaving the DDR /
+    #   LLCC / NoC interconnect BCMs floored at INT_MAX bandwidth (a permanent
+    #   power cost on this board). `timeout` gives up instead of blocking
+    #   on that link forever, so the remaining sync_state() callbacks run.
+    # - msm.psr_enabled=1: eDP Panel Self-Refresh in `msm.ko`; the panel then
+    #   refreshes from its own frame buffer on a static screen instead of the
+    #   DPU streaming continuously. One-shot switch: it is in kernelParams (not
+    #   a module option) so it can be dropped/added per-boot from GRUB `e` if
+    #   the ATNA40CT03-0 ever shows PSR artifacts.
+    # - pcie_aspm.policy=powersupersave: push L0s as well as L1/L1SS on both
+    #   links. `qcom_pcie_clear_aspm_l0s()` clears the L0s capability on the
+    #   root ports, so this mainly documents the intent; it is harmless when the
+    #   endpoint has no L0s and is reverted by deleting one word here.
     kernelParams = [
       "clk_ignore_unused"
       "pd_ignore_unused"
@@ -267,6 +287,9 @@
       "fbcon=font:TER16x32"
       "modprobe.blacklist=qcom_iris"
       "firmware_class.path=/var/lib/mahua-firmware"
+      "fw_devlink.sync_state=timeout"
+      "msm.psr_enabled=1"
+      "pcie_aspm.policy=powersupersave"
     ];
 
     # NixOS emits `loglevel=$consoleLogLevel` in kernelParams (and
@@ -424,34 +447,28 @@
     openssh
   ];
 
-  # Keep the ADSP `q6apm` graphs alive across pauses, on playback *and* capture.
-  # WirePlumber's default 5 s ALSA idle suspend tears a graph down and rebuilds
-  # it on every pause/play; `q6apm_dai_prepare()` / `q6apm_graph_close()` ignore
-  # APM errors, so a teardown that races a still-open port desyncs host and DSP
-  # and wedges audio for the rest of the boot (`q6apm-dai ... -16` then a
-  # permanent `qcom-apm ... CMD timeout` + `-110` loop). Both `hw:0,0`
-  # (`alsa_output.*`) and `hw:0,1` (`alsa_input.*`) hang off the same card, so
-  # both directions must stay out of idle suspend (costs a little idle power on
-  # this board only).
+  # WirePlumber ALSA policy for the ADSP `q6apm` card (`hw:0,0` playback +
+  # `hw:0,1` capture on the same card).
+  #
+  # Idle suspend is deliberately LEFT ON (PipeWire's default 5 s). An earlier
+  # generation disabled it (`node.pause-on-idle = false` +
+  # `session.suspend-timeout-seconds = 0`) to avoid `q6apm` graph teardown churn
+  # (H1 in BRINGUP.md), but a live A/B test showed that costs ~0.7-1.1 W of idle
+  # ADSP power: with the graph kept hot the DSP burns ADSP IRQs continuously,
+  # while letting the card suspend after 5 s of silence cut those IRQs by 98.7%
+  # with zero `q6apm-dai ... -16` / `qcom-apm ... CMD timeout` / `-110` events
+  # under the dynamic quantum (`92-dynamic-quantum`, default 1024 in
+  # modules/audio.nix). If the `-16` -> `-110` wedge ever comes back on
+  # pause/resume, re-adding the two props is the one-line mitigation.
   #
   # `session.dont-restore-off-profile` is a *device* property read by
   # `scripts/device/state-profile.lua` in the `find-stored-profile` hook (not a
   # `wireplumber.settings` key): if the persisted `default-profile` state is an
   # `off` profile, WirePlumber keeps the card off on every boot instead of
-  # falling back to the default profile.
-  services.pipewire.wireplumber.extraConfig."51-mahua-no-alsa-suspend" = {
+  # falling back to the default profile (this bit the internal DMICs once and
+  # must stay).
+  services.pipewire.wireplumber.extraConfig."51-mahua-audio" = {
     "monitor.alsa.rules" = [
-      {
-        matches = [
-          { "node.name" = "~alsa_(output|input).*"; }
-        ];
-        actions = {
-          update-props = {
-            "node.pause-on-idle" = false;
-            "session.suspend-timeout-seconds" = 0;
-          };
-        };
-      }
       {
         matches = [
           { "device.name" = "~alsa_card.*"; }
