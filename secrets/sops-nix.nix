@@ -10,6 +10,9 @@ in
   # /etc/ssh/ssh_host_ed25519_key does not exist here and only warned.
   sops.age.sshKeyPaths = [ ];
   sops.defaultSopsFile = ./secrets.yaml;
+  # YubiKey resident key (sk-ssh-ed25519@openssh.com). Despite the `id_rsa`
+  # filename it is an ed25519 FIDO2 key; the name is kept so existing
+  # known-hosts/agent state and modules/ssh.nix keep pointing at it.
   sops.secrets."ssh_key" = {
     owner = config.users.users.jane.name;
     path = "${jane.home}/.ssh/id_rsa";
@@ -17,6 +20,18 @@ in
   sops.secrets."ssh_pubkey" = {
     owner = config.users.users.jane.name;
     path = "${jane.home}/.ssh/id_rsa.pub";
+  };
+  # Software ed25519 key, the fallback for hosts/remotes where the YubiKey is
+  # not plugged in. `mode` is explicit here (sops-nix defaults to 0400) so the
+  # key is exactly as restrictive as ssh-keygen would leave it.
+  sops.secrets."ssh_key_ed25519" = {
+    owner = config.users.users.jane.name;
+    path = "${jane.home}/.ssh/id_ed25519";
+    mode = "0600";
+  };
+  sops.secrets."ssh_pubkey_ed25519" = {
+    owner = config.users.users.jane.name;
+    path = "${jane.home}/.ssh/id_ed25519.pub";
   };
   sops.secrets."nanogpt_api_key" = {
     owner = config.users.users.jane.name;

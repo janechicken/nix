@@ -19,6 +19,7 @@
     ../../modules/minecraft.nix
     ../../modules/gpg.nix
     ../../modules/u2f-keys.nix
+    ../../modules/ssh.nix
     ../../modules/dolphin.nix
     ../../modules/chess.nix
     ../../modules/zed.nix
