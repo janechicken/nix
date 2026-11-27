@@ -265,11 +265,13 @@
     #   LLCC / NoC interconnect BCMs floored at INT_MAX bandwidth (a permanent
     #   power cost on this board). `timeout` gives up instead of blocking
     #   on that link forever, so the remaining sync_state() callbacks run.
-    # - msm.psr_enabled=1: eDP Panel Self-Refresh in `msm.ko`; the panel then
-    #   refreshes from its own frame buffer on a static screen instead of the
-    #   DPU streaming continuously. One-shot switch: it is in kernelParams (not
-    #   a module option) so it can be dropped/added per-boot from GRUB `e` if
-    #   the ATNA40CT03-0 ever shows PSR artifacts.
+    # - msm.psr_enabled=1 is deliberately NOT here: eDP Panel Self-Refresh on
+    #   this panel (ATNA40CT03-0) makes the screen flash on/off continuously,
+    #   even on a text console. `drm_self_refresh_helper_entry_work` enters
+    #   self-refresh (`driver disabled vblank in self-refresh`) and the exit
+    #   path then hits `WARNING: drm_atomic_helper.c:1302 at
+    #   drm_atomic_helper_commit_crtc_disable`; the panel blanks and relights
+    #   on every cycle. Must stay disabled -- do not re-add it (see BRINGUP.md).
     # - pcie_aspm.policy=powersupersave: push L0s as well as L1/L1SS on both
     #   links. `qcom_pcie_clear_aspm_l0s()` clears the L0s capability on the
     #   root ports, so this mainly documents the intent; it is harmless when the
@@ -288,7 +290,6 @@
       "modprobe.blacklist=qcom_iris"
       "firmware_class.path=/var/lib/mahua-firmware"
       "fw_devlink.sync_state=timeout"
-      "msm.psr_enabled=1"
       "pcie_aspm.policy=powersupersave"
     ];
 
