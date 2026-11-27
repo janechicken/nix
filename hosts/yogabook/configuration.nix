@@ -242,6 +242,82 @@
         "fido2-device=auto"
         "token-timeout=2s"
       ];
+
+      # ── Keep the ATNA40CT03-0 eDP panel powered through stage 1 ──────────
+      # Stage 1 loads the real display stack (`msm`) because the UEFI GOP
+      # scanout is dead by then and `simpledrm` cannot light the panel (see
+      # `hardware-configuration.nix`). `panel-samsung-atna33xc20` then
+      # runtime-autosuspends 2 s after probe unless the CRTC modeset wins that
+      # race, and `atana33xc20_suspend()` powers off `VREG_EDP_3P3` + puts the
+      # TCON into DPCD D3, i.e. a black LUKS prompt.
+      #
+      # The device is `aux-af6c000.displayport-controller` on the `dp-aux` bus,
+      # verified with `udevadm info -a -p /sys/bus/dp-aux/devices/...`:
+      #   KERNEL=="aux-af6c000.displayport-controller"
+      #   SUBSYSTEM=="dp-aux"  DRIVER=="samsung_atana33xc20"
+      # `DRIVER` is the sysfs driver name (`atana33xc20_driver.driver.name`),
+      # NOT the module name `panel_samsung_atna33xc20`.
+      #
+      # The rule is race-free by construction: `device_add()` calls
+      # `bus_probe_device()` *before* emitting the `add` uevent, so the driver is
+      # always bound when udev evaluates `DRIVER`. `bind` is matched too so a
+      # rebind re-applies the values.
+      #
+      # `power/autosuspend_delay_ms = -1` is the load-bearing write: with
+      # `use_autosuspend` set, `update_autosuspend()` (drivers/base/power/
+      # runtime.c) bumps the usage count so the device can never runtime-suspend
+      # *and* calls `rpm_resume()`, which also rescues a panel that already
+      # suspended before udev got here. `power/control = "on"`
+      # (`pm_runtime_forbid()`) is the belt-and-braces equivalent.
+      #
+      # Both pins are released again by `mahua-panel-pm-release` once stage 2
+      # owns the panel -- see the comment on that unit.
+      services.udev.rules = ''
+        ACTION=="add|bind", SUBSYSTEM=="dp-aux", DRIVER=="samsung_atana33xc20", ATTR{power/autosuspend_delay_ms}="-1", ATTR{power/control}="on"
+      '';
+
+      # `systemd-udev-settle.service` is an optional upstream unit (it lives in
+      # `${systemd}/example/systemd/system/`), so it has to be pulled in
+      # explicitly before `mahua-panel-pm` can order itself after it.
+      systemd.additionalUpstreamUnits = [ "systemd-udev-settle.service" ];
+
+      # Belt and suspenders for the udev rule above: re-assert the runtime-PM
+      # pins once the initrd udev queue has drained, and make sure the DP AUX
+      # backlight is never left at 0 (patch `0011` clamps a *zero probed* level
+      # to half max because the TCON blanks permanently on a 0 level).
+      systemd.services.mahua-panel-pm = {
+        description = "Pin the ATNA40CT03-0 eDP panel runtime PM for stage 1";
+        wantedBy = [ "initrd.target" ];
+        wants = [ "systemd-udev-settle.service" ];
+        after = [ "systemd-udev-settle.service" ];
+        # Run inside `sysinit.target`, i.e. before the LUKS/FIDO2 prompt is
+        # drawn, rather than after it.
+        before = [ "sysinit.target" ];
+        unitConfig.DefaultDependencies = false;
+        serviceConfig = {
+          Type = "oneshot";
+          RemainAfterExit = true;
+        };
+        script = ''
+          # No `set -e` games: a missing device must never fail the unit.
+          for dev in /sys/bus/dp-aux/devices/*; do
+            [ -e "$dev/driver" ] || continue
+            [ "$(basename "$(readlink -f "$dev/driver")")" = samsung_atana33xc20 ] || continue
+            printf '%s\n' -1 > "$dev/power/autosuspend_delay_ms" || true
+            printf '%s\n' on > "$dev/power/control" || true
+          done
+
+          for bl in /sys/class/backlight/*; do
+            [ -e "$bl/max_brightness" ] || continue
+            cur=$(cat "$bl/brightness") || continue
+            # Never clobber a level the user (or the firmware) already set.
+            [ "$cur" = 0 ] || continue
+            max=$(cat "$bl/max_brightness") || continue
+            [ "$max" -gt 0 ] || continue
+            printf '%s\n' $((max / 2)) > "$bl/brightness" || true
+          done
+        '';
+      };
     };
 
     kernelPackages = pkgs.linuxPackages_mahua;
@@ -643,6 +719,41 @@
         if ! printf '%s\n' "$name" > "$usb/unbind"; then
           echo "mahua-sleep-quirks: failed to unbind $name" >&2
         fi
+      done
+    '';
+  };
+
+  # ── Release the stage-1 panel runtime-PM pin ─────────────────────────
+  # `mahua-panel-pm` pins `power/autosuspend_delay_ms = -1` (+ `power/control =
+  # "on"`) so the panel cannot autosuspend while stage 1 owns the console. That
+  # pin MUST be dropped once stage 2 runs the real display stack, because
+  # `atana33xc20_unprepare()` deliberately relies on
+  # `pm_runtime_put_sync_suspend()` actually suspending:
+  #   * `atana33xc20_disable()` lowers EL_ON3 and sets `el3_was_on = true`;
+  #   * only `atana33xc20_suspend()` clears it (after powering off
+  #     `VREG_EDP_3P3`);
+  #   * `atana33xc20_enable()` does `WARN_ON(p->el3_was_on)` and returns `-EIO`,
+  #     and the driver's own comment is "Once EL_ON3 drops we absolutely need a
+  #     power cycle before the next enable or the backlight will never come on
+  #     again".
+  # With the pin still in place the usage count never reaches 0, so the first
+  # DPMS off/on cycle (hypridle screen blank, lid close, VT switch) would leave
+  # the OLED dark until reboot. Restore exactly the values
+  # `atana33xc20_probe()` sets, as early in stage 2 as the device is guaranteed
+  # to exist (it was created in stage 1 and survives switch-root).
+  systemd.services.mahua-panel-pm-release = {
+    description = "Release the stage-1 ATNA40CT03-0 panel runtime-PM pin";
+    wantedBy = [ "multi-user.target" ];
+    serviceConfig = {
+      Type = "oneshot";
+      RemainAfterExit = true;
+    };
+    script = ''
+      for dev in /sys/bus/dp-aux/devices/*; do
+        [ -e "$dev/driver" ] || continue
+        [ "$(basename "$(readlink -f "$dev/driver")")" = samsung_atana33xc20 ] || continue
+        printf '%s\n' 2000 > "$dev/power/autosuspend_delay_ms" || true
+        printf '%s\n' auto > "$dev/power/control" || true
       done
     '';
   };
