@@ -51,9 +51,9 @@
   # therefore cannot light the ATNA40CT03-0 AMOLED panel in stage 1 -- only `msm`
   # can.
   #
-  # This is the hardware-verified `system-10` stage-1 set. `5475991` dropped it,
-  # but *not* because the modules failed to bind: `fb0: msmdrmfb` does register in
-  # stage 1. What blacked the panel out ~2 s later was
+  # `5475991` dropped the stage-1 display set, but *not* because the modules
+  # failed to bind: `fb0: msmdrmfb` does register in stage 1 once the set below
+  # is complete. A second, independent failure mode sits on top of it --
   # `panel-samsung-atna33xc20`'s own runtime autosuspend:
   # `atana33xc20_probe()` arms `pm_runtime_set_autosuspend_delay(dev, 2000)` and
   # drops its last reference with `pm_runtime_put_autosuspend()`, so unless the
@@ -62,15 +62,45 @@
   # D3. That race is closed by the `mahua-panel-pm` initrd udev rule + unit in
   # `configuration.nix`, which pin `power/autosuspend_delay_ms = -1`.
   #
-  # Everything the `ae01000.display-controller` component master waits on is
-  # available in stage 1: the DP PHYs (`faac00.phy` = built-in `qcom-edp-phy`,
+  # Everything the `ae01000.display-controller` component master waits on must
+  # be in stage 1: the DP PHYs (`faac00.phy` = built-in `qcom-edp-phy`,
   # `fd5000.phy`/`fde000.phy` = `phy_qcom_qmp_combo` from
   # `availableKernelModules` above), the `af6c000` aux-bus panel
-  # (`panel_samsung_atna33xc20`) and the Adreno GPU (microcode staged below).
-  # `pmic_glink`/`pmic_glink_altmode` still stay OUT of initrd on purpose: they
-  # are only needed for the two USB-C DP controllers' HPD bridges, and binding
-  # `msm_dpu` before ADSP (`remoteproc1`) is up is what black-screened
-  # `system-11` after switch-root.
+  # (`panel_samsung_atna33xc20`), the Adreno GPU (microcode staged below) **and**
+  # the HPD bridges of the two USB-C DP controllers.
+  #
+  # `pmic_glink` + `pmic_glink_altmode` are load-bearing in initrd too, even
+  # though the USB-C DP ports are irrelevant to the LUKS prompt, because `msm`
+  # gates the *whole* component master on them:
+  # `msm_dp_display_probe_tail()` (drivers/gpu/drm/msm/dp/dp_display.c) does
+  # `devm_drm_of_get_bridge(&pdev->dev, of_node, 1, 0)` for every DP instance and
+  # only tolerates `-ENODEV` on a non-eDP port -- it returns `-EPROBE_DEFER` for
+  # `af54000`/`af5c000` until their `port@1` bridge exists, so they never reach
+  # `component_add()` and `msm_dpu` never binds -> no `fb0` -> black LUKS prompt.
+  # Their `port@1` chain is `aux_bridge` (created by `phy_qcom_qmp_combo` via
+  # `drm_aux_bridge_register()`) -> `aux_hpd_bridge` (created by
+  # `pmic_glink_altmode` via `devm_drm_dp_hpd_bridge_add()`). Verified in the
+  # `d8a8637` boot log at the 10 s deferred-probe dump, with the two DP
+  # controllers stuck behind the three aux bridges:
+  #   auxiliary aux_bridge.aux_bridge.{0,1,2}: deferred probe pending:
+  #     aux_bridge.aux_bridge: failed to acquire drm_bridge
+  #   platform af54000.displayport-controller: deferred probe pending
+  #   platform af5c000.displayport-controller: deferred probe pending
+  # They only resolved once stage 2 modprobed `pmic_glink*` at 66.7 s -- i.e.
+  # *after* switch-root at 66.19 s -- which is why the panel lit up only after
+  # unlocking.
+  #
+  # No ADSP firmware is involved, so this needs no kernel/DTS rebuild and no
+  # remoteproc in initrd: `pmic_glink_probe()` creates the `pmic_glink.altmode.N`
+  # auxiliary device synchronously in probe, before any rpmsg endpoint exists,
+  # and `pmic_glink_altmode_probe()` calls `devm_drm_dp_hpd_bridge_add()` for
+  # each `connector@N` child before it even allocates its `pmic_glink` client.
+  # `qcom,glymur-pmic-glink` matches `pmic_glink_soccp_data` (SOCCP, not ADSP) and
+  # carries no `charger_pdr_service_name`, so `pdr_add_lookup()` is skipped
+  # entirely; the `PMIC_RTR_SOCCP_APPS` rpmsg endpoint is only needed later for
+  # HPD notifications on the external ports. `makeModulesClosure` pulls the rest
+  # of the closure automatically (`modinfo -F depends`): `pdr_interface`, `typec`,
+  # `thunderbolt` and `aux-hpd-bridge` -- none of which carries firmware.
   boot.initrd.kernelModules = [
     "i2c_hid_of"
     "hid_multitouch"
@@ -81,6 +111,8 @@
     "drm_dp_aux_bus"
     "drm_display_helper"
     "panel_samsung_atna33xc20"
+    "pmic_glink"
+    "pmic_glink_altmode"
     "msm"
   ];
 
@@ -110,6 +142,8 @@
     "drm_dp_aux_bus"
     "drm_display_helper"
     "panel_samsung_atna33xc20"
+    "pmic_glink"
+    "pmic_glink_altmode"
     "msm"
   ];
 
